@@ -14,6 +14,12 @@ def create_appshell(data):
             "primaryColor": PRIMARY_COLOR,
             "fontFamily": "'Inter', sans-serif",
             "components": {
+                "Button": {"defaultProps": {"fw": 400}},
+                "Alert": {"styles": {"title": {"fontWeight": 500}}},
+                "AvatarGroup": {"styles": {"truncated": {"fontWeight": 500}}},
+                "Badge": {"styles": {"root": {"fontWeight": 500}}},
+                "Progress": {"styles": {"label": {"fontWeight": 500}}},
+                "RingProgress": {"styles": {"label": {"fontWeight": 500}}},
                 "CodeHighlightTabs": {"styles": {"file": {"padding": 12}}},
                 "Table": {
                     "defaultProps": {
@@ -24,25 +30,25 @@ def create_appshell(data):
                     }
                 },
             },
-            "colors":{
-                "dark": [
-                    "#f4f4f5",
-                    "#e4e4e7",
-                    "#d4d4d8",
-                    "#a1a1aa",
-                    "#71717a",
-                    "#52525b",
-                    "#3f3f46",
-                    "#27272a",
-                    "#18181b",
-                    "#09090b",
-                ],
-            }
+            "colors": {
+                "myColor": [
+                    "#F2FFB6",
+                    "#DCF97E",
+                    "#C3E35B",
+                    "#AAC944",
+                    "#98BC20",
+                    "#86AC09",
+                    "#78A000",
+                    "#668B00",
+                    "#547200",
+                    "#455D00",
+                ]
+            },
         },
         children=[
-            dcc.Store(id="theme-store", storage_type="local", data="light"),
             dcc.Location(id="url", refresh="callback-nav"),
-            dmc.NotificationProvider(zIndex=2000),
+            dcc.Store(id="color-scheme-storage", storage_type="local"),
+            dmc.NotificationProvider(),
             dmc.AppShell(
                 [
                     create_header(data),
@@ -52,14 +58,12 @@ def create_appshell(data):
                 ],
                 header={"height": 70},
                 padding="xl",
-                zIndex=1400,
                 navbar={
                     "width": 300,
                     "breakpoint": "lg",
                     "collapsed": {"mobile": True},
                 },
                 aside={
-                    "margin-top":'10px',
                     "width": 300,
                     "breakpoint": "xl",
                     "collapsed": {"desktop": False, "mobile": True},
@@ -70,39 +74,15 @@ def create_appshell(data):
 
 
 clientside_callback(
-    """
-    function(data) {
-        return data
-    }
-    """,
+    "function(colorScheme) {return colorScheme}",
     Output("m2d-mantine-provider", "forceColorScheme"),
-    Input("theme-store", "data"),
+    Input("color-scheme-storage", "data")
 )
 
 clientside_callback(
-    """
-    function(data) {
-        const box = document.getElementById("ethical-ads-box");
-        if (data === "dark") {
-            box.classList.add("dark");
-        } else {
-            box.classList.remove("dark");
-        }
-        return dash_clientside.no_update
-    }
-    """,
-    Output("ethical-ads-box", "className"),
-    Input("theme-store", "data"),
-)
-
-clientside_callback(
-    """
-    function(n_clicks, data) {
-        return data === "dark" ? "light" : "dark";
-    }
-    """,
-    Output("theme-store", "data"),
+    'function(n_clicks, theme) {return theme === "dark" ? "light" : "dark"}',
+    Output("color-scheme-storage", "data"),
     Input("color-scheme-toggle", "n_clicks"),
-    State("theme-store", "data"),
+    State("color-scheme-storage", "data"),
     prevent_initial_call=True,
 )

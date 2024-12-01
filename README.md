@@ -29,8 +29,15 @@ This boilerplate provides a comprehensive environment for developing and documen
    Adjust styles or add custom themes in the `assets` folder.
 6. **Deploy with Docker**
    ```bash
-   docker-compose up
+   brew install docker-compose
    ```
+   ```bash
+   docker build -t dash-docs-boilerplate .
+   ```
+   ```bash
+    docker run -p 8050:8050 dash-docs-boilerplate
+   ```
+   
 
 ### Project Structure
 ```

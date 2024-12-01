@@ -6,3 +6,7 @@ services:
       - "8550:8550"
     networks:
       - monitoring_network
+
+networks:
+  monitoring_network:
+    driver: bridge

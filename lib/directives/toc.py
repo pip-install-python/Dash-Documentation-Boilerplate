@@ -26,20 +26,7 @@ class TOC(TableOfContents):
 
         heading = dmc.Text(title, mb=10, fw=500) if links else None
 
-        # ad = dmc.Box(
-        #     **{
-        #         "data-ea-publisher": "dash-mantine-componentscom",
-        #         "data-ea-manual": True,
-        #         "data-ea-type": "text",
-        #         "className": "flat",
-        #         "id": "ethical-ads-box",
-        #     },
-        #     my=25,
-        #     ml=-15
-        # )
-
         content = dmc.Stack([
-            # ad,
             heading, *links, dmc.Space(h=20)
         ], gap=6, px=25)
         return dmc.AppShellAside(

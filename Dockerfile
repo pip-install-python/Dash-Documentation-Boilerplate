@@ -7,13 +7,21 @@ WORKDIR /app
 # Update pip
 RUN pip install --upgrade pip
 
+# Install pandas first
+RUN pip install pandas>=1.2.3
+
+# Install plotly explicitly
+RUN pip install plotly>=5.0.0
+
+# Install pandas first
+RUN pip install pydantic>=2.3.0
+
+# Now install other requirements
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Output the version of dash-mantine-components
-RUN pip show dash-mantine-components
-
-COPY package.json package-lock.json ./
+# Install node dependencies
+COPY package.json ./
 RUN npm install
 
 COPY . .
