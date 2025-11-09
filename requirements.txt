@@ -19,5 +19,8 @@ python-frontmatter>=1.0.0
 markdown2dash
 pydantic>=2.3.0
 
+# AI/LLM Integration & SEO
+dash-improve-my-llms>=0.3.0
+
 # Production Server
 gunicorn>=21.2.0

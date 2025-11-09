@@ -5,6 +5,51 @@
         <title>{%title%}</title>
         {%favicon%}
         {%css%}
+
+        <!-- LLM Discovery Meta Tags -->
+        <meta name="llms-txt" content="/llms.txt">
+        <meta name="llms-page-json" content="/page.json">
+        <meta name="llms-architecture" content="/architecture.txt">
+
+        <!-- Structured Data for LLMs and Search Engines -->
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Dash Documentation Boilerplate",
+            "description": "A modern, responsive documentation system for Dash applications",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Any",
+            "documentation": {
+                "@type": "TechArticle",
+                "url": "/llms.txt",
+                "name": "LLM-friendly Documentation"
+            },
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            }
+        }
+        </script>
+
+        <!-- Noscript fallback with direct links for bots -->
+        <noscript>
+            <div style="padding: 20px; font-family: sans-serif; max-width: 800px; margin: 0 auto;">
+                <h1>Dash Documentation Boilerplate</h1>
+                <p>This application requires JavaScript. For AI/LLM access and documentation:</p>
+                <ul>
+                    <li><a href="/llms.txt">LLM-friendly documentation (llms.txt)</a></li>
+                    <li><a href="/page.json">Technical architecture (page.json)</a></li>
+                    <li><a href="/architecture.txt">Application overview (architecture.txt)</a></li>
+                    <li><a href="/sitemap.xml">Sitemap (sitemap.xml)</a></li>
+                    <li><a href="/robots.txt">Robots.txt (robots.txt)</a></li>
+                </ul>
+                <p>These endpoints provide comprehensive information about the application structure,
+                   components, and functionality in formats optimized for LLMs and search engines.</p>
+            </div>
+        </noscript>
+
         <!-- Google Analytics Can Go Here -->
 
     </head>
