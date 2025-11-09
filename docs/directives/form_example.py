@@ -18,8 +18,7 @@ component = html.Div([
             placeholder="your.email@example.com",
             id="form-email",
             required=True,
-            leftSection=DashIconify(icon="mdi:email"),
-            type="email"
+            leftSection=DashIconify(icon="mdi:email")
         ),
         dmc.PasswordInput(
             label="Password",

@@ -1,4 +1,4 @@
-from dash import html, callback, Input, Output, dcc
+from dash import html, callback, Input, Output, State, dcc
 import dash_mantine_components as dmc
 
 # Sample data structure

@@ -1,4 +1,5 @@
 from dash import html, dcc, callback, Input, Output
+import dash_mantine_components as dmc
 import plotly.graph_objects as go
 from collections import deque
 import random
