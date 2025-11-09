@@ -9,7 +9,6 @@ from lib.constants import PRIMARY_COLOR
 def create_appshell(data):
     return dmc.MantineProvider(
         id="m2d-mantine-provider",
-        forceColorScheme="light",
         theme={
             "primaryColor": PRIMARY_COLOR,
             "fontFamily": "'Inter', sans-serif",
@@ -73,15 +72,56 @@ def create_appshell(data):
     )
 
 
+# Initialize theme from localStorage or browser preference on page load
 clientside_callback(
-    "function(colorScheme) {return colorScheme}",
+    """
+    function(pathname) {
+        // Check if theme is already stored in localStorage
+        const storedTheme = localStorage.getItem('color-scheme-storage');
+        if (storedTheme) {
+            try {
+                const parsed = JSON.parse(storedTheme);
+                return parsed;
+            } catch (e) {
+                // If parsing fails, fall through to default logic
+            }
+        }
+
+        // Check browser preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+
+        // Default to light theme
+        return 'light';
+    }
+    """,
+    Output("color-scheme-storage", "data"),
+    Input("url", "pathname"),
+)
+
+# Apply theme from storage to MantineProvider
+clientside_callback(
+    """
+    function(colorScheme) {
+        // Default to light if no theme is set
+        return colorScheme || 'light';
+    }
+    """,
     Output("m2d-mantine-provider", "forceColorScheme"),
     Input("color-scheme-storage", "data")
 )
 
+# Toggle theme when button is clicked
 clientside_callback(
-    'function(n_clicks, theme) {return theme === "dark" ? "light" : "dark"}',
-    Output("color-scheme-storage", "data"),
+    """
+    function(n_clicks, theme) {
+        // Toggle between light and dark
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        return newTheme;
+    }
+    """,
+    Output("color-scheme-storage", "data", allow_duplicate=True),
     Input("color-scheme-toggle", "n_clicks"),
     State("color-scheme-storage", "data"),
     prevent_initial_call=True,
