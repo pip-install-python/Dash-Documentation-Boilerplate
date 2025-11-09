@@ -112,12 +112,27 @@ Embed interactive Dash components from Python modules:
 
 This will import and render the `component` variable from `docs/my-component/example.py`.
 
+**Tip:** Use `:code: false` to hide the code and show only the rendered output:
+
+```markdown
+.. exec::docs.my-component.example
+    :code: false
+```
+
 ### Display Source Code - `.. source::`
 
 Show syntax-highlighted source code:
 
 ```markdown
 .. source::docs/my-component/example.py
+```
+
+**Tip:** Make long code collapsible:
+
+```markdown
+.. source::docs/my-component/example.py
+    :defaultExpanded: false
+    :withExpandedButton: true
 ```
 
 ### Component Props - `.. kwargs::`
@@ -127,6 +142,143 @@ Auto-generate a props documentation table:
 ```markdown
 .. kwargs::dmc.Button
 ```
+
+---
+
+## Directive Options
+
+The custom directives support **options** that control how content is displayed. Options are specified using a colon syntax after the directive.
+
+### Common Directive Options
+
+#### Option: code false - Hide Source Code Display
+
+Use with `.. exec::` to show only the rendered component without the code:
+
+```markdown
+.. exec::docs.my-component.example
+    :code: false
+```
+
+**When to use:**
+- ✅ You want to show the interactive demo without cluttering the page
+- ✅ The code will be shown separately with `.. source::`
+- ✅ The example is self-explanatory and code isn't needed inline
+
+**Example:**
+```markdown
+Here's an interactive demo:
+
+.. exec::docs.data-visualization.basic_chart
+    :code: false
+
+Source code:
+
+.. source::docs/data-visualization/basic_chart.py
+```
+
+#### Option: defaultExpanded false - Collapse Code by Default
+
+Use with `.. source::` to show code in a collapsed state initially:
+
+```markdown
+.. source::docs/my-component/example.py
+    :defaultExpanded: false
+```
+
+**When to use:**
+- ✅ Long source files that might overwhelm the page
+- ✅ Optional/advanced code that users can view if interested
+- ✅ Multiple code examples on one page
+
+#### Option: withExpandedButton true - Add Expand/Collapse Button
+
+Use with `.. source::` to add an interactive expand/collapse button:
+
+```markdown
+.. source::docs/my-component/example.py
+    :defaultExpanded: false
+    :withExpandedButton: true
+```
+
+**When to use:**
+- ✅ Combined with `:defaultExpanded: false` for collapsible code
+- ✅ Giving users control over viewing source code
+- ✅ Keeping documentation clean while making code accessible
+
+### Combining Options
+
+You can combine multiple options for fine-grained control:
+
+```markdown
+## Interactive Demo
+
+The component in action:
+
+.. exec::docs.components.advanced-example
+    :code: false
+
+<Click to view source code>
+
+.. source::docs/components/advanced-example.py
+    :defaultExpanded: false
+    :withExpandedButton: true
+```
+
+This pattern creates a clean documentation flow:
+1. User sees the interactive demo first
+2. User can optionally expand to view the source code
+3. Page stays uncluttered for quick scanning
+
+### Complete Example
+
+Here's a real-world example combining all these options:
+
+```markdown
+---
+name: My Component
+description: An awesome interactive component
+endpoint: /components/my-component
+---
+
+.. toc::
+
+## Overview
+
+This component provides interactive data filtering...
+
+## Live Demo
+
+Try it out below:
+
+.. exec::docs.components.my-component.demo
+    :code: false
+
+Want to see how it works? View the source:
+
+.. source::docs/components/my-component/demo.py
+    :defaultExpanded: false
+    :withExpandedButton: true
+
+## API Reference
+
+Component props documentation:
+
+.. kwargs::dmc.MyComponent
+```
+
+### Best Practices
+
+**✅ Do:**
+- Use `:code: false` when showing code separately with `.. source::`
+- Collapse long code files with `:defaultExpanded: false`
+- Add expand buttons for optional code viewing
+- Keep the user experience in mind - don't overwhelm with code
+
+**❌ Don't:**
+- Hide code without providing a way to view it
+- Use `:code: false` for simple examples where seeing code helps understanding
+- Collapse very short code snippets (< 20 lines)
 
 ---
 
@@ -354,7 +506,7 @@ Always include `.. toc::` at the top of long documentation pages.
 
 ### 4. Show Code and Results
 
-Use `.. exec::` and `.. source::` together to show both the code and the result.
+Use `.. exec::` and `.. source::` together to show both the code and the result. Consider using `:code: false` with exec and `:defaultExpanded: false` with source for cleaner presentation.
 
 ### 5. Test Your Examples
 
