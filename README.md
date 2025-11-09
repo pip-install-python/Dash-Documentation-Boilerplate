@@ -338,12 +338,6 @@ DASH_PORT=8553
 - **Changelog**: See [CHANGELOG.md](CHANGELOG.md)
 - **Examples**: Check the `/docs/example/` folder
 
-### Migration Guides
-If upgrading from an older version, see:
-- [Migration README](MIGRATION_README.md) - Quick start
-- [Migration Checklist](MIGRATION_CHECKLIST.md) - Step-by-step guide
-- [Code Changes Summary](CODE_CHANGES_SUMMARY.md) - Detailed code changes
-
 ---
 
 ## 🤝 Contributing
@@ -445,16 +439,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🚀 What's Next?
-
-### Roadmap
-- [ ] Additional markdown directives
-- [ ] Component search with fuzzy matching
-- [ ] Auto-generated API documentation from docstrings
-- [ ] Multi-language support
-- [ ] PDF export functionality
-- [ ] More theme options and customization
-
 ### Want to Contribute?
 Check out open issues labeled [`good first issue`](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/labels/good%20first%20issue)
 
@@ -465,6 +449,8 @@ Check out open issues labeled [`good first issue`](https://github.com/pip-instal
 **[⬆ Back to Top](#dash-documentation-boilerplate)**
 
 Made with ❤️ by the Dash community
+
+Pip Install Python LLC @ https://plotly.pro
 
 **Star this repo** if you find it useful! ⭐
 
