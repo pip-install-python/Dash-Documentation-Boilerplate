@@ -4,27 +4,30 @@ from dash_iconify import DashIconify
 
 
 def create_link(icon, href):
+    """Create an external link icon button"""
     return dmc.Anchor(
         dmc.ActionIcon(
-            DashIconify(icon=icon, width=25), variant="transparent", size="lg", color="blue"
+            DashIconify(icon=icon, width=22),
+            variant="subtle",
+            size="lg",
+            color="gray",
         ),
         href=href,
         target="_blank",
-        visibleFrom="xs",
     )
 
 
 def create_search(data):
+    """Create searchable dropdown for component navigation"""
     return dmc.Select(
         id="select-component",
-        placeholder="Search",
-        mt=-2,
+        placeholder="Search pages...",
         searchable=True,
         clearable=True,
-        w=250,
-        nothingFoundMessage="Nothing Found!",
-        rightSectionWidth=60,
-        leftSection=DashIconify(icon="mingcute:search-3-line"),
+        w=240,
+        size="sm",
+        nothingFoundMessage="No pages found",
+        leftSection=DashIconify(icon="mingcute:search-3-line", width=18),
         data=[
             {"label": component["name"], "value": component["path"]}
             for component in data
@@ -32,81 +35,87 @@ def create_search(data):
         ],
         visibleFrom="sm",
         comboboxProps={"zIndex": 2000},
+        styles={
+            "input": {
+                "borderColor": "var(--mantine-color-gray-4)",
+            }
+        }
     )
 
 
 def create_header(data):
+    """Create application header with logo, search, and theme toggle"""
     return dmc.AppShellHeader(
-        px=25,
-        children=[
-            dmc.Stack(
-                justify="center",
-                h=70,
-                children=dmc.Grid(
-                    justify="space-between",
-                    children=[
-                        dmc.GridCol(
+        dmc.Group(
+            [
+                # Left section: Hamburger menu + Logo
+                dmc.Group(
+                    [
+                        dmc.ActionIcon(
+                            DashIconify(icon="radix-icons:hamburger-menu", width=22),
+                            id="drawer-hamburger-button",
+                            variant="subtle",
+                            size="lg",
+                            color="gray",
+                            hiddenFrom="md",
+                        ),
+                        dmc.Anchor(
                             dmc.Group(
                                 [
-                                    dmc.ActionIcon(
-                                        DashIconify(
-                                            icon="radix-icons:hamburger-menu",
-                                            width=25,
-                                        ),
-                                        id="drawer-hamburger-button",
-                                        variant="transparent",
-                                        size="lg",
-                                        hiddenFrom="lg",
-                                        style={'color': '#0094ce'}
+                                    html.Img(
+                                        src=get_asset_url('dash_documentation_boilerplate.png'),
+                                        style={'height': '36px', 'width': '36px'}
                                     ),
-                                    dmc.Anchor(
-                                         [html.Img(src=get_asset_url('dash_documentation_boilerplate.png'), style={'height':'40px', 'width':'40px', 'margin-right':'8px'}), "Boilerplate"], size="xl", href="/", underline=False,
-                                    style={'color': '#0094ce', 'display': 'flex', 'align-items': 'center'}
+                                    dmc.Text(
+                                        "Dash Docs",
+                                        size="lg",
+                                        fw=700,
+                                        c="teal",
                                     ),
                                 ],
-                                gap="md",
+                                gap="sm",
                             ),
-                            span="content",
-                        ),
-                        dmc.GridCol(
-                            span="auto",
-                            children=dmc.Group(
-                                justify="flex-end",
-                                h=31,
-                                gap="md",
-                                children=[
-                                    create_search(data),
-                                    create_link(
-                                        "radix-icons:github-logo",
-                                        "https://github.com/pip-install-python/Dash-Documentation-Boilerplate",
-
-                                    ),
-                                    dmc.ActionIcon(
-                                        [
-                                            DashIconify(
-                                                icon="radix-icons:sun",
-                                                width=25,
-                                                id="light-theme-icon",
-                                            ),
-                                            DashIconify(
-                                                icon="radix-icons:moon",
-                                                width=25,
-                                                id="dark-theme-icon",
-                                            ),
-                                        ],
-                                        variant="transparent",
-                                        color="yellow",
-                                        id="color-scheme-toggle",
-                                        size="lg",
-
-                                    ),
-                                ],
-                            ),
+                            href="/",
+                            underline=False,
                         ),
                     ],
+                    gap="md",
                 ),
-            )
-        ],
+
+                # Right section: Search + GitHub + Theme toggle
+                dmc.Group(
+                    [
+                        create_search(data),
+                        create_link(
+                            "radix-icons:github-logo",
+                            "https://github.com/pip-install-python/Dash-Documentation-Boilerplate",
+                        ),
+                        dmc.ActionIcon(
+                            [
+                                DashIconify(
+                                    icon="radix-icons:sun",
+                                    width=22,
+                                    id="light-theme-icon",
+                                ),
+                                DashIconify(
+                                    icon="radix-icons:moon",
+                                    width=22,
+                                    id="dark-theme-icon",
+                                ),
+                            ],
+                            variant="subtle",
+                            color="yellow",
+                            id="color-scheme-toggle",
+                            size="lg",
+                        ),
+                    ],
+                    gap="sm",
+                ),
+            ],
+            justify="space-between",
+            h=70,
+            px="xl",
+        ),
     )
 
 

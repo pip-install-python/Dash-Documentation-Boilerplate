@@ -1,67 +1,138 @@
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 from dash import html
+
 excluded_links = [
     "/404",
-    "/getting-started",
     "/styles-api",
     "/style-props",
     "/dash-iconify",
-    "/",
     "/migration",
     "/learning-resources",
 ]
 
-category_data = {
-    "API": {"icon": "material-symbols:trackpad-input-rounded"},
-}
+
+def create_nav_link(icon, text, href, external=False):
+    """Create a styled navigation link with icon"""
+    return dmc.Anchor(
+        dmc.Group(
+            [
+                DashIconify(icon=icon, width=18),
+                dmc.Text(text, size="sm", fw=500),
+            ],
+            gap="sm",
+        ),
+        href=href,
+        target="_blank" if external else None,
+        className="navbar-link",
+        underline=False,
+    )
+
+
+def create_nav_section(title, links):
+    """Create a navigation section with a title and links"""
+    return dmc.Stack(
+        [
+            dmc.Text(
+                title,
+                size="xs",
+                fw=700,
+                tt="uppercase",
+                c="dimmed",
+                mb="xs",
+            ),
+            dmc.Stack(links, gap="xs"),
+        ],
+        gap="sm",
+    )
+
 
 def create_content(data):
+    """Create navbar content with organized sections"""
 
-    body = []
+    # Filter and organize page links
+    page_links = []
     for entry in data:
-        if entry["path"] not in excluded_links:
-            link = dmc.Anchor(
-                [DashIconify(icon=entry["icon"], height=20), entry["name"]],
-                href=entry["path"],
-                className="navbar-link",
+        if entry["path"] not in excluded_links and entry["path"] != "/":
+            page_links.append(
+                create_nav_link(
+                    entry.get("icon", "fluent:document-24-regular"),
+                    entry["name"],
+                    entry["path"]
+                )
             )
-            body.append(link)
 
     return dmc.ScrollArea(
         offsetScrollbars=True,
         type="scroll",
         style={"height": "100%"},
-        children=dmc.Stack(gap=0, children=[
-            dmc.Anchor([DashIconify(icon="fluent:star-24-regular", height=20), "Introduction"], href="/", className="navbar-link",),
-            dmc.Divider(label="Components", mt="2rem", mb="1rem", labelPosition="left", pl="1rem"),
-            *body[::-1],
-            dmc.Divider(label="Awesome Dash", mt="2rem", mb="1rem", labelPosition="left", pl="1rem"),
-            dmc.Anchor([DashIconify(icon="fluent-mdl2:forum", height=20), "Dash Forum"],
-                       href="https://community.plotly.com/",
-                       className="navbar-link", ),
-            dmc.Anchor([DashIconify(icon="ic:baseline-design-services", height=20), "Mantine"], href="https://www.dash-mantine-components.com/",
-                       className="navbar-link", ),
-            dmc.Anchor([DashIconify(icon="solar:box-bold-duotone", height=20), "Pip Components"], href="https://pip-install-python.com/",
-                       className="navbar-link", ),
+        children=dmc.Stack(
+            [
+                # Home link
+                create_nav_link(
+                    "fluent:home-24-regular",
+                    "Home",
+                    "/"
+                ),
 
-        ], px="1rem", py="2rem"),
+                # Documentation Pages Section
+                dmc.Divider(mt="md", mb="sm"),
+                create_nav_section(
+                    "Documentation",
+                    page_links[::-1]  # Reverse to show newest first
+                ),
+
+                # External Resources Section
+                dmc.Divider(mt="lg", mb="sm"),
+                create_nav_section(
+                    "Resources",
+                    [
+                        create_nav_link(
+                            "fluent-mdl2:forum",
+                            "Dash Community",
+                            "https://community.plotly.com/",
+                            external=True
+                        ),
+                        create_nav_link(
+                            "ic:baseline-design-services",
+                            "Mantine Components",
+                            "https://www.dash-mantine-components.com/",
+                            external=True
+                        ),
+                        create_nav_link(
+                            "solar:box-bold-duotone",
+                            "Pip Components",
+                            "https://pip-install-python.com/",
+                            external=True
+                        ),
+                    ]
+                ),
+            ],
+            gap="xs",
+            p="md",
+        ),
     )
 
 
 def create_navbar(data):
-    return dmc.AppShellNavbar(children=create_content(data))
+    """Create the main application navbar"""
+    return dmc.AppShellNavbar(
+        children=create_content(data),
+        style={"borderRight": "1px solid var(--mantine-color-gray-3)"}
+    )
 
 
 def create_navbar_drawer(data):
+    """Create mobile drawer navigation"""
     return dmc.Drawer(
         id="components-navbar-drawer",
         overlayProps={"opacity": 0.55, "blur": 3},
         zIndex=1500,
-        offset=10,
+        offset=8,
         radius="md",
-        withCloseButton=False,
-        size="75%",
+        withCloseButton=True,
+        size="280px",
         children=create_content(data),
         trapFocus=False,
+        position="left",
     )

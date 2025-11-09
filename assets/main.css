@@ -1,8 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap');
 
 html {
     scroll-behavior: smooth;
     scroll-padding-top: 90px;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Improved text readability */
+p {
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* Better heading spacing */
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+}
+
+h1:first-child,
+h2:first-child,
+h3:first-child {
+    margin-top: 0;
+}
+
+/* Link styling */
+a {
+    transition: all 0.2s ease;
+}
+
+/* Better list spacing */
+ul, ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+li {
+    margin-bottom: 0.5rem;
+}
+
+/* Blockquote styling */
+blockquote {
+    border-left: 4px solid var(--mantine-color-teal-5);
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: var(--mantine-color-dimmed);
 }
 
 input:invalid {

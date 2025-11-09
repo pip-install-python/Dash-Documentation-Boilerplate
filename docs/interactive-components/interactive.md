@@ -23,7 +23,7 @@ Callbacks are the heart of interactivity in Dash. They connect component propert
 A basic button that updates text:
 
 .. exec::docs.interactive-components.simple_callback
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/simple_callback.py
@@ -35,7 +35,7 @@ Source code:
 Handle multiple input sources in a single callback:
 
 .. exec::docs.interactive-components.multiple_inputs
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/multiple_inputs.py
@@ -47,7 +47,7 @@ Source code:
 Use `State` to access component values without triggering the callback:
 
 .. exec::docs.interactive-components.state_example
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/state_example.py
@@ -59,7 +59,7 @@ Source code:
 Create dynamic components with pattern-matching callbacks:
 
 .. exec::docs.interactive-components.pattern_matching
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/pattern_matching.py
@@ -71,7 +71,7 @@ Source code:
 Connect multiple callbacks to create complex workflows:
 
 .. exec::docs.interactive-components.chained_callbacks
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/chained_callbacks.py
@@ -83,7 +83,7 @@ Source code:
 Provide visual feedback during long-running operations:
 
 .. exec::docs.interactive-components.loading_states
-
+    :code: false
 Source code:
 
 .. source::docs/interactive-components/loading_states.py

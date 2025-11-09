@@ -24,12 +24,15 @@ metadata, content = frontmatter.parse(md_file.read_text())
 # directives = [Admonition(), BlockExec(), Divider(), Image(), Kwargs(), SC(), TOC()]
 # parse = create_parser(directives)
 
-layout = html.Div(
-    [
-        dmc.Container(
-            size="lg",
-            mt=30,
-            children=dcc.Markdown(content)
-        ),
+layout = dmc.Container(
+    size="lg",
+    py="xl",
+    children=[
+        dcc.Markdown(
+            content,
+            style={
+                "maxWidth": "none",  # Allow Container to control width
+            }
+        )
     ]
 )

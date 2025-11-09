@@ -10,25 +10,75 @@ def create_appshell(data):
     return dmc.MantineProvider(
         id="m2d-mantine-provider",
         theme={
+            # Core Color System
             "primaryColor": PRIMARY_COLOR,
-            "fontFamily": "'Inter', sans-serif",
-            "components": {
-                "Button": {"defaultProps": {"fw": 400}},
-                "Alert": {"styles": {"title": {"fontWeight": 500}}},
-                "AvatarGroup": {"styles": {"truncated": {"fontWeight": 500}}},
-                "Badge": {"styles": {"root": {"fontWeight": 500}}},
-                "Progress": {"styles": {"label": {"fontWeight": 500}}},
-                "RingProgress": {"styles": {"label": {"fontWeight": 500}}},
-                "CodeHighlightTabs": {"styles": {"file": {"padding": 12}}},
-                "Table": {
-                    "defaultProps": {
-                        "highlightOnHover": True,
-                        "withTableBorder": True,
-                        "verticalSpacing": "sm",
-                        "horizontalSpacing": "md",
-                    }
-                },
+            "primaryShade": {"light": 6, "dark": 8},
+
+            # Typography System
+            "fontFamily": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            "fontFamilyMonospace": "ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace",
+            "headings": {
+                "fontFamily": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                "fontWeight": 600,
+                "sizes": {
+                    "h1": {"fontSize": "2.125rem", "lineHeight": 1.3, "fontWeight": 700},
+                    "h2": {"fontSize": "1.625rem", "lineHeight": 1.35, "fontWeight": 700},
+                    "h3": {"fontSize": "1.375rem", "lineHeight": 1.4, "fontWeight": 600},
+                    "h4": {"fontSize": "1.125rem", "lineHeight": 1.45, "fontWeight": 600},
+                    "h5": {"fontSize": "1rem", "lineHeight": 1.5, "fontWeight": 600},
+                    "h6": {"fontSize": "0.875rem", "lineHeight": 1.5, "fontWeight": 600},
+                }
             },
+            "fontSizes": {
+                "xs": "0.75rem",    # 12px
+                "sm": "0.875rem",   # 14px
+                "md": "1rem",       # 16px - base body text
+                "lg": "1.125rem",   # 18px
+                "xl": "1.25rem",    # 20px
+            },
+            "lineHeights": {
+                "xs": 1.4,
+                "sm": 1.45,
+                "md": 1.55,  # For body text
+                "lg": 1.6,
+                "xl": 1.65,
+            },
+
+            # Spacing System (based on 4px unit)
+            "spacing": {
+                "xs": "0.5rem",   # 8px
+                "sm": "0.75rem",  # 12px
+                "md": "1rem",     # 16px
+                "lg": "1.5rem",   # 24px
+                "xl": "2rem",     # 32px
+            },
+
+            # Border Radius System
+            "radius": {
+                "xs": "0.25rem",  # 4px
+                "sm": "0.375rem", # 6px
+                "md": "0.5rem",   # 8px
+                "lg": "0.75rem",  # 12px
+                "xl": "1rem",     # 16px
+            },
+            "defaultRadius": "md",
+
+            # Shadow System
+            "shadows": {
+                "xs": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+                "sm": "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+                "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                "xl": "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            },
+
+            # Color Contrast
+            "black": "#1a1b1e",  # Softer black instead of pure #000000
+            "white": "#ffffff",
+            "autoContrast": True,
+            "luminanceThreshold": 0.3,
+
+            # Custom Colors
             "colors": {
                 "myColor": [
                     "#F2FFB6",
@@ -43,6 +93,79 @@ def create_appshell(data):
                     "#455D00",
                 ]
             },
+
+            # Global Component Styling
+            "components": {
+                "Button": {
+                    "defaultProps": {
+                        "fw": 500,
+                        "radius": "md",
+                    }
+                },
+                "Card": {
+                    "defaultProps": {
+                        "shadow": "sm",
+                        "padding": "lg",
+                        "radius": "md",
+                        "withBorder": True,
+                    }
+                },
+                "Paper": {
+                    "defaultProps": {
+                        "shadow": "xs",
+                        "padding": "md",
+                        "radius": "md",
+                    }
+                },
+                "TextInput": {
+                    "defaultProps": {
+                        "radius": "md",
+                    }
+                },
+                "Select": {
+                    "defaultProps": {
+                        "radius": "md",
+                    }
+                },
+                "Title": {
+                    "styles": lambda theme: {
+                        "root": {
+                            "marginBottom": theme["spacing"]["sm"]
+                        }
+                    }
+                },
+                "Text": {
+                    "defaultProps": {
+                        "size": "md",
+                    }
+                },
+                "Alert": {
+                    "defaultProps": {
+                        "radius": "md",
+                    },
+                    "styles": {"title": {"fontWeight": 600}}
+                },
+                "Badge": {
+                    "defaultProps": {
+                        "radius": "md",
+                    },
+                    "styles": {"root": {"fontWeight": 600}}
+                },
+                "Table": {
+                    "defaultProps": {
+                        "highlightOnHover": True,
+                        "withTableBorder": True,
+                        "verticalSpacing": "sm",
+                        "horizontalSpacing": "md",
+                        "striped": True,
+                    }
+                },
+                "Anchor": {
+                    "defaultProps": {
+                        "underline": "hover",
+                    }
+                },
+            },
         },
         children=[
             dcc.Location(id="url", refresh="callback-nav"),
@@ -53,20 +176,24 @@ def create_appshell(data):
                     create_header(data),
                     create_navbar(data),
                     create_navbar_drawer(data),
-                    dmc.AppShellMain(children=page_container),
+                    dmc.AppShellMain(
+                        children=page_container,
+                        style={"minHeight": "calc(100vh - 70px)"}  # Full height minus header
+                    ),
                 ],
                 header={"height": 70},
                 padding="xl",
                 navbar={
-                    "width": 300,
-                    "breakpoint": "lg",
+                    "width": 280,
+                    "breakpoint": "md",  # Collapse on medium screens and below
                     "collapsed": {"mobile": True},
                 },
                 aside={
-                    "width": 300,
+                    "width": 280,
                     "breakpoint": "xl",
                     "collapsed": {"desktop": False, "mobile": True},
                 },
+                withBorder=True,
             ),
         ],
     )

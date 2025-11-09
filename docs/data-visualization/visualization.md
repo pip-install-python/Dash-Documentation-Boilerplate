@@ -19,10 +19,12 @@ This page demonstrates how to create **interactive data visualizations** using P
 Let's start with a simple bar chart example:
 
 .. exec::docs.data-visualization.basic_chart
-
+    :code: false
 Source code:
 
 .. source::docs/data-visualization/basic_chart.py
+    :defaultExpanded: false
+    :withExpandedButton: true
 
 ---
 
@@ -31,7 +33,7 @@ Source code:
 This example shows multiple lines with hover tooltips and a legend:
 
 .. exec::docs.data-visualization.line_chart
-
+    :code: false
 Source code:
 
 .. source::docs/data-visualization/line_chart.py
@@ -43,7 +45,7 @@ Source code:
 An interactive scatter plot with dropdown filtering:
 
 .. exec::docs.data-visualization.scatter_plot
-
+    :code: false
 Source code:
 
 .. source::docs/data-visualization/scatter_plot.py
@@ -55,7 +57,7 @@ Source code:
 This example demonstrates how to update charts in real-time using intervals:
 
 .. exec::docs.data-visualization.realtime_chart
-
+    :code: false
 Source code:
 
 .. source::docs/data-visualization/realtime_chart.py
@@ -67,7 +69,7 @@ Source code:
 A comprehensive dashboard combining multiple chart types:
 
 .. exec::docs.data-visualization.dashboard
-
+    :code: false
 Source code:
 
 .. source::docs/data-visualization/dashboard.py
