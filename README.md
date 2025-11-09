@@ -35,6 +35,15 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - Interactive code examples with live callbacks
 - Component props documentation auto-generation
 
+### 🤖 AI/LLM & SEO Integration (NEW!)
+- **Automatic AI-friendly documentation** - llms.txt, page.json, architecture.txt
+- **SEO optimization** - sitemap.xml with intelligent priority inference
+- **Bot management** - Control which bots can access your app (blocks AI training, allows AI search)
+- **Structured data** - Schema.org JSON-LD for better search engine understanding
+- **Privacy controls** - mark_hidden() for sensitive pages
+- **Share with AI** - Users can share your app URL with ChatGPT/Claude for help
+- Powered by [dash-improve-my-llms v0.3.0](https://pypi.org/project/dash-improve-my-llms/)
+
 ### 🐋 Production Ready
 - Docker and docker-compose support
 - Gunicorn production server included
