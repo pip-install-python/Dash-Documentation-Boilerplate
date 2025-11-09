@@ -32,9 +32,38 @@ class Kwargs(KwargsBase):
 
         for section in sections:
             attrs = section["attrs"]
-            package = attrs.pop("library", "dash_pydantic_form")
-            component_name = attrs["title"]
-            imported = importlib.import_module(package)
-            component = getattr(imported, component_name)
-            docstring = inspect.getdoc(component).split("----------\n")[-1]
-            attrs["kwargs"] = convert_docstring_to_dict(docstring)
+
+            # Parse the component specification (e.g., "dmc.Button" or "html.Div")
+            component_spec = attrs["title"]
+
+            # Common package name mappings
+            package_map = {
+                "dmc": "dash_mantine_components",
+                "html": "dash.html",
+                "dcc": "dash.dcc",
+                "dash": "dash"
+            }
+
+            # Try to parse package.Component format
+            if "." in component_spec:
+                package_abbr, component_name = component_spec.rsplit(".", 1)
+                package = package_map.get(package_abbr, package_abbr)
+            else:
+                # If no package specified, use default or library attribute
+                package = attrs.pop("library", "dash_mantine_components")
+                component_name = component_spec
+
+            try:
+                imported = importlib.import_module(package)
+                component = getattr(imported, component_name)
+                docstring = inspect.getdoc(component)
+
+                if docstring and "----------" in docstring:
+                    docstring = docstring.split("----------\n")[-1]
+                    attrs["kwargs"] = convert_docstring_to_dict(docstring)
+                else:
+                    # If no proper docstring, use component's __init__ signature
+                    attrs["kwargs"] = []
+            except (ModuleNotFoundError, AttributeError, Exception) as e:
+                # If import fails, just skip kwargs generation
+                attrs["kwargs"] = []
