@@ -128,9 +128,9 @@ def create_appshell(data):
                     }
                 },
                 "Title": {
-                    "styles": lambda theme: {
+                    "styles": {
                         "root": {
-                            "marginBottom": theme["spacing"]["sm"]
+                            "marginBottom": "0.75rem"  # sm spacing
                         }
                     }
                 },
