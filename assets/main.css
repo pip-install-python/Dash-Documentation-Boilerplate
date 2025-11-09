@@ -184,3 +184,61 @@ div .m_46b77525 {
 }
 
 img[alt=logo] { width: 100%; }
+
+/* Theme-aware code blocks */
+:root[data-mantine-color-scheme="light"] pre,
+:root[data-mantine-color-scheme="light"] code {
+    background-color: #f8f9fa;
+    color: #1a1b1e;
+}
+
+:root[data-mantine-color-scheme="dark"] pre,
+:root[data-mantine-color-scheme="dark"] code {
+    background-color: #1a1b1e;
+    color: #c1c2c5;
+}
+
+/* Inline code */
+:root[data-mantine-color-scheme="light"] code {
+    background-color: #f1f3f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+:root[data-mantine-color-scheme="dark"] code {
+    background-color: #25262b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Code blocks */
+:root[data-mantine-color-scheme="light"] pre {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+}
+
+:root[data-mantine-color-scheme="dark"] pre {
+    background-color: #1a1b1e;
+    border: 1px solid #373a40;
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+}
+
+/* Code inside pre blocks */
+:root[data-mantine-color-scheme="light"] pre code {
+    background-color: transparent;
+    padding: 0;
+    color: #1a1b1e;
+}
+
+:root[data-mantine-color-scheme="dark"] pre code {
+    background-color: transparent;
+    padding: 0;
+    color: #c1c2c5;
+}

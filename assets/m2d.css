@@ -34,6 +34,32 @@ h3.m2d-heading {
     margin-bottom: 20px;
 }
 
+/* Theme-aware styling for m2d code blocks */
+:root[data-mantine-color-scheme="light"] .m2d-block-code pre {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #1a1b1e;
+}
+
+:root[data-mantine-color-scheme="dark"] .m2d-block-code pre {
+    background-color: #1a1b1e;
+    border: 1px solid #373a40;
+    color: #c1c2c5;
+}
+
+/* Inline code in markdown content */
+:root[data-mantine-color-scheme="light"] .m2d-paragraph code,
+:root[data-mantine-color-scheme="light"] .m2d-list code {
+    background-color: #f1f3f5;
+    color: #1a1b1e;
+}
+
+:root[data-mantine-color-scheme="dark"] .m2d-paragraph code,
+:root[data-mantine-color-scheme="dark"] .m2d-list code {
+    background-color: #25262b;
+    color: #c1c2c5;
+}
+
 .m2d-block-exec > *:first-child {
     margin-bottom: 10px;
 }
