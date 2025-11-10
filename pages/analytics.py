@@ -129,8 +129,8 @@ def layout():
             n_intervals=0
         ),
 
-        # Store for analytics data
-        dcc.Store(id='analytics-data-store'),
+        # Store for analytics data (load initial data)
+        dcc.Store(id='analytics-data-store', data=load_analytics()),
 
         # Header Section
         dmc.Stack([
