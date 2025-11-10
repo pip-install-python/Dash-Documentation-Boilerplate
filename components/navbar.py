@@ -9,6 +9,7 @@ excluded_links = [
     "/dash-iconify",
     "/migration",
     "/learning-resources",
+    "/analytics/traffic",  # Analytics pages have their own section
 ]
 
 
