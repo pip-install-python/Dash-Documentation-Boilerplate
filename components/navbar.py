@@ -50,17 +50,36 @@ def create_nav_section(title, links):
 def create_content(data):
     """Create navbar content with organized sections"""
 
-    # Filter and organize page links
-    page_links = []
+    # Define the desired order for documentation pages
+    page_order = [
+        "Getting Started",
+        "Custom Directives",
+        "AI/LLM Integration",
+        "Interactive Components",
+        "Data Visualization",
+    ]
+
+    # Create a mapping of page names to their links
+    page_dict = {}
     for entry in data:
         if entry["path"] not in excluded_links and entry["path"] != "/":
-            page_links.append(
-                create_nav_link(
-                    entry.get("icon", "fluent:document-24-regular"),
-                    entry["name"],
-                    entry["path"]
-                )
+            link = create_nav_link(
+                entry.get("icon", "fluent:document-24-regular"),
+                entry["name"],
+                entry["path"]
             )
+            page_dict[entry["name"]] = link
+
+    # Order the links according to page_order
+    page_links = []
+    for page_name in page_order:
+        if page_name in page_dict:
+            page_links.append(page_dict[page_name])
+
+    # Add any remaining pages that aren't in the specified order
+    for name, link in page_dict.items():
+        if name not in page_order:
+            page_links.append(link)
 
     return dmc.ScrollArea(
         offsetScrollbars=True,
@@ -76,14 +95,14 @@ def create_content(data):
                 ),
 
                 # Documentation Pages Section
-                dmc.Divider(mt="md", mb="sm"),
+                dmc.Divider(mt="xs", mb="xs"),
                 create_nav_section(
                     "Documentation",
-                    page_links[::-1]  # Reverse to show newest first
+                    page_links
                 ),
 
                 # External Resources Section
-                dmc.Divider(mt="lg", mb="sm"),
+                dmc.Divider(mt="md", mb="sm"),
                 create_nav_section(
                     "Resources",
                     [
