@@ -392,7 +392,7 @@ When documenting a new component, include the props table:
 
 Keep your Python examples organized by feature:
 
-```
+```text
 docs/
 ├── buttons/
 │   ├── buttons.md
