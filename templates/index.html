@@ -1,64 +1,296 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>{%title%}</title>
-        {%favicon%}
-        {%css%}
+<html lang="en">
+<head>
+    <!-- ========================================================================
+         ANALYTICS SECTION
+         Configure your analytics tracking here
+         ======================================================================== -->
 
-        <!-- LLM Discovery Meta Tags -->
-        <meta name="llms-txt" content="/llms.txt">
-        <meta name="llms-page-json" content="/page.json">
-        <meta name="llms-architecture" content="/architecture.txt">
+    <!-- Google Analytics
+         Replace G-XXXXXXXXXX with your Google Analytics Measurement ID
+         Get your ID from: https://analytics.google.com/
+         Uncomment the lines below to enable -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
 
-        <!-- Structured Data for LLMs and Search Engines -->
-        <script type="application/ld+json">
-        {
-            "@context": "https://schema.org",
-            "@type": "WebApplication",
-            "name": "Dash Documentation Boilerplate",
-            "description": "A modern, responsive documentation system for Dash applications",
-            "applicationCategory": "DeveloperApplication",
-            "operatingSystem": "Any",
-            "documentation": {
-                "@type": "TechArticle",
-                "url": "/llms.txt",
-                "name": "LLM-friendly Documentation"
-            },
-            "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-            }
+    <!-- ========================================================================
+         BASIC META TAGS
+         Essential meta tags for character encoding and responsive design
+         ======================================================================== -->
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- ========================================================================
+         PRIMARY META TAGS
+         These are the main tags that define your site for search engines
+         Customize these for your project
+         ======================================================================== -->
+
+    <!-- Title - Shows in browser tab and search results (50-60 chars optimal) -->
+    <title>Dash Documentation Boilerplate - Modern Dash Documentation System</title>
+
+    <!-- Main title for SEO - should match or complement the <title> tag -->
+    <meta name="title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
+
+    <!-- Description - Shows in search results (150-160 chars optimal) -->
+    <meta name="description" content="A modern, responsive documentation system for Dash applications with Mantine Components, LLM integration, and interactive examples. Build beautiful docs fast.">
+
+    <!-- Keywords - Helps search engines understand your content (optional in 2024) -->
+    <meta name="keywords" content="Python Dash, documentation, Dash Mantine Components, interactive docs, Python documentation, Plotly Dash, markdown docs, technical documentation, developer tools">
+
+    <!-- Author - Your name or organization -->
+    <meta name="author" content="Your Name or Organization">
+
+    <!-- Robots - Tell search engines how to index your site -->
+    <meta name="robots" content="index, follow">
+
+    <!-- Language - Specify the primary language of your content -->
+    <meta name="language" content="English">
+
+    <!-- ========================================================================
+         OPEN GRAPH / FACEBOOK META TAGS
+         These control how your site appears when shared on Facebook, LinkedIn, etc.
+         Learn more: https://ogp.me/
+         ======================================================================== -->
+
+    <meta property="og:type" content="website">
+
+    <!-- OG URL - The canonical URL of your site -->
+    <meta property="og:url" content="https://yourdomain.com/">
+
+    <!-- OG Title - Title shown in social media shares (max 60 chars) -->
+    <meta property="og:title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
+
+    <!-- OG Description - Description shown in social shares (max 200 chars) -->
+    <meta property="og:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
+
+    <!-- OG Image - Preview image for social shares
+         Requirements: 1200x630px, JPG/PNG/GIF, < 8MB
+         Create your image at: https://www.canva.com/ or similar
+         Place in /assets/ folder and update path below -->
+    <meta property="og:image" content="https://yourdomain.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- OG Site Name - Your site/brand name -->
+    <meta property="og:site_name" content="Dash Documentation Boilerplate">
+
+    <!-- ========================================================================
+         TWITTER CARD META TAGS
+         Control how your site appears when shared on Twitter/X
+         Learn more: https://developer.twitter.com/en/docs/twitter-for-websites/cards
+         ======================================================================== -->
+
+    <!-- Card type - summary_large_image shows large preview, summary shows small -->
+    <meta property="twitter:card" content="summary_large_image">
+
+    <!-- Twitter URL - Same as your canonical URL -->
+    <meta property="twitter:url" content="https://yourdomain.com/">
+
+    <!-- Twitter Title - Title for Twitter shares -->
+    <meta property="twitter:title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
+
+    <!-- Twitter Description - Description for Twitter shares -->
+    <meta property="twitter:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
+
+    <!-- Twitter Image - Same as OG image (1200x630px recommended) -->
+    <meta property="twitter:image" content="https://yourdomain.com/assets/og-image.png">
+
+    <!-- Optional: Twitter Creator - Your Twitter handle -->
+    <!-- <meta property="twitter:creator" content="@yourtwitterhandle"> -->
+
+    <!-- ========================================================================
+         FAVICON CONFIGURATION
+         Icons for browser tabs, bookmarks, and mobile home screens
+         Generate favicons at: https://realfavicongenerator.net/
+         ======================================================================== -->
+
+    <!-- Standard favicon (32x32 or 16x16) -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+
+    <!-- PNG favicons for modern browsers -->
+    <!-- <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"> -->
+    <!-- <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"> -->
+
+    <!-- Apple Touch Icon - Shows when site is added to iOS home screen (180x180) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+    <!-- Web App Manifest - Defines how your app appears when installed -->
+    <link rel="manifest" href="/assets/site.webmanifest">
+
+    <!-- Theme color - Sets the browser UI color on mobile (matches your brand) -->
+    <meta name="theme-color" content="#12B886">
+
+    <!-- ========================================================================
+         CANONICAL URL
+         Tells search engines which version of a page is the "main" one
+         Important for preventing duplicate content issues
+         ======================================================================== -->
+
+    <!-- Update with your actual domain -->
+    <link rel="canonical" href="https://yourdomain.com/">
+
+    <!-- ========================================================================
+         SEARCH ENGINE VERIFICATION
+         Verify ownership of your site with Google, Bing, etc.
+         ======================================================================== -->
+
+    <!-- Google Search Console
+         Get your code from: https://search.google.com/search-console -->
+    <!-- <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE"> -->
+
+    <!-- Bing Webmaster Tools
+         Get your code from: https://www.bing.com/webmasters -->
+    <!-- <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE"> -->
+
+    <!-- ========================================================================
+         STRUCTURED DATA (Schema.org)
+         Helps search engines understand your content and show rich results
+         Learn more: https://schema.org/
+         Test your markup: https://search.google.com/test/rich-results
+         ======================================================================== -->
+
+    <!-- Organization Schema - Defines your organization/brand -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Your Organization Name",
+        "description": "A modern documentation system for Dash applications with markdown support, custom directives, and LLM integration.",
+        "url": "https://yourdomain.com",
+        "logo": "https://yourdomain.com/assets/logo.png",
+        "sameAs": [
+            "https://github.com/yourusername",
+            "https://twitter.com/yourusername",
+            "https://www.linkedin.com/company/yourcompany"
+        ],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "your-email@example.com",
+            "contactType": "customer support"
         }
-        </script>
+    }
+    </script>
 
-        <!-- Noscript fallback with direct links for bots -->
-        <noscript>
-            <div style="padding: 20px; font-family: sans-serif; max-width: 800px; margin: 0 auto;">
-                <h1>Dash Documentation Boilerplate</h1>
-                <p>This application requires JavaScript. For AI/LLM access and documentation:</p>
-                <ul>
-                    <li><a href="/llms.txt">LLM-friendly documentation (llms.txt)</a></li>
-                    <li><a href="/page.json">Technical architecture (page.json)</a></li>
-                    <li><a href="/architecture.txt">Application overview (architecture.txt)</a></li>
-                    <li><a href="/sitemap.xml">Sitemap (sitemap.xml)</a></li>
-                    <li><a href="/robots.txt">Robots.txt (robots.txt)</a></li>
-                </ul>
-                <p>These endpoints provide comprehensive information about the application structure,
-                   components, and functionality in formats optimized for LLMs and search engines.</p>
-            </div>
-        </noscript>
+    <!-- Software Application Schema - Defines your application -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Dash Documentation Boilerplate",
+        "description": "A modern, responsive documentation system for Dash applications",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Your Organization Name"
+        },
+        "softwareVersion": "3.2.0",
+        "programmingLanguage": "Python"
+    }
+    </script>
 
-        <!-- Google Analytics Can Go Here -->
+    <!-- ========================================================================
+         LLM DISCOVERY META TAGS
+         These tags help AI assistants discover and use your documentation
+         Part of dash-improve-my-llms integration
+         ======================================================================== -->
 
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
+    <meta name="llms-txt" content="/llms.txt">
+    <meta name="llms-page-json" content="/page.json">
+    <meta name="llms-architecture" content="/architecture.txt">
+
+    <!-- ========================================================================
+         PERFORMANCE OPTIMIZATION
+         Preconnect to external domains to speed up resource loading
+         ======================================================================== -->
+
+    <!-- Google Fonts - If you're using custom fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Common CDNs - Add any CDNs you use -->
+    <!-- <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin> -->
+    <!-- <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin> -->
+
+    <!-- ========================================================================
+         DASH-SPECIFIC TEMPLATE TAGS
+         These are required by Dash - DO NOT MODIFY
+         ======================================================================== -->
+
+    {%metas%}
+    {%favicon%}
+    {%css%}
+
+    <!-- ========================================================================
+         NO-JAVASCRIPT FALLBACK
+         Content shown to users/bots when JavaScript is disabled
+         Provides direct access to documentation for search engines and LLMs
+         ======================================================================== -->
+
+    <noscript>
+        <div style="padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; line-height: 1.6;">
+            <h1>Dash Documentation Boilerplate</h1>
+            <p><strong>This application requires JavaScript to run.</strong></p>
+
+            <h2>For AI/LLM Access and Documentation:</h2>
+            <p>This site provides comprehensive documentation in multiple formats optimized for both humans and AI assistants:</p>
+
+            <ul style="margin: 20px 0;">
+                <li><a href="/llms.txt" style="color: #12B886; text-decoration: none;"><strong>llms.txt</strong></a> - LLM-friendly documentation format</li>
+                <li><a href="/page.json" style="color: #12B886; text-decoration: none;"><strong>page.json</strong></a> - Technical architecture and components</li>
+                <li><a href="/architecture.txt" style="color: #12B886; text-decoration: none;"><strong>architecture.txt</strong></a> - Application structure overview</li>
+                <li><a href="/sitemap.xml" style="color: #12B886; text-decoration: none;"><strong>sitemap.xml</strong></a> - Complete site structure for search engines</li>
+                <li><a href="/robots.txt" style="color: #12B886; text-decoration: none;"><strong>robots.txt</strong></a> - Crawler instructions</li>
+            </ul>
+
+            <p>These endpoints provide detailed information about the application structure, components, functionality, and usage patterns in formats optimized for automated processing.</p>
+
+            <h2>Features:</h2>
+            <ul>
+                <li>Markdown-based documentation with custom directives</li>
+                <li>Interactive component examples with live code</li>
+                <li>Data visualization with Plotly integration</li>
+                <li>Dark/light theme support</li>
+                <li>Mobile-responsive design</li>
+                <li>LLM-friendly documentation formats</li>
+            </ul>
+        </div>
+    </noscript>
+
+</head>
+<body>
+    <!-- ========================================================================
+         APPLICATION ENTRY POINT
+         This is where your Dash application renders
+         DO NOT MODIFY
+         ======================================================================== -->
+
+    {%app_entry%}
+
+    <!-- ========================================================================
+         DASH FOOTER SCRIPTS
+         Required Dash scripts and configuration
+         DO NOT MODIFY
+         ======================================================================== -->
+
+    <footer>
+        {%config%}
+        {%scripts%}
+        {%renderer%}
+    </footer>
+</body>
 </html>
