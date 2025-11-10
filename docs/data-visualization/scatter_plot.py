@@ -4,6 +4,9 @@ import plotly.express as px
 import dash_mantine_components as dmc
 import numpy as np
 
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
+
 # Generate sample data
 np.random.seed(42)
 df = pd.DataFrame({

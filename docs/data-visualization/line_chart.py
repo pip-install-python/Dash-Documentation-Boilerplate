@@ -1,7 +1,11 @@
 from dash import dcc
+import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
 import numpy as np
+
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
 
 # Generate sample time series data
 dates = pd.date_range('2024-01-01', periods=30, freq='D')

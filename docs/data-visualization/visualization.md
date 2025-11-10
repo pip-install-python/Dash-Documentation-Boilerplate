@@ -110,17 +110,23 @@ Plotly Express provides many chart types:
 
 ### Theme Integration
 
-Charts automatically inherit the app's color scheme. To ensure consistency:
+Make charts match your Mantine theme automatically using DMC figure templates:
 
 ```python
+import dash_mantine_components as dmc
 import plotly.express as px
 
-# Use the primary color from your theme
-fig = px.bar(df, x="category", y="value", color_discrete_sequence=["teal"])
+# Register Mantine templates (mantine_light and mantine_dark)
+dmc.add_figure_templates(default="mantine_light")
 
-# Or use Plotly's built-in templates
-fig.update_layout(template="plotly_white")  # or "plotly_dark"
+# Charts now automatically use the Mantine template
+fig = px.bar(df, x="category", y="value")
+
+# The templates match your theme's colors, fonts, and styling
+# For more info: https://www.dash-mantine-components.com/plotly-templates
 ```
+
+All examples on this page use `dmc.add_figure_templates()` to ensure charts render correctly in both light and dark modes.
 
 ### Responsive Charts
 

@@ -5,6 +5,9 @@ from collections import deque
 import random
 from datetime import datetime, timedelta
 
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
+
 # Initialize deque to store recent data points
 MAX_DATA_POINTS = 50
 time_data = deque(maxlen=MAX_DATA_POINTS)

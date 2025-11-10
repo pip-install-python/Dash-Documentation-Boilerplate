@@ -1,6 +1,10 @@
 from dash import dcc
+import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
+
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
 
 # Sample data
 df = pd.DataFrame({
@@ -8,7 +12,7 @@ df = pd.DataFrame({
     "Sales": [120, 95, 180, 140, 165]
 })
 
-# Create bar chart
+# Create bar chart with Mantine template
 fig = px.bar(
     df,
     x="Category",

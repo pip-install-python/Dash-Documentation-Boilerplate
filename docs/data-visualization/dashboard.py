@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 import dash_mantine_components as dmc
 import numpy as np
 
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
+
 # Generate comprehensive sample data
 np.random.seed(42)
 dates = pd.date_range('2024-01-01', periods=90, freq='D')
