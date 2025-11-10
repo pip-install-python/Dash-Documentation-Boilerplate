@@ -1,5 +1,5 @@
 ---
-name: Interactive Components
+name: Interactive .md
 description: Advanced callback patterns and state management examples
 endpoint: /examples/interactive
 package: interactive

@@ -55,7 +55,7 @@ def create_content(data):
         "Getting Started",
         "Custom Directives",
         "AI/LLM Integration",
-        "Interactive Components",
+        "Interactive .md",
         "Data Visualization",
     ]
 
@@ -114,7 +114,7 @@ def create_content(data):
                         ),
                         create_nav_link(
                             "ic:baseline-design-services",
-                            "Mantine Components",
+                            "DMC",
                             "https://www.dash-mantine-components.com/",
                             external=True
                         ),
