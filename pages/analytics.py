@@ -2,9 +2,10 @@
 Analytics Page - Visitor Analytics Dashboard
 
 This page demonstrates visitor tracking with device and bot detection.
+Updates in real-time without requiring page refresh.
 """
 import dash_mantine_components as dmc
-from dash import Input, Output, callback, html, register_page
+from dash import Input, Output, callback, html, register_page, dcc
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
@@ -120,58 +121,17 @@ def get_top_pages(visits, limit=10):
 
 
 def layout():
-    analytics = load_analytics()
-    visits = analytics["visits"]
-    stats = analytics["stats"]
-
-    # Prepare data for charts
-    device_data = [
-        {"name": "Desktop", "value": stats['desktop'], "color": "violet.6"},
-        {"name": "Mobile", "value": stats['mobile'], "color": "blue.6"},
-        {"name": "Tablet", "value": stats['tablet'], "color": "green.6"},
-        {"name": "Bots", "value": stats['bot'], "color": "yellow.6"},
-    ]
-    # Filter out zero values
-    device_data = [d for d in device_data if d["value"] > 0]
-
-    # Bot types data
-    bot_types = get_bot_visits_by_type(visits)
-    bot_color_map = {
-        'training': 'red.6',
-        'search': 'blue.6',
-        'traditional': 'green.6',
-        'unknown': 'gray.6'
-    }
-    bot_data = [
-        {"type": key.capitalize(), "visits": value, "color": bot_color_map.get(key, 'gray.6')}
-        for key, value in bot_types.items()
-    ]
-
-    # Hourly visits data
-    hourly_counts = get_visits_by_hour(visits)
-    hourly_data = [
-        {
-            "hour": hour,
-            "Desktop": counts["desktop"],
-            "Mobile": counts["mobile"],
-            "Tablet": counts["tablet"],
-            "Bots": counts["bot"]
-        }
-        for hour, counts in hourly_counts.items()
-    ]
-
-    # Top pages data
-    top_pages = get_top_pages(visits)
-    top_pages_data = [
-        {"page": page, "visits": count}
-        for page, count in top_pages
-    ]
-
-    # Get recent bot visits with details
-    recent_bot_visits = [v for v in visits if v["device_type"] == "bot"][-20:]
-    recent_bot_visits.reverse()
-
     return dmc.Container([
+        # Interval for auto-refresh every 5 seconds
+        dcc.Interval(
+            id='analytics-interval',
+            interval=5*1000,  # in milliseconds
+            n_intervals=0
+        ),
+
+        # Store for analytics data
+        dcc.Store(id='analytics-data-store'),
+
         # Header Section
         dmc.Stack([
             dmc.Group([
@@ -191,7 +151,7 @@ def layout():
                 children=[
                     dmc.Text([
                         "Real-time visitor analytics tracking device types, bot visits, and page views. ",
-                        "Data updates automatically on each visit."
+                        "Updates automatically every 5 seconds."
                     ], size="sm"),
                 ],
                 title="📊 Analytics Dashboard",
@@ -208,35 +168,30 @@ def layout():
             mb="xl",
             children=[
                 create_stat_card(
-                    value=stats['total'],
                     label="Total Visits",
                     icon="📊",
                     color="violet",
                     card_id="total-stat"
                 ),
                 create_stat_card(
-                    value=stats['desktop'],
                     label="Desktop",
                     icon="🖥️",
                     color="gray",
                     card_id="desktop-stat"
                 ),
                 create_stat_card(
-                    value=stats['mobile'],
                     label="Mobile",
                     icon="📱",
                     color="gray",
                     card_id="mobile-stat"
                 ),
                 create_stat_card(
-                    value=stats['tablet'],
                     label="Tablet",
                     icon="📲",
                     color="gray",
                     card_id="tablet-stat"
                 ),
                 create_stat_card(
-                    value=stats['bot'],
                     label="Bots",
                     icon="🤖",
                     color="gray",
@@ -253,115 +208,70 @@ def layout():
                 spacing="lg",
                 mb="lg",
                 children=[
-                    create_chart_card(
-                        title="Device Distribution",
-                        description="Breakdown by device type",
-                        chart=dmc.PieChart(
-                            id="device-chart",
-                            data=device_data if device_data else [{"name": "No visits yet", "value": 1, "color": "gray.3"}],
-                            size=200,
-                            withLabelsLine=True,
-                            labelsPosition="outside",
-                            labelsType="percent",
-                            withLabels=True,
-                            tooltipDataSource="segment",
-                            h=350,
-                        ) if device_data else dmc.Center(
-                            dmc.Text("No visit data yet", c="dimmed", fs="italic"),
-                            h=350
-                        )
-                    ),
-                    create_chart_card(
-                        title="Bot Types",
-                        description="AI Training, Search, and Traditional bots",
-                        chart=dmc.BarChart(
-                            id="bot-types-chart",
-                            data=bot_data if bot_data else [],
-                            dataKey="type",
-                            series=[{"name": "visits", "color": "blue.6"}],
-                            h=350,
-                            withLegend=False,
-                            yAxisLabel="Visits",
-                            xAxisLabel="Bot Type",
-                        ) if bot_data else dmc.Center(
-                            dmc.Text("No bot visits yet", c="dimmed", fs="italic"),
-                            h=350
-                        )
-                    ),
+                    dmc.Paper([
+                        dmc.Stack([
+                            dmc.Stack([
+                                dmc.Title("Device Distribution", order=3),
+                                dmc.Text("Breakdown by device type", size="sm", c="dimmed"),
+                            ], gap=4),
+                            html.Div(id="device-chart-container"),
+                        ], gap="md"),
+                    ], p="lg", radius="md", withBorder=True, shadow="sm"),
+                    dmc.Paper([
+                        dmc.Stack([
+                            dmc.Stack([
+                                dmc.Title("Bot Types", order=3),
+                                dmc.Text("AI Training, Search, and Traditional bots", size="sm", c="dimmed"),
+                            ], gap=4),
+                            html.Div(id="bot-types-chart-container"),
+                        ], gap="md"),
+                    ], p="lg", radius="md", withBorder=True, shadow="sm"),
                 ]
             ),
 
             # Hourly visits
-            create_chart_card(
-                title="Visits by Hour",
-                description="Activity over the last 24 hours",
-                chart=dmc.AreaChart(
-                    id="hourly-chart",
-                    data=hourly_data,
-                    dataKey="hour",
-                    series=[
-                        {"name": "Desktop", "color": "violet.6"},
-                        {"name": "Mobile", "color": "blue.6"},
-                        {"name": "Tablet", "color": "green.6"},
-                        {"name": "Bots", "color": "yellow.6"},
-                    ],
-                    h=350,
-                    curveType="natural",
-                    withLegend=True,
-                    legendProps={"verticalAlign": "top", "height": 50},
-                    yAxisLabel="Visits",
-                    xAxisLabel="Hour",
-                    type="stacked",
-                ) if hourly_data and any(sum(h.values()) for h in hourly_counts.values()) else dmc.Center(
-                    dmc.Text("No visit data available", c="dimmed", fs="italic"),
-                    h=350
-                )
-            ),
+            dmc.Paper([
+                dmc.Stack([
+                    dmc.Stack([
+                        dmc.Title("Visits by Hour", order=3),
+                        dmc.Text("Activity over the last 24 hours", size="sm", c="dimmed"),
+                    ], gap=4),
+                    html.Div(id="hourly-chart-container"),
+                ], gap="md"),
+            ], p="lg", radius="md", withBorder=True, shadow="sm"),
 
             # Top pages
-            create_chart_card(
-                title="Most Visited Pages",
-                description="Top 10 pages by visit count",
-                chart=dmc.BarChart(
-                    id="top-pages-chart",
-                    data=top_pages_data if top_pages_data else [],
-                    dataKey="page",
-                    series=[{"name": "visits", "color": "violet.6"}],
-                    h=350,
-                    orientation="horizontal",
-                    withLegend=False,
-                    yAxisLabel="Page",
-                    xAxisLabel="Visits",
-                ) if top_pages_data else dmc.Center(
-                    dmc.Text("No page visits yet", c="dimmed", fs="italic"),
-                    h=350
-                )
-            ),
+            dmc.Paper([
+                dmc.Stack([
+                    dmc.Stack([
+                        dmc.Title("Most Visited Pages", order=3),
+                        dmc.Text("Top 10 pages by visit count", size="sm", c="dimmed"),
+                    ], gap=4),
+                    html.Div(id="top-pages-chart-container"),
+                ], gap="md"),
+            ], p="lg", radius="md", withBorder=True, shadow="sm"),
 
             # Bot visits table
             dmc.Paper([
                 dmc.Title("Recent Bot Visits", order=3, mb="md"),
-                create_bot_visits_table(recent_bot_visits) if recent_bot_visits else dmc.Text(
-                    "No bot visits yet. Bots will be tracked automatically.",
-                    c="dimmed",
-                    fs="italic"
-                ),
+                html.Div(id="bot-visits-table-container"),
             ], p="lg", radius="md", withBorder=True),
         ], gap="lg"),
 
     ], size="xl", py="xl")
 
 
-def create_stat_card(value, label, icon, color="violet", card_id=None):
-    """Create a stat card."""
+def create_stat_card(label, icon, color="violet", card_id=None):
+    """Create a stat card with dynamic value."""
     return dmc.Paper([
         dmc.Stack([
             dmc.Group([
                 dmc.Text(icon, size="xl"),
                 dmc.Title(
-                    f"{value:,}",
+                    "0",
                     order=2,
-                    c=f"{color}.6" if color != "gray" else None
+                    c=f"{color}.6" if color != "gray" else None,
+                    id=f"{card_id}-value"
                 ),
             ], gap="xs", justify="center"),
             dmc.Text(label, size="sm", c="dimmed", ta="center"),
@@ -369,23 +279,10 @@ def create_stat_card(value, label, icon, color="violet", card_id=None):
     ], p="lg", radius="md", withBorder=True, shadow="sm", id=card_id)
 
 
-def create_chart_card(title, description, chart):
-    """Create a chart card."""
-    return dmc.Paper([
-        dmc.Stack([
-            dmc.Stack([
-                dmc.Title(title, order=3),
-                dmc.Text(description, size="sm", c="dimmed"),
-            ], gap=4),
-            chart,
-        ], gap="md"),
-    ], p="lg", radius="md", withBorder=True, shadow="sm")
-
-
 def create_bot_visits_table(bot_visits):
     """Create a table showing recent bot visits."""
     if not bot_visits:
-        return dmc.Text("No bot visits recorded yet.", c="dimmed", fs="italic")
+        return dmc.Text("No bot visits yet. Bots will be tracked automatically.", c="dimmed", fs="italic")
 
     rows = []
     for visit in bot_visits:
@@ -431,3 +328,222 @@ def create_bot_visits_table(bot_visits):
         ),
         dmc.TableTbody(rows),
     ], striped=True, highlightOnHover=True, withTableBorder=True, withColumnBorders=True)
+
+
+# Callback to load analytics data periodically
+@callback(
+    Output('analytics-data-store', 'data'),
+    Input('analytics-interval', 'n_intervals')
+)
+def update_analytics_data(n):
+    """Load fresh analytics data."""
+    return load_analytics()
+
+
+# Callbacks to update stat cards
+@callback(
+    Output('total-stat-value', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_total_stat(data):
+    if not data:
+        return "0"
+    return f"{data['stats']['total']:,}"
+
+
+@callback(
+    Output('desktop-stat-value', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_desktop_stat(data):
+    if not data:
+        return "0"
+    return f"{data['stats']['desktop']:,}"
+
+
+@callback(
+    Output('mobile-stat-value', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_mobile_stat(data):
+    if not data:
+        return "0"
+    return f"{data['stats']['mobile']:,}"
+
+
+@callback(
+    Output('tablet-stat-value', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_tablet_stat(data):
+    if not data:
+        return "0"
+    return f"{data['stats']['tablet']:,}"
+
+
+@callback(
+    Output('bot-stat-value', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_bot_stat(data):
+    if not data:
+        return "0"
+    return f"{data['stats']['bot']:,}"
+
+
+# Callback to update device chart
+@callback(
+    Output('device-chart-container', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_device_chart(data):
+    if not data:
+        return dmc.Center(dmc.Text("Loading...", c="dimmed", fs="italic"), h=350)
+
+    stats = data['stats']
+    device_data = [
+        {"name": "Desktop", "value": stats['desktop'], "color": "violet.6"},
+        {"name": "Mobile", "value": stats['mobile'], "color": "blue.6"},
+        {"name": "Tablet", "value": stats['tablet'], "color": "green.6"},
+        {"name": "Bots", "value": stats['bot'], "color": "yellow.6"},
+    ]
+    # Filter out zero values
+    device_data = [d for d in device_data if d["value"] > 0]
+
+    if not device_data:
+        return dmc.Center(dmc.Text("No visit data yet", c="dimmed", fs="italic"), h=350)
+
+    return dmc.PieChart(
+        data=device_data,
+        size=200,
+        withLabelsLine=True,
+        labelsPosition="outside",
+        labelsType="percent",
+        withLabels=True,
+        tooltipDataSource="segment",
+        h=350,
+    )
+
+
+# Callback to update bot types chart
+@callback(
+    Output('bot-types-chart-container', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_bot_types_chart(data):
+    if not data:
+        return dmc.Center(dmc.Text("Loading...", c="dimmed", fs="italic"), h=350)
+
+    bot_types = get_bot_visits_by_type(data['visits'])
+    bot_color_map = {
+        'training': 'red.6',
+        'search': 'blue.6',
+        'traditional': 'green.6',
+        'unknown': 'gray.6'
+    }
+    bot_data = [
+        {"type": key.capitalize(), "visits": value, "color": bot_color_map.get(key, 'gray.6')}
+        for key, value in bot_types.items()
+    ]
+
+    if not bot_data:
+        return dmc.Center(dmc.Text("No bot visits yet", c="dimmed", fs="italic"), h=350)
+
+    return dmc.BarChart(
+        data=bot_data,
+        dataKey="type",
+        series=[{"name": "visits", "color": "blue.6"}],
+        h=350,
+        withLegend=False,
+        yAxisLabel="Visits",
+        xAxisLabel="Bot Type",
+    )
+
+
+# Callback to update hourly chart
+@callback(
+    Output('hourly-chart-container', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_hourly_chart(data):
+    if not data:
+        return dmc.Center(dmc.Text("Loading...", c="dimmed", fs="italic"), h=350)
+
+    hourly_counts = get_visits_by_hour(data['visits'])
+    hourly_data = [
+        {
+            "hour": hour,
+            "Desktop": counts["desktop"],
+            "Mobile": counts["mobile"],
+            "Tablet": counts["tablet"],
+            "Bots": counts["bot"]
+        }
+        for hour, counts in hourly_counts.items()
+    ]
+
+    if not hourly_data or not any(sum(h.values()) for h in hourly_counts.values()):
+        return dmc.Center(dmc.Text("No visit data available", c="dimmed", fs="italic"), h=350)
+
+    return dmc.AreaChart(
+        data=hourly_data,
+        dataKey="hour",
+        series=[
+            {"name": "Desktop", "color": "violet.6"},
+            {"name": "Mobile", "color": "blue.6"},
+            {"name": "Tablet", "color": "green.6"},
+            {"name": "Bots", "color": "yellow.6"},
+        ],
+        h=350,
+        curveType="natural",
+        withLegend=True,
+        legendProps={"verticalAlign": "top", "height": 50},
+        yAxisLabel="Visits",
+        xAxisLabel="Hour",
+        type="stacked",
+    )
+
+
+# Callback to update top pages chart
+@callback(
+    Output('top-pages-chart-container', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_top_pages_chart(data):
+    if not data:
+        return dmc.Center(dmc.Text("Loading...", c="dimmed", fs="italic"), h=350)
+
+    top_pages = get_top_pages(data['visits'])
+    top_pages_data = [
+        {"page": page, "visits": count}
+        for page, count in top_pages
+    ]
+
+    if not top_pages_data:
+        return dmc.Center(dmc.Text("No page visits yet", c="dimmed", fs="italic"), h=350)
+
+    return dmc.BarChart(
+        data=top_pages_data,
+        dataKey="page",
+        series=[{"name": "visits", "color": "violet.6"}],
+        h=350,
+        orientation="horizontal",
+        withLegend=False,
+        yAxisLabel="Page",
+        xAxisLabel="Visits",
+    )
+
+
+# Callback to update bot visits table
+@callback(
+    Output('bot-visits-table-container', 'children'),
+    Input('analytics-data-store', 'data')
+)
+def update_bot_visits_table(data):
+    if not data:
+        return dmc.Text("Loading...", c="dimmed", fs="italic")
+
+    visits = data['visits']
+    recent_bot_visits = [v for v in visits if v["device_type"] == "bot"][-20:]
+    recent_bot_visits.reverse()
+
+    return create_bot_visits_table(recent_bot_visits)
