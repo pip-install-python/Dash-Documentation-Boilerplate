@@ -10,7 +10,7 @@
 
 A comprehensive boilerplate for creating beautiful, interactive documentation for your Dash components, data science workflows, and applications. Features markdown-driven content, live code examples, and automatic theme persistence.
 
-![Documentation Preview](assets/intro_img.png)
+![Documentation Preview](assets/intro_img.jpg)
 
 ---
 

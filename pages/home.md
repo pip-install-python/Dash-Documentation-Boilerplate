@@ -1,6 +1,6 @@
-# Welcome to Dash Documentation Boilerplate
+# Welcome to:
 
-![logo](assets/intro_img.png)
+![logo](assets/intro_img.jpg)
 
 > **A modern, responsive documentation system for Dash applications built with Dash Mantine Components**
 
@@ -136,7 +136,6 @@ This site includes several example pages to demonstrate the capabilities:
 ```
 dash-documentation-boilerplate/
 ├── assets/                      # Static assets and CSS
-│   ├── intro_img.png
 │   ├── m2d.css                 # Markdown-to-Dash styling
 │   └── main.css                # Custom styles
 │
