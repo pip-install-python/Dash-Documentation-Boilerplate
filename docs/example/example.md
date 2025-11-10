@@ -6,6 +6,8 @@ package: example
 icon: mdi:rocket-launch-outline
 ---
 
+.. llms_copy::Getting Started
+
 .. toc::
 
 ## Introduction

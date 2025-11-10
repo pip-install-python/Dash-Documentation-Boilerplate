@@ -6,6 +6,8 @@ package: visualization
 icon: mdi:chart-line
 ---
 
+.. llms_copy::Data Visualization
+
 .. toc::
 
 ## Introduction

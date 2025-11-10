@@ -6,6 +6,8 @@ package: directives
 icon: mdi:code-braces
 ---
 
+.. llms_copy::Custom Directives
+
 .. toc::
 
 ## Introduction
@@ -22,6 +24,7 @@ All directives use the syntax: `.. directive_name::optional_argument`
 ### 2. Execute Python - `.. exec::`
 ### 3. Source Code Display - `.. source::`
 ### 4. Component Props - `.. kwargs::`
+### 5. LLM Copy Button - `.. llms_copy::`
 
 ---
 
@@ -167,6 +170,70 @@ For Dash Mantine Components:
 **Result:**
 
 .. kwargs::dmc.Button
+
+---
+
+## 5. LLM Copy Button Directive
+
+The `.. llms_copy::` directive adds a button that copies the page's `/llms.txt` URL to the clipboard, making it easy for users to share documentation with AI assistants like ChatGPT or Claude.
+
+### Usage
+
+```markdown
+.. llms_copy::Page Title
+```
+
+The page title should match the `name` field in your page's frontmatter.
+
+### Features
+
+- **One-click copying** of the page's llms.txt URL
+- **Visual feedback** showing when URL is copied
+- **Works in all browsers** with fallback for non-HTTPS contexts
+- **AI-friendly** - users can paste the URL into ChatGPT, Claude, or other AI assistants
+- **Automatic URL detection** - constructs the correct URL based on current page
+
+### Example
+
+At the top of this page, you'll see a "Copy for llm 📋" button. Clicking it copies a URL like:
+
+```
+http://your-site.com/examples/directives/llms.txt
+```
+
+Users can then paste this URL into ChatGPT or Claude with a prompt like:
+
+```
+"Can you help me understand this documentation? http://your-site.com/examples/directives/llms.txt"
+```
+
+The AI assistant will fetch the page's markdown content and can provide context-aware help.
+
+### When to Use
+
+Place this directive at the top of documentation pages where users might want AI assistance:
+
+```markdown
+---
+name: My Component
+description: Complex component documentation
+endpoint: /components/my-component
+---
+
+.. llms_copy::My Component
+
+.. toc::
+
+## Overview
+...
+```
+
+### Benefits for Users
+
+- **Quick AI help** - Share documentation with AI assistants instantly
+- **Better context** - AI gets the full page content in markdown format
+- **No copy-paste** - URL copying is more reliable than copying page content
+- **Future-proof** - Works with any AI that can fetch URLs
 
 ---
 
@@ -372,6 +439,7 @@ If a directive fails to render:
 | `exec` | `.. exec::module.path` | Render Python component |
 | `source` | `.. source::file/path.py` | Display source code |
 | `kwargs` | `.. kwargs::ComponentName` | Show component props |
+| `llms_copy` | `.. llms_copy::Page Title` | Add AI-friendly copy button |
 
 ---
 

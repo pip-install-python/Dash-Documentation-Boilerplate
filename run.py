@@ -19,7 +19,6 @@ scripts = [
     "https://unpkg.com/hotkeys-js/dist/hotkeys.min.js",
 ]
 
-
 app = Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -65,4 +64,4 @@ server = app.server
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port='8553')
+    app.run(debug=False, host='0.0.0.0', port='8559')

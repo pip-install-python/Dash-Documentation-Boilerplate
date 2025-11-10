@@ -6,6 +6,8 @@ package: ai-integration
 icon: mdi:robot-outline
 ---
 
+.. llms_copy::AI/LLM Integration
+
 .. toc::
 
 ## Introduction

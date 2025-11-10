@@ -1,5 +1,9 @@
 PAGE_TITLE_PREFIX = "Dash Pip Components | "
 PRIMARY_COLOR = "teal"
+APP_VERSION = "0.3.0"
+
+# This will be populated by pages/markdown.py when loading documentation files
+NAME_CONTENT_MAP = {}
 PROPS_TO_EXCLUDE = [
     "unstyled",
     "m",

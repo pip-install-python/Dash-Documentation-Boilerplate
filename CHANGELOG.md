@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2025-11-10
+
+### Added
+- **LLM Copy Button Directive** (`.. llms_copy::`)
+  - New custom directive that adds a "Copy for llm 📋" button to documentation pages
+  - Copies the page's `/llms.txt` URL to clipboard for easy AI assistant sharing
+  - Users can paste the URL into ChatGPT, Claude, or other AI assistants for context-aware help
+  - Features:
+    - Automatic URL construction based on current page path
+    - Visual feedback with "✓ Copied! ✓" confirmation
+    - Fallback clipboard method for non-HTTPS contexts (HTTP development servers)
+    - Works across all modern browsers
+    - Tooltip: "Copy llms.txt URL for AI assistants"
+  - Implementation:
+    - Python directive: `lib/directives/llms_copy.py`
+    - JavaScript handler: `assets/llms_copy.js`
+    - Uses both modern Clipboard API and legacy `execCommand` fallback
+    - Mutation observer for Dash-rendered content detection
+  - Documentation updated in Custom Directives guide
+  - Added to all 5 example documentation pages
 
 ## [0.3.0] - 2025-11-09
 

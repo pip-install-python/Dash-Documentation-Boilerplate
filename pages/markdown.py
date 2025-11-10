@@ -8,8 +8,9 @@ import frontmatter
 from markdown2dash import Admonition, BlockExec, Divider, Image, create_parser
 from pydantic import BaseModel
 
-from lib.constants import PAGE_TITLE_PREFIX
+from lib.constants import PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
 from lib.directives.kwargs import Kwargs
+from lib.directives.llms_copy import LlmsCopy
 from lib.directives.source import SC
 from lib.directives.toc import TOC
 
@@ -35,7 +36,7 @@ def make_endpoint(name):
     return "-".join(name.lower().split())
 
 
-directives = [Admonition(), BlockExec(), Divider(), Image(), Kwargs(), SC(), TOC()]
+directives = [Admonition(), BlockExec(), Divider(), Image(), Kwargs(), LlmsCopy(), SC(), TOC()]
 parse = create_parser(directives)
 
 for file in files:
@@ -43,6 +44,9 @@ for file in files:
     metadata, content = frontmatter.parse(file.read_text())
     metadata = Meta(**metadata)
     logger.info("Type of content: %s", type(content))
+
+    # Store raw markdown content in NAME_CONTENT_MAP for LLM copy button
+    NAME_CONTENT_MAP[metadata.name] = content
 
     layout = parse(content)
 

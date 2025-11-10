@@ -6,6 +6,8 @@ package: interactive
 icon: mdi:gesture-tap
 ---
 
+.. llms_copy::Interactive Components
+
 .. toc::
 
 ## Introduction
