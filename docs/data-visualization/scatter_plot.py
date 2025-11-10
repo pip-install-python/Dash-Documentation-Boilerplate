@@ -1,4 +1,4 @@
-from dash import html, dcc, callback, Input, Output
+from dash import html, dcc, callback, Input, Output, State
 import pandas as pd
 import plotly.express as px
 import dash_mantine_components as dmc
@@ -36,9 +36,13 @@ component = html.Div([
 
 @callback(
     Output("scatter-chart", "figure"),
-    Input("gender-filter", "value")
+    Input("gender-filter", "value"),
+    Input("color-scheme-storage", "data"),
 )
-def update_scatter(gender):
+def update_scatter(gender, theme):
+    """Update scatter plot based on gender filter and theme"""
+    template = "mantine_dark" if theme == "dark" else "mantine_light"
+
     if gender == "all":
         filtered_df = df
     else:
@@ -52,7 +56,8 @@ def update_scatter(gender):
         size='Age',
         title=f'Height vs Weight{" - " + gender if gender != "all" else ""}',
         hover_data=['Age'],
-        color_discrete_map={'Male': '#228BE6', 'Female': '#FA5252'}
+        color_discrete_map={'Male': '#228BE6', 'Female': '#FA5252'},
+        template=template
     )
 
     fig.update_layout(

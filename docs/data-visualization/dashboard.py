@@ -1,4 +1,4 @@
-from dash import html, dcc
+from dash import html, dcc, callback, Input, Output
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -31,8 +31,19 @@ df_regions = pd.DataFrame({
     'Q4': [29000, 25000, 35000, 28000]
 })
 
-# Create charts
-# 1. Sales Trend Line Chart
+# Melt regions data for plotting
+df_regions_melted = df_regions.melt(
+    id_vars=['Region'],
+    var_name='Quarter',
+    value_name='Revenue'
+)
+
+# KPI Cards Data
+total_revenue = df_products['Revenue'].sum()
+avg_daily_sales = df_sales['Sales'].tail(30).mean()
+target_achievement = (df_sales['Sales'].iloc[-1] / df_sales['Target'].iloc[-1]) * 100
+
+# Create initial figures
 fig_sales = px.line(
     df_sales,
     x='Date',
@@ -42,7 +53,6 @@ fig_sales = px.line(
 )
 fig_sales.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), showlegend=True)
 
-# 2. Product Revenue Pie Chart
 fig_products = px.pie(
     df_products,
     values='Revenue',
@@ -52,12 +62,6 @@ fig_products = px.pie(
 )
 fig_products.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
 
-# 3. Regional Performance Bar Chart
-df_regions_melted = df_regions.melt(
-    id_vars=['Region'],
-    var_name='Quarter',
-    value_name='Revenue'
-)
 fig_regions = px.bar(
     df_regions_melted,
     x='Region',
@@ -67,11 +71,6 @@ fig_regions = px.bar(
     barmode='group'
 )
 fig_regions.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
-
-# 4. KPI Cards Data
-total_revenue = df_products['Revenue'].sum()
-avg_daily_sales = df_sales['Sales'].tail(30).mean()
-target_achievement = (df_sales['Sales'].iloc[-1] / df_sales['Target'].iloc[-1]) * 100
 
 component = html.Div([
     dmc.Title("Executive Dashboard", order=3, mb=20),
@@ -134,15 +133,62 @@ component = html.Div([
     # Charts Grid
     dmc.SimpleGrid([
         dmc.Card([
-            dcc.Graph(figure=fig_sales, config={'displayModeBar': False})
+            dcc.Graph(figure=fig_sales, id='dashboard-sales-chart', config={'displayModeBar': False})
         ], withBorder=True, p="md", radius="md"),
 
         dmc.Card([
-            dcc.Graph(figure=fig_products, config={'displayModeBar': False})
+            dcc.Graph(figure=fig_products, id='dashboard-products-chart', config={'displayModeBar': False})
         ], withBorder=True, p="md", radius="md"),
     ], cols={"base": 1, "sm": 2}, mb=15),
 
     dmc.Card([
-        dcc.Graph(figure=fig_regions, config={'displayModeBar': False})
+        dcc.Graph(figure=fig_regions, id='dashboard-regions-chart', config={'displayModeBar': False})
     ], withBorder=True, p="md", radius="md")
 ])
+
+
+@callback(
+    Output('dashboard-sales-chart', 'figure'),
+    Output('dashboard-products-chart', 'figure'),
+    Output('dashboard-regions-chart', 'figure'),
+    Input("color-scheme-storage", "data"),
+)
+def update_dashboard_theme(theme):
+    """Update all dashboard charts based on theme"""
+    template = "mantine_dark" if theme == "dark" else "mantine_light"
+
+    # Sales chart
+    fig_sales = px.line(
+        df_sales,
+        x='Date',
+        y=['Sales', 'Target'],
+        title='Sales Performance vs Target',
+        color_discrete_map={'Sales': '#12B886', 'Target': '#FA5252'},
+        template=template
+    )
+    fig_sales.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), showlegend=True)
+
+    # Products chart
+    fig_products = px.pie(
+        df_products,
+        values='Revenue',
+        names='Product',
+        title='Revenue by Product Category',
+        color_discrete_sequence=px.colors.qualitative.Set2,
+        template=template
+    )
+    fig_products.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
+
+    # Regions chart
+    fig_regions = px.bar(
+        df_regions_melted,
+        x='Region',
+        y='Revenue',
+        color='Quarter',
+        title='Quarterly Revenue by Region',
+        barmode='group',
+        template=template
+    )
+    fig_regions.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
+
+    return fig_sales, fig_products, fig_regions

@@ -37,9 +37,13 @@ component = html.Div([
 
 @callback(
     Output("realtime-graph", "figure"),
-    Input("interval-component", "n_intervals")
+    Input("interval-component", "n_intervals"),
+    Input("color-scheme-storage", "data"),
 )
-def update_realtime(n):
+def update_realtime(n, theme):
+    """Update real-time chart with new data and theme"""
+    template = "mantine_dark" if theme == "dark" else "mantine_light"
+
     # Add new data point
     time_data.append(datetime.now())
 
@@ -73,7 +77,8 @@ def update_realtime(n):
         yaxis_range=[0, 100],
         hovermode='x',
         height=400,
-        showlegend=False
+        showlegend=False,
+        template=template
     )
 
     return fig

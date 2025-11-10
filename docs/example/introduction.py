@@ -1,4 +1,5 @@
 from dash import Dash, dcc, html, Input, Output, callback
+import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
 
@@ -9,6 +10,9 @@ except ImportError:
     # Fallback if package not installed
     def mark_important(component, component_id=None):
         return component
+
+# Register Mantine templates
+dmc.add_figure_templates(default="mantine_light")
 
 # Sample data
 df1 = pd.DataFrame({
@@ -37,11 +41,15 @@ component = html.Div([
 # Callback to update the graph
 @callback(
     Output('example-graph', 'figure'),
-    Input('update-button', 'n_clicks')
+    Input('update-button', 'n_clicks'),
+    Input("color-scheme-storage", "data"),
 )
-def update_graph(n_clicks):
+def update_graph(n_clicks, theme):
+    """Update graph based on button clicks and theme"""
+    template = "mantine_dark" if theme == "dark" else "mantine_light"
+
     if n_clicks % 2 == 0:
-        fig = px.bar(df1, x="Fruit", y="Amount", title="Fruit Amounts")
+        fig = px.bar(df1, x="Fruit", y="Amount", title="Fruit Amounts", template=template)
     else:
-        fig = px.bar(df2, x="Fruit", y="Amount", title="Updated Fruit Amounts")
+        fig = px.bar(df2, x="Fruit", y="Amount", title="Updated Fruit Amounts", template=template)
     return fig
