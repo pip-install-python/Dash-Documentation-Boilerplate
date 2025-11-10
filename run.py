@@ -1,12 +1,15 @@
 import dash
 from dash import Dash, _dash_renderer
 import json
-from flask import jsonify
+from flask import jsonify, request
 from components.appshell import create_appshell
 import dash_mantine_components as dmc
 
 # AI/LLM Integration & SEO
 from dash_improve_my_llms import add_llms_routes, RobotsConfig, register_page_metadata
+
+# Analytics tracking
+from lib.analytics_tracker import tracker
 
 stylesheets = [
     dmc.styles.ALL
@@ -59,6 +62,24 @@ register_page_metadata(
 app.layout = create_appshell(dash.page_registry.values())
 
 server = app.server
+
+# ============================================================================
+# Analytics Tracking
+# ============================================================================
+
+@server.before_request
+def track_visitor():
+    """Track visitor analytics before each request."""
+    try:
+        path = request.path
+        user_agent = request.headers.get('User-Agent', '')
+        ip_address = request.remote_addr
+        tracker.track_visit(path, user_agent, ip_address)
+    except Exception as e:
+        # Silently fail if tracking encounters an error
+        pass
+
+# ============================================================================
 
 
 if __name__ == "__main__":

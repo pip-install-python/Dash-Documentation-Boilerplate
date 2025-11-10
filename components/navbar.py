@@ -101,6 +101,19 @@ def create_content(data):
                     page_links
                 ),
 
+                # Analytics Section
+                dmc.Divider(mt="md", mb="sm"),
+                create_nav_section(
+                    "Analytics",
+                    [
+                        create_nav_link(
+                            "fluent:data-bar-vertical-24-regular",
+                            "Traffic",
+                            "/analytics/traffic"
+                        ),
+                    ]
+                ),
+
                 # External Resources Section
                 dmc.Divider(mt="md", mb="sm"),
                 create_nav_section(
