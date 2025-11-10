@@ -126,6 +126,30 @@ def create_content(data):
                         ),
                     ]
                 ),
+                dmc.Divider(mt="md", mb="sm"),
+                create_nav_section(
+                    "Other Apps I've built",
+                    [
+                        create_nav_link(
+                            "mdi:cast-tutorial",
+                            "Plotly.pro",
+                            "https://plotly.pro",
+                            external=True
+                        ),
+                        create_nav_link(
+                            "game-icons:beehive",
+                            "ai-agent.buzz",
+                            "https://ai-agent.buzz",
+                            external=True
+                        ),
+                        create_nav_link(
+                            "arcticons:world-geography",
+                            "GeoMapIndex",
+                            "https://dash.geomapindex.com/",
+                            external=True
+                        ),
+                        ]
+                )
             ],
             gap="xs",
             p="md",
