@@ -336,7 +336,7 @@ def update_output(n_clicks):
 Below is a working example showing a button that updates a graph. You can interact with it right here in the documentation!
 
 .. exec::docs.example.introduction
-
+    :code: false
 The source code for this example is shown below:
 
 .. source::docs/example/introduction.py
@@ -409,6 +409,8 @@ Description of the component...
 
 ### Interactive Example
 .. exec::docs.my-component.callbacks-example
+    :code: false
+
 .. source::docs/my-component/callbacks-example.py
 
 ### Component Props
