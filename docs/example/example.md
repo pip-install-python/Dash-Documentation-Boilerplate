@@ -10,7 +10,7 @@ icon: mdi:rocket-launch-outline
 
 .. toc::
 
-## Introduction
+### Introduction
 
 Welcome to the Dash Documentation Boilerplate! This guide will teach you how to create beautiful, interactive documentation pages using markdown and Python.
 
@@ -18,9 +18,9 @@ The boilerplate uses a **markdown-driven approach** where you write documentatio
 
 ---
 
-## Creating Your First Page
+### Creating Your First Page
 
-### Step 1: Create a Folder
+#### Step 1: Create a Folder
 
 Create a new folder in the `docs/` directory for your component or feature:
 
@@ -28,7 +28,7 @@ Create a new folder in the `docs/` directory for your component or feature:
 mkdir -p docs/my-component
 ```
 
-### Step 2: Create a Markdown File
+#### Step 2: Create a Markdown File
 
 Create a markdown file with **frontmatter metadata** at the top:
 
@@ -46,7 +46,7 @@ icon: mdi:code-tags
 Your documentation content here...
 ```
 
-#### Frontmatter Fields
+##### Frontmatter Fields
 
 - **name** (required): Display name in the navigation
 - **description** (required): Short description for SEO and navigation
@@ -54,7 +54,7 @@ Your documentation content here...
 - **package** (optional): Package name for organization
 - **icon** (optional): Material Design icon (from [Iconify](https://icon-sets.iconify.design/mdi/))
 
-### Step 3: Write Your Content
+#### Step 3: Write Your Content
 
 Use standard markdown syntax for your documentation:
 
@@ -86,25 +86,25 @@ That's it! The page will automatically appear in the navigation when you restart
 
 ---
 
-## Using Custom Directives
+### Using Custom Directives
 
 The boilerplate provides powerful **custom directives** to enhance your documentation:
 
-### Table of Contents - `.. toc::`
+#### Table of Contents - `.. toc::`
 
 Automatically generate a table of contents from your headings:
 
 ```markdown
 .. toc::
 
-## Section 1
+### Section 1
 Content here...
 
-## Section 2
+### Section 2
 Content here...
 ```
 
-### Execute Python Components - `.. exec::`
+#### Execute Python Components - `.. exec::`
 
 Embed interactive Dash components from Python modules:
 
@@ -121,7 +121,7 @@ This will import and render the `component` variable from `docs/my-component/exa
     :code: false
 ```
 
-### Display Source Code - `.. source::`
+#### Display Source Code - `.. source::`
 
 Show syntax-highlighted source code:
 
@@ -137,7 +137,7 @@ Show syntax-highlighted source code:
     :withExpandedButton: true
 ```
 
-### Component Props - `.. kwargs::`
+#### Component Props - `.. kwargs::`
 
 Auto-generate a props documentation table:
 
@@ -147,13 +147,13 @@ Auto-generate a props documentation table:
 
 ---
 
-## Directive Options
+### Directive Options
 
 The custom directives support **options** that control how content is displayed. Options are specified using a colon syntax after the directive.
 
-### Common Directive Options
+#### Common Directive Options
 
-#### Option: code false - Hide Source Code Display
+##### Option: code false - Hide Source Code Display
 
 Use with `.. exec::` to show only the rendered component without the code:
 
@@ -179,7 +179,7 @@ Source code:
 .. source::docs/data-visualization/basic_chart.py
 ```
 
-#### Option: defaultExpanded false - Collapse Code by Default
+##### Option: defaultExpanded false - Collapse Code by Default
 
 Use with `.. source::` to show code in a collapsed state initially:
 
@@ -193,7 +193,7 @@ Use with `.. source::` to show code in a collapsed state initially:
 - ✅ Optional/advanced code that users can view if interested
 - ✅ Multiple code examples on one page
 
-#### Option: withExpandedButton true - Add Expand/Collapse Button
+##### Option: withExpandedButton true - Add Expand/Collapse Button
 
 Use with `.. source::` to add an interactive expand/collapse button:
 
@@ -208,12 +208,12 @@ Use with `.. source::` to add an interactive expand/collapse button:
 - ✅ Giving users control over viewing source code
 - ✅ Keeping documentation clean while making code accessible
 
-### Combining Options
+#### Combining Options
 
 You can combine multiple options for fine-grained control:
 
 ```markdown
-## Interactive Demo
+### Interactive Demo
 
 The component in action:
 
@@ -232,7 +232,7 @@ This pattern creates a clean documentation flow:
 2. User can optionally expand to view the source code
 3. Page stays uncluttered for quick scanning
 
-### Complete Example
+#### Complete Example
 
 Here's a real-world example combining all these options:
 
@@ -245,11 +245,11 @@ endpoint: /components/my-component
 
 .. toc::
 
-## Overview
+### Overview
 
 This component provides interactive data filtering...
 
-## Live Demo
+### Live Demo
 
 Try it out below:
 
@@ -262,14 +262,14 @@ Want to see how it works? View the source:
     :defaultExpanded: false
     :withExpandedButton: true
 
-## API Reference
+### API Reference
 
 Component props documentation:
 
 .. kwargs::dmc.MyComponent
 ```
 
-### Best Practices
+#### Best Practices
 
 **✅ Do:**
 - Use `:code: false` when showing code separately with `.. source::`
@@ -284,9 +284,9 @@ Component props documentation:
 
 ---
 
-## Creating Interactive Examples
+### Creating Interactive Examples
 
-### Basic Example
+#### Basic Example
 
 Create a Python file in your docs folder (e.g., `docs/my-component/example.py`):
 
@@ -308,7 +308,7 @@ Then reference it in your markdown:
 .. exec::docs.my-component.example
 ```
 
-### Example with Callbacks
+#### Example with Callbacks
 
 You can create interactive examples with callbacks:
 
@@ -331,7 +331,7 @@ def update_output(n_clicks):
 
 ---
 
-## Interactive Example
+### Interactive Example
 
 Below is a working example showing a button that updates a graph. You can interact with it right here in the documentation!
 
@@ -343,7 +343,7 @@ The source code for this example is shown below:
 
 ---
 
-## Highlighting Important Elements for AI
+### Highlighting Important Elements for AI
 
 If you want AI assistants (like ChatGPT or Claude) to better understand your interactive components, use the `mark_important()` function:
 
@@ -371,7 +371,7 @@ This helps when users share your documentation URL with AI assistants for help.
 
 ---
 
-## File Structure Example
+### File Structure Example
 
 Here's a complete example of a documentation folder structure:
 
@@ -396,30 +396,30 @@ icon: mdi:star
 
 .. toc::
 
-## Overview
+### Overview
 Description of the component...
 
-## Basic Usage
+### Basic Usage
 .. exec::docs.my-component.basic-example
 .. source::docs/my-component/basic-example.py
 
-## Advanced Usage
+### Advanced Usage
 .. exec::docs.my-component.advanced-example
 .. source::docs/my-component/advanced-example.py
 
-## Interactive Example
+### Interactive Example
 .. exec::docs.my-component.callbacks-example
 .. source::docs/my-component/callbacks-example.py
 
-## Component Props
+### Component Props
 .. kwargs::MyComponent
 ```
 
 ---
 
-## Markdown Formatting Tips
+### Markdown Formatting Tips
 
-### Code Blocks
+#### Code Blocks
 
 Use triple backticks with language specification:
 
@@ -438,18 +438,18 @@ function helloWorld() {
 pip install dash-mantine-components
 ```
 
-### Emphasis
+#### Emphasis
 
 - **Bold text** with `**text**`
 - *Italic text* with `*text*`
 - `Inline code` with backticks
 
-### Links
+#### Links
 
 - [External link](https://dash.plotly.com/)
 - [Internal link](/getting-started)
 
-### Lists
+#### Lists
 
 Unordered:
 - Item 1
@@ -461,12 +461,12 @@ Ordered:
 2. Second item
 3. Third item
 
-### Blockquotes
+#### Blockquotes
 
 > This is a blockquote
 > It can span multiple lines
 
-### Tables
+#### Tables
 
 | Feature | Support |
 |---------|---------|
@@ -476,16 +476,16 @@ Ordered:
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Use Descriptive Names
+#### 1. Use Descriptive Names
 
 Choose clear, descriptive names for your pages and components:
 
 ✅ Good: `name: Button Component`
 ❌ Bad: `name: Comp1`
 
-### 2. Organize by Feature
+#### 2. Organize by Feature
 
 Group related documentation together:
 
@@ -502,21 +502,21 @@ docs/
     └── form/
 ```
 
-### 3. Add Table of Contents
+#### 3. Add Table of Contents
 
 Always include `.. toc::` at the top of long documentation pages.
 
-### 4. Show Code and Results
+#### 4. Show Code and Results
 
 Use `.. exec::` and `.. source::` together to show both the code and the result. Consider using `:code: false` with exec and `:defaultExpanded: false` with source for cleaner presentation.
 
-### 5. Test Your Examples
+#### 5. Test Your Examples
 
 Make sure your interactive examples actually work before documenting them!
 
 ---
 
-## Next Steps
+### Next Steps
 
 Now that you know the basics, check out these example pages:
 
@@ -527,7 +527,7 @@ Now that you know the basics, check out these example pages:
 
 ---
 
-## Need Help?
+### Need Help?
 
 - **Documentation**: Check the [README.md](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/blob/main/README.md)
 - **Issues**: Report bugs on [GitHub Issues](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/issues)

@@ -10,13 +10,13 @@ icon: mdi:chart-line
 
 .. toc::
 
-## Introduction
+### Introduction
 
 This page demonstrates how to create **interactive data visualizations** using Plotly with your Dash Documentation Boilerplate. Plotly provides powerful, interactive charts that integrate seamlessly with Dash callbacks.
 
 ---
 
-## Basic Chart Example
+### Basic Chart Example
 
 Let's start with a simple bar chart example:
 
@@ -30,7 +30,7 @@ Source code:
 
 ---
 
-## Interactive Line Chart
+### Interactive Line Chart
 
 This example shows multiple lines with hover tooltips and a legend:
 
@@ -42,7 +42,7 @@ Source code:
 
 ---
 
-## Scatter Plot with Filtering
+### Scatter Plot with Filtering
 
 An interactive scatter plot with dropdown filtering:
 
@@ -54,7 +54,7 @@ Source code:
 
 ---
 
-## Real-Time Data Updates
+### Real-Time Data Updates
 
 This example demonstrates how to update charts in real-time using intervals:
 
@@ -66,7 +66,7 @@ Source code:
 
 ---
 
-## Dashboard with Multiple Charts
+### Dashboard with Multiple Charts
 
 A comprehensive dashboard combining multiple chart types:
 
@@ -78,39 +78,39 @@ Source code:
 
 ---
 
-## Chart Types Reference
+### Chart Types Reference
 
-### Available Plotly Chart Types
+#### Available Plotly Chart Types
 
 Plotly Express provides many chart types:
 
-#### Basic Charts
+##### Basic Charts
 - **Bar Charts** - `px.bar()`
 - **Line Charts** - `px.line()`
 - **Scatter Plots** - `px.scatter()`
 - **Pie Charts** - `px.pie()`
 - **Histograms** - `px.histogram()`
 
-#### Statistical Charts
+##### Statistical Charts
 - **Box Plots** - `px.box()`
 - **Violin Plots** - `px.violin()`
 - **Density Heatmaps** - `px.density_heatmap()`
 
-#### Scientific Charts
+##### Scientific Charts
 - **Scatter Matrix** - `px.scatter_matrix()`
 - **Parallel Coordinates** - `px.parallel_coordinates()`
 - **3D Scatter** - `px.scatter_3d()`
 
-#### Financial Charts
+##### Financial Charts
 - **Candlestick** - `go.Candlestick()`
 - **OHLC** - `go.Ohlc()`
 - **Waterfall** - `go.Waterfall()`
 
 ---
 
-## Customization Tips
+### Customization Tips
 
-### Theme Integration
+#### Theme Integration
 
 Make charts match your Mantine theme automatically using DMC figure templates:
 
@@ -130,7 +130,7 @@ fig = px.bar(df, x="category", y="value")
 
 All examples on this page use `dmc.add_figure_templates()` to ensure charts render correctly in both light and dark modes.
 
-### Responsive Charts
+#### Responsive Charts
 
 Make charts responsive to window size:
 
@@ -148,7 +148,7 @@ dcc.Graph(
 )
 ```
 
-### Interactive Features
+#### Interactive Features
 
 Enable useful interactions:
 
@@ -171,9 +171,9 @@ dcc.Graph(figure=fig, config=config)
 
 ---
 
-## Performance Tips
+### Performance Tips
 
-### 1. Limit Data Points
+#### 1. Limit Data Points
 
 For large datasets, consider:
 
@@ -183,7 +183,7 @@ if len(df) > 10000:
     df = df.sample(10000)
 ```
 
-### 2. Use Scattergl for Large Scatter Plots
+#### 2. Use Scattergl for Large Scatter Plots
 
 ```python
 import plotly.graph_objects as go
@@ -195,7 +195,7 @@ fig = go.Figure(data=go.Scattergl(
 ))
 ```
 
-### 3. Optimize Update Frequency
+#### 3. Optimize Update Frequency
 
 ```python
 # Use longer intervals for real-time updates
@@ -207,9 +207,9 @@ dcc.Interval(
 
 ---
 
-## Common Patterns
+### Common Patterns
 
-### Pattern 1: Chart with Controls
+#### Pattern 1: Chart with Controls
 
 ```markdown
 ## My Visualization
@@ -234,7 +234,7 @@ def update(metric):
     return create_figure(metric)
 ```
 
-### Pattern 2: Multi-View Dashboard
+#### Pattern 2: Multi-View Dashboard
 
 ```python
 component = dmc.SimpleGrid([
@@ -245,7 +245,7 @@ component = dmc.SimpleGrid([
 ], cols={"base": 1, "sm": 2})
 ```
 
-### Pattern 3: Clickable Charts
+#### Pattern 3: Clickable Charts
 
 ```python
 @callback(
@@ -260,9 +260,9 @@ def display_click_data(clickData):
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Add Axis Labels
+#### 1. Add Axis Labels
 
 Always label your axes:
 
@@ -273,7 +273,7 @@ fig.update_layout(
 )
 ```
 
-### 2. Include Titles
+#### 2. Include Titles
 
 Make charts self-explanatory:
 
@@ -284,7 +284,7 @@ fig.update_layout(
 )
 ```
 
-### 3. Use Color Wisely
+#### 3. Use Color Wisely
 
 Choose accessible colors:
 
@@ -297,7 +297,7 @@ import plotly.express as px
 fig = px.bar(df, color_discrete_sequence=px.colors.qualitative.Safe)
 ```
 
-### 4. Add Hover Information
+#### 4. Add Hover Information
 
 Provide context on hover:
 
@@ -308,7 +308,7 @@ fig = px.scatter(
 )
 ```
 
-### 5. Handle Empty Data
+#### 5. Handle Empty Data
 
 Always check for empty datasets:
 
@@ -330,7 +330,7 @@ if df.empty:
 
 ---
 
-## Resources
+### Resources
 
 - **Plotly Express**: [plotly.com/python/plotly-express/](https://plotly.com/python/plotly-express/)
 - **Plotly Graph Objects**: [plotly.com/python/graph-objects/](https://plotly.com/python/graph-objects/)
@@ -339,7 +339,7 @@ if df.empty:
 
 ---
 
-## Next Steps
+### Next Steps
 
 - **Interactive Components** - Learn advanced callback patterns
 - **AI Integration** - Make your visualizations AI-friendly

@@ -10,17 +10,17 @@ icon: mdi:gesture-tap
 
 .. toc::
 
-## Introduction
+### Introduction
 
 This page demonstrates **advanced interactive patterns** using Dash callbacks, state management, and component interactions. Learn how to build complex, responsive user interfaces with real-time updates.
 
 ---
 
-## Callback Basics
+### Callback Basics
 
 Callbacks are the heart of interactivity in Dash. They connect component properties and define how your app responds to user actions.
 
-### Simple Callback Example
+#### Simple Callback Example
 
 A basic button that updates text:
 
@@ -32,7 +32,7 @@ Source code:
 
 ---
 
-## Multiple Inputs
+### Multiple Inputs
 
 Handle multiple input sources in a single callback:
 
@@ -44,7 +44,7 @@ Source code:
 
 ---
 
-## State Management
+### State Management
 
 Use `State` to access component values without triggering the callback:
 
@@ -56,7 +56,7 @@ Source code:
 
 ---
 
-## Pattern Matching Callbacks
+### Pattern Matching Callbacks
 
 Create dynamic components with pattern-matching callbacks:
 
@@ -68,7 +68,7 @@ Source code:
 
 ---
 
-## Chained Callbacks
+### Chained Callbacks
 
 Connect multiple callbacks to create complex workflows:
 
@@ -80,7 +80,7 @@ Source code:
 
 ---
 
-## Loading States
+### Loading States
 
 Provide visual feedback during long-running operations:
 
@@ -92,11 +92,11 @@ Source code:
 
 ---
 
-## Callback Patterns Reference
+### Callback Patterns Reference
 
-### Common Callback Patterns
+#### Common Callback Patterns
 
-#### Pattern 1: Single Input, Single Output
+##### Pattern 1: Single Input, Single Output
 
 ```python
 @callback(
@@ -107,7 +107,7 @@ def update_output(input_value):
     return f"You entered: {input_value}"
 ```
 
-#### Pattern 2: Multiple Inputs, Single Output
+##### Pattern 2: Multiple Inputs, Single Output
 
 ```python
 @callback(
@@ -119,7 +119,7 @@ def combine_inputs(val1, val2):
     return f"{val1} + {val2} = {val1 + val2}"
 ```
 
-#### Pattern 3: Single Input, Multiple Outputs
+##### Pattern 3: Single Input, Multiple Outputs
 
 ```python
 @callback(
@@ -131,7 +131,7 @@ def update_multiple(n_clicks):
     return f"Clicks: {n_clicks}", f"Double: {n_clicks * 2}"
 ```
 
-#### Pattern 4: Using State
+##### Pattern 4: Using State
 
 ```python
 @callback(
@@ -145,7 +145,7 @@ def submit_form(n_clicks, value):
     return f"Submitted: {value}"
 ```
 
-#### Pattern 5: Pattern Matching with ALL
+##### Pattern 5: Pattern Matching with ALL
 
 ```python
 @callback(
@@ -156,7 +156,7 @@ def aggregate_inputs(values):
     return f"Total: {sum(v or 0 for v in values)}"
 ```
 
-#### Pattern 6: Pattern Matching with MATCH
+##### Pattern 6: Pattern Matching with MATCH
 
 ```python
 @callback(
@@ -169,9 +169,9 @@ def update_matching(value):
 
 ---
 
-## Advanced Techniques
+### Advanced Techniques
 
-### Preventing Initial Calls
+#### Preventing Initial Calls
 
 Prevent callbacks from firing on page load:
 
@@ -185,7 +185,7 @@ def update(n_clicks):
     return f"Button clicked {n_clicks} times"
 ```
 
-### Circular Callbacks
+#### Circular Callbacks
 
 Allow circular callback chains with `allow_duplicate=True`:
 
@@ -200,7 +200,7 @@ def increment_value(n_clicks, current):
     return (current or 0) + 1
 ```
 
-### Determining Trigger
+#### Determining Trigger
 
 Find out which input triggered the callback:
 
@@ -223,7 +223,7 @@ def update(btn1_clicks, btn2_clicks):
     return "No button clicked yet"
 ```
 
-### Background Callbacks
+#### Background Callbacks
 
 For long-running operations (requires `diskcache` or `celery`):
 
@@ -248,9 +248,9 @@ def long_running_task(n_clicks):
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Keep Callbacks Simple
+#### 1. Keep Callbacks Simple
 
 Break complex logic into multiple callbacks:
 
@@ -273,7 +273,7 @@ def do_everything(raw):
     return make_figure(processed)
 ```
 
-### 2. Use State for Form Inputs
+#### 2. Use State for Form Inputs
 
 Use `State` to avoid triggering callbacks on every keystroke:
 
@@ -286,7 +286,7 @@ Use `State` to avoid triggering callbacks on every keystroke:
 )
 ```
 
-### 3. Validate Inputs
+#### 3. Validate Inputs
 
 Always validate input values:
 
@@ -302,7 +302,7 @@ def update(value):
     return f"Valid input: {value}"
 ```
 
-### 4. Handle None Values
+#### 4. Handle None Values
 
 Check for `None` to handle initial callbacks:
 
@@ -315,7 +315,7 @@ def update(value):
     return f"Processing: {value}"
 ```
 
-### 5. Use Proper IDs
+#### 5. Use Proper IDs
 
 Choose descriptive, unique IDs:
 
@@ -324,9 +324,9 @@ Choose descriptive, unique IDs:
 
 ---
 
-## Performance Tips
+### Performance Tips
 
-### 1. Memoization
+#### 1. Memoization
 
 Cache expensive computations:
 
@@ -339,7 +339,7 @@ def expensive_computation(param):
     return result
 ```
 
-### 2. Clientside Callbacks
+#### 2. Clientside Callbacks
 
 Use JavaScript callbacks for simple UI updates:
 
@@ -355,7 +355,7 @@ app.clientside_callback(
 )
 ```
 
-### 3. Partial Updates
+#### 3. Partial Updates
 
 Update only what changed:
 
@@ -374,9 +374,9 @@ def update_table(n_clicks, current_data):
 
 ---
 
-## Common Pitfalls
+### Common Pitfalls
 
-### 1. Circular Dependency
+#### 1. Circular Dependency
 
 ❌ **Wrong:**
 ```python
@@ -397,7 +397,7 @@ def update_b(a): return a
 def update_a(b): return b
 ```
 
-### 2. Modifying Global State
+#### 2. Modifying Global State
 
 ❌ **Wrong:**
 ```python
@@ -425,9 +425,9 @@ def update(n, data):
 
 ---
 
-## Testing Callbacks
+### Testing Callbacks
 
-### Example Test
+#### Example Test
 
 ```python
 from dash.testing import DashComposite
@@ -449,7 +449,7 @@ def test_callback(dash_duo):
 
 ---
 
-## Next Steps
+### Next Steps
 
 - **Data Visualization** - Create interactive charts
 - **AI Integration** - Make your components AI-friendly

@@ -10,17 +10,17 @@ icon: mdi:robot-outline
 
 .. toc::
 
-## Introduction
+### Introduction
 
 This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v0.3.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
 
 ---
 
-## What Gets Generated
+### What Gets Generated
 
 The integration automatically creates several files that help AI assistants understand your application:
 
-### 1. `/llms.txt` - AI-Friendly Documentation
+#### 1. `/llms.txt` - AI-Friendly Documentation
 
 A markdown file optimized for Large Language Models that includes:
 
@@ -32,7 +32,7 @@ A markdown file optimized for Large Language Models that includes:
 
 Visit: [/llms.txt](/llms.txt)
 
-### 2. `/page.json` - Technical Architecture
+#### 2. `/page.json` - Technical Architecture
 
 A JSON file with technical details:
 
@@ -48,13 +48,13 @@ A JSON file with technical details:
 
 Visit: [/page.json](/page.json)
 
-### 3. `/architecture.txt` - ASCII Overview
+#### 3. `/architecture.txt` - ASCII Overview
 
 A text-based visual representation of your application structure.
 
 Visit: [/architecture.txt](/architecture.txt)
 
-### 4. `/robots.txt` - Bot Management
+#### 4. `/robots.txt` - Bot Management
 
 Controls which bots can access your application:
 
@@ -64,7 +64,7 @@ Controls which bots can access your application:
 
 Visit: [/robots.txt](/robots.txt)
 
-### 5. `/sitemap.xml` - SEO Optimization
+#### 5. `/sitemap.xml` - SEO Optimization
 
 An SEO-optimized sitemap with intelligent priority inference.
 
@@ -72,18 +72,18 @@ Visit: [/sitemap.xml](/sitemap.xml)
 
 ---
 
-## Configuration
+### Configuration
 
 All configuration is done in `run.py`:
 
-### Base URL Configuration
+#### Base URL Configuration
 
 ```python
 # Set your production URL for proper sitemap generation
 app._base_url = "https://your-app-url.com"
 ```
 
-### Bot Management
+#### Bot Management
 
 ```python
 from dash_improve_my_llms import RobotsConfig
@@ -97,7 +97,7 @@ app._robots_config = RobotsConfig(
 )
 ```
 
-### Page Metadata
+#### Page Metadata
 
 ```python
 from dash_improve_my_llms import register_page_metadata
@@ -111,11 +111,11 @@ register_page_metadata(
 
 ---
 
-## Highlighting Important Components
+### Highlighting Important Components
 
 Use `mark_important()` to help AI understand key interactive elements:
 
-### Example Usage
+#### Example Usage
 
 ```python
 from dash_improve_my_llms import mark_important
@@ -137,7 +137,7 @@ component = html.Div([
 ])
 ```
 
-### Benefits
+#### Benefits
 
 - LLMs recognize these as key interactive elements
 - Appears prominently in llms.txt
@@ -145,9 +145,9 @@ component = html.Div([
 
 ---
 
-## Privacy Controls
+### Privacy Controls
 
-### Hiding Sensitive Pages
+#### Hiding Sensitive Pages
 
 Use `mark_hidden()` to exclude pages from bots and AI:
 
@@ -164,7 +164,7 @@ mark_hidden("/internal/metrics")
 # - Return 404 for /admin/llms.txt
 ```
 
-### Hiding Components
+#### Hiding Components
 
 ```python
 from dash_improve_my_llms import mark_component_hidden
@@ -181,23 +181,23 @@ mark_component_hidden(api_keys)
 
 ---
 
-## How Users Can Share Your Docs with AI
+### How Users Can Share Your Docs with AI
 
 Your users can now share your documentation URL directly with AI assistants:
 
-### With ChatGPT
+#### With ChatGPT
 
 1. User: "Can you help me understand this documentation? https://your-app.com"
 2. ChatGPT fetches `/llms.txt` automatically
 3. ChatGPT understands your app structure and helps the user
 
-### With Claude
+#### With Claude
 
 1. User: "Here's a Dash app I'm using: https://your-app.com"
 2. Claude fetches `/llms.txt` automatically
 3. Claude provides context-aware assistance
 
-### What AI Sees
+#### What AI Sees
 
 The AI assistant receives structured information about:
 
@@ -209,9 +209,9 @@ The AI assistant receives structured information about:
 
 ---
 
-## Bot Types Explained
+### Bot Types Explained
 
-### AI Training Bots (Blocked by Default)
+#### AI Training Bots (Blocked by Default)
 
 These bots train AI models on web content:
 
@@ -223,7 +223,7 @@ These bots train AI models on web content:
 
 **Why block?** Prevent your content from being used in AI training datasets.
 
-### AI Search Bots (Allowed by Default)
+#### AI Search Bots (Allowed by Default)
 
 These bots help AI assistants answer user queries:
 
@@ -234,7 +234,7 @@ These bots help AI assistants answer user queries:
 
 **Why allow?** Enable users to get help from AI assistants.
 
-### Traditional Search Engines (Allowed by Default)
+#### Traditional Search Engines (Allowed by Default)
 
 Standard search engine crawlers:
 
@@ -247,11 +247,11 @@ Standard search engine crawlers:
 
 ---
 
-## SEO Benefits
+### SEO Benefits
 
 The integration provides several SEO advantages:
 
-### 1. Sitemap Generation
+#### 1. Sitemap Generation
 
 Automatic sitemap with smart priorities:
 
@@ -260,7 +260,7 @@ Automatic sitemap with smart priorities:
 - Example pages: Priority 0.5-0.7
 - Change frequency inference
 
-### 2. Structured Data
+#### 2. Structured Data
 
 Schema.org JSON-LD in HTML:
 
@@ -274,7 +274,7 @@ Schema.org JSON-LD in HTML:
 }
 ```
 
-### 3. Meta Tags
+#### 3. Meta Tags
 
 LLM discovery meta tags:
 
@@ -284,7 +284,7 @@ LLM discovery meta tags:
 <meta name="llms-architecture" content="/architecture.txt">
 ```
 
-### 4. Noscript Fallback
+#### 4. Noscript Fallback
 
 For bots that don't execute JavaScript:
 
@@ -302,9 +302,9 @@ For bots that don't execute JavaScript:
 
 ---
 
-## Testing the Integration
+### Testing the Integration
 
-### Test Different User Agents
+#### Test Different User Agents
 
 ```bash
 # AI Search Bot (will see static HTML with llms.txt content)
@@ -319,7 +319,7 @@ curl -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0)" \\
 curl http://localhost:8553/ | head -50
 ```
 
-### Verify Routes
+#### Verify Routes
 
 ```bash
 # Start your app
@@ -338,9 +338,9 @@ curl http://localhost:8553/getting-started/llms.txt
 
 ---
 
-## Advanced Configuration
+### Advanced Configuration
 
-### Custom Bot Rules
+#### Custom Bot Rules
 
 ```python
 from dash_improve_my_llms import RobotsConfig
@@ -361,7 +361,7 @@ app._robots_config = RobotsConfig(
 )
 ```
 
-### Custom Sitemap Priorities
+#### Custom Sitemap Priorities
 
 ```python
 from dash_improve_my_llms import register_page_metadata
@@ -377,9 +377,9 @@ register_page_metadata(
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Update Base URL
+#### 1. Update Base URL
 
 Always set your production URL:
 
@@ -387,7 +387,7 @@ Always set your production URL:
 app._base_url = "https://docs.yourcompany.com"
 ```
 
-### 2. Mark Important Sections
+#### 2. Mark Important Sections
 
 Use `mark_important()` for key UI elements:
 
@@ -398,7 +398,7 @@ mark_important(
 )
 ```
 
-### 3. Hide Sensitive Pages
+#### 3. Hide Sensitive Pages
 
 Protect internal pages:
 
@@ -407,7 +407,7 @@ mark_hidden("/admin")
 mark_hidden("/api/internal")
 ```
 
-### 4. Provide Good Metadata
+#### 4. Provide Good Metadata
 
 Register metadata for all important pages:
 
@@ -419,7 +419,7 @@ register_page_metadata(
 )
 ```
 
-### 5. Test Regularly
+#### 5. Test Regularly
 
 Verify your AI-friendly docs are working:
 
@@ -429,7 +429,7 @@ curl http://localhost:8553/llms.txt
 
 ---
 
-## Resources
+### Resources
 
 - **Package**: [dash-improve-my-llms on PyPI](https://pypi.org/project/dash-improve-my-llms/)
 - **llms.txt Spec**: [llmstxt.org](https://llmstxt.org/)
@@ -439,9 +439,9 @@ curl http://localhost:8553/llms.txt
 
 ---
 
-## Quick Reference
+### Quick Reference
 
-### Available Routes
+#### Available Routes
 
 | Route | Purpose |
 |-------|---------|
@@ -452,7 +452,7 @@ curl http://localhost:8553/llms.txt
 | `/sitemap.xml` | SEO sitemap |
 | `/<page>/llms.txt` | Page-specific docs |
 
-### Key Functions
+#### Key Functions
 
 ```python
 from dash_improve_my_llms import (
@@ -466,7 +466,7 @@ from dash_improve_my_llms import (
 
 ---
 
-## Example: Complete Setup
+### Example: Complete Setup
 
 Here's a complete example showing all features:
 

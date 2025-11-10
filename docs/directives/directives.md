@@ -10,7 +10,7 @@ icon: mdi:code-braces
 
 .. toc::
 
-## Introduction
+### Introduction
 
 This documentation boilerplate comes with **powerful custom directives** that extend standard markdown with interactive features. Directives are special commands that let you embed Python components, display source code, generate tables of contents, and more.
 
@@ -18,55 +18,55 @@ All directives use the syntax: `.. directive_name::optional_argument`
 
 ---
 
-## Available Directives
+### Available Directives
 
-### 1. Table of Contents - `.. toc::`
-### 2. Execute Python - `.. exec::`
-### 3. Source Code Display - `.. source::`
-### 4. Component Props - `.. kwargs::`
-### 5. LLM Copy Button - `.. llms_copy::`
+#### 1. Table of Contents - `.. toc::`
+#### 2. Execute Python - `.. exec::`
+#### 3. Source Code Display - `.. source::`
+#### 4. Component Props - `.. kwargs::`
+#### 5. LLM Copy Button - `.. llms_copy::`
 
 ---
 
-## 1. Table of Contents Directive
+### 1. Table of Contents Directive
 
 The `.. toc::` directive automatically generates a navigable table of contents from your markdown headings.
 
-### Usage
+#### Usage
 
 Simply add `.. toc::` anywhere in your markdown (typically at the top):
 
 ```markdown
 .. toc::
 
-## Section 1
+### Section 1
 Content...
 
-## Section 2
+### Section 2
 Content...
 
-### Subsection 2.1
+#### Subsection 2.1
 More content...
 ```
 
-### Features
+#### Features
 
 - **Auto-generates** from H2 and H3 headings
 - **Clickable links** that scroll to sections
 - **Hierarchical structure** showing document organization
 - **Automatically updates** when you add new sections
 
-### Example
+#### Example
 
 The table of contents at the top of this page was generated using `.. toc::`!
 
 ---
 
-## 2. Execute Python Directive
+### 2. Execute Python Directive
 
 The `.. exec::` directive embeds interactive Dash components from Python modules.
 
-### Usage
+#### Usage
 
 ```markdown
 .. exec::docs.module.submodule
@@ -74,13 +74,13 @@ The `.. exec::` directive embeds interactive Dash components from Python modules
 
 This imports and renders the `component` variable from the specified module path.
 
-### How It Works
+#### How It Works
 
 1. Create a Python file (e.g., `docs/directives/button_example.py`)
 2. Define a `component` variable with your Dash component
 3. Reference it in markdown with `.. exec::docs.directives.button_example`
 
-### Example: Simple Button
+#### Example: Simple Button
 
 **Markdown:**
 ```markdown
@@ -104,24 +104,24 @@ component = dmc.Button(
 
 ---
 
-## 3. Source Code Display Directive
+### 3. Source Code Display Directive
 
 The `.. source::` directive displays syntax-highlighted source code from files.
 
-### Usage
+#### Usage
 
 ```markdown
 .. source::path/to/file.py
 ```
 
-### Features
+#### Features
 
 - **Syntax highlighting** for Python code
 - **Line numbers** for easy reference
 - **Copy-to-clipboard** functionality (if enabled)
 - **Clean formatting** with proper indentation
 
-### Example: Display Source
+#### Example: Display Source
 
 Let's display the source code of the button example we just saw:
 
@@ -136,11 +136,11 @@ Let's display the source code of the button example we just saw:
 
 ---
 
-## 4. Component Props Directive
+### 4. Component Props Directive
 
 The `.. kwargs::` directive auto-generates a documentation table for component properties.
 
-### Usage
+#### Usage
 
 ```markdown
 .. kwargs::ComponentName
@@ -153,14 +153,14 @@ For Dash Mantine Components:
 .. kwargs::dmc.Select
 ```
 
-### Features
+#### Features
 
 - **Automatic extraction** of component properties
 - **Type information** for each prop
 - **Default values** when available
 - **Descriptions** of what each prop does
 
-### Example: Button Props
+#### Example: Button Props
 
 **Markdown:**
 ```markdown
@@ -173,11 +173,11 @@ For Dash Mantine Components:
 
 ---
 
-## 5. LLM Copy Button Directive
+### 5. LLM Copy Button Directive
 
 The `.. llms_copy::` directive adds a button that copies the page's `/llms.txt` URL to the clipboard, making it easy for users to share documentation with AI assistants like ChatGPT or Claude.
 
-### Usage
+#### Usage
 
 ```markdown
 .. llms_copy::Page Title
@@ -185,7 +185,7 @@ The `.. llms_copy::` directive adds a button that copies the page's `/llms.txt` 
 
 The page title should match the `name` field in your page's frontmatter.
 
-### Features
+#### Features
 
 - **One-click copying** of the page's llms.txt URL
 - **Visual feedback** showing when URL is copied
@@ -193,7 +193,7 @@ The page title should match the `name` field in your page's frontmatter.
 - **AI-friendly** - users can paste the URL into ChatGPT, Claude, or other AI assistants
 - **Automatic URL detection** - constructs the correct URL based on current page
 
-### Example
+#### Example
 
 At the top of this page, you'll see a "Copy for llm 📋" button. Clicking it copies a URL like:
 
@@ -209,7 +209,7 @@ Users can then paste this URL into ChatGPT or Claude with a prompt like:
 
 The AI assistant will fetch the page's markdown content and can provide context-aware help.
 
-### When to Use
+#### When to Use
 
 Place this directive at the top of documentation pages where users might want AI assistance:
 
@@ -224,11 +224,11 @@ endpoint: /components/my-component
 
 .. toc::
 
-## Overview
+### Overview
 ...
 ```
 
-### Benefits for Users
+#### Benefits for Users
 
 - **Quick AI help** - Share documentation with AI assistants instantly
 - **Better context** - AI gets the full page content in markdown format
@@ -237,11 +237,11 @@ endpoint: /components/my-component
 
 ---
 
-## Interactive Examples with Callbacks
+### Interactive Examples with Callbacks
 
 You can create fully interactive examples with callbacks using the `.. exec::` directive.
 
-### Example: Counter
+#### Example: Counter
 
 Here's an interactive counter that demonstrates callbacks:
 
@@ -254,7 +254,7 @@ The source code:
 
 ---
 
-## Complex Example: Form with Validation
+### Complex Example: Form with Validation
 
 Let's create a more complex example with form inputs and validation:
 
@@ -266,45 +266,45 @@ Source code for this example:
 
 ---
 
-## Combining Directives
+### Combining Directives
 
 The real power comes from **combining multiple directives** in one documentation page:
 
-### Pattern 1: Show Code & Result
+#### Pattern 1: Show Code & Result
 
 ```markdown
-## My Feature
+### My Feature
 
 Description of the feature...
 
-### Interactive Demo
+#### Interactive Demo
 
 .. exec::docs.my-feature.demo
 
-### Source Code
+#### Source Code
 
 .. source::docs/my-feature/demo.py
 ```
 
-### Pattern 2: Documentation with Props
+#### Pattern 2: Documentation with Props
 
 ```markdown
-## Component API
+### Component API
 
-### Example Usage
+#### Example Usage
 
 .. exec::docs.component.example
 
-### Component Properties
+#### Component Properties
 
 .. kwargs::MyComponent
 
-### Full Source
+#### Full Source
 
 .. source::docs/component/example.py
 ```
 
-### Pattern 3: Comprehensive Page
+#### Pattern 3: Comprehensive Page
 
 ```markdown
 ---
@@ -315,29 +315,29 @@ endpoint: /components/my-component
 
 .. toc::
 
-## Overview
+### Overview
 Description...
 
-## Basic Example
+### Basic Example
 .. exec::docs.component.basic
 .. source::docs/component/basic.py
 
-## Advanced Example
+### Advanced Example
 .. exec::docs.component.advanced
 .. source::docs/component/advanced.py
 
-## API Reference
+### API Reference
 .. kwargs::MyComponent
 
-## Related Components
+### Related Components
 Links to other docs...
 ```
 
 ---
 
-## Best Practices
+### Best Practices
 
-### 1. Use Meaningful Module Names
+#### 1. Use Meaningful Module Names
 
 ✅ Good:
 ```markdown
@@ -349,7 +349,7 @@ Links to other docs...
 .. exec::docs.ex1
 ```
 
-### 2. Show Code and Result Together
+#### 2. Show Code and Result Together
 
 Always pair `.. exec::` with `.. source::` so users can see both the result and how it's made:
 
@@ -358,7 +358,7 @@ Always pair `.. exec::` with `.. source::` so users can see both the result and 
 .. source::docs/component/example.py
 ```
 
-### 3. Add Context with Markdown
+#### 3. Add Context with Markdown
 
 Explain what the example demonstrates before showing it:
 
@@ -368,7 +368,7 @@ This example demonstrates how to handle form validation:
 .. exec::docs.forms.validation_example
 ```
 
-### 4. Use Table of Contents for Long Pages
+#### 4. Use Table of Contents for Long Pages
 
 For documentation pages with multiple sections, always include:
 
@@ -376,7 +376,7 @@ For documentation pages with multiple sections, always include:
 .. toc::
 ```
 
-### 5. Document Component Props
+#### 5. Document Component Props
 
 When documenting a new component, include the props table:
 
@@ -386,9 +386,9 @@ When documenting a new component, include the props table:
 
 ---
 
-## Advanced Tips
+### Advanced Tips
 
-### Organizing Python Examples
+#### Organizing Python Examples
 
 Keep your Python examples organized by feature:
 
@@ -406,7 +406,7 @@ docs/
 │   └── validation.py
 ```
 
-### Reusing Components
+#### Reusing Components
 
 You can reference the same Python component from multiple markdown files:
 
@@ -418,7 +418,7 @@ You can reference the same Python component from multiple markdown files:
 .. exec::docs.shared.common_example
 ```
 
-### Error Handling
+#### Error Handling
 
 If a directive fails to render:
 
@@ -429,9 +429,9 @@ If a directive fails to render:
 
 ---
 
-## Directive Reference
+### Directive Reference
 
-### Quick Reference Table
+#### Quick Reference Table
 
 | Directive | Syntax | Purpose |
 |-----------|--------|---------|
@@ -443,7 +443,7 @@ If a directive fails to render:
 
 ---
 
-## Next Steps
+### Next Steps
 
 - **Interactive Components** - Learn advanced callback patterns
 - **Data Visualization** - Create beautiful charts and graphs
@@ -451,7 +451,7 @@ If a directive fails to render:
 
 ---
 
-## Need Help?
+### Need Help?
 
 If you're having trouble with directives:
 
