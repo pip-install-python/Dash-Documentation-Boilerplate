@@ -7,14 +7,8 @@ WORKDIR /app
 # Update pip
 RUN pip install --upgrade pip
 
-# Install pandas first
-RUN pip install pandas>=1.2.3
-
-# Install plotly explicitly
-RUN pip install plotly>=5.0.0
-
-# Install pandas first
-RUN pip install pydantic>=2.3.0
+# Install core dependencies explicitly (helps with dependency resolution)
+RUN pip install pandas>=1.2.3 plotly>=5.0.0 pydantic>=2.3.0
 
 # Now install other requirements
 COPY requirements.txt .

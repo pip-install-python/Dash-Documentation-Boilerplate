@@ -7,6 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+
 A comprehensive boilerplate for creating beautiful, interactive documentation for your Dash components, data science workflows, and applications. Features markdown-driven content, live code examples, and automatic theme persistence.
 
 ![Documentation Preview](assets/intro_img.png)
@@ -393,7 +394,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 
 ## 📊 Version Information
 
-**Current Version**: 0.2.0
+**Current Version**: 0.3.0
 
 | Component | Version |
 |-----------|---------|
@@ -403,8 +404,17 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 | Python | 3.11.8+ |
 | React | 18.2.0 |
 | Flask | 3.1.2 |
+| dash-improve-my-llms | 0.3.0 |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+### What's New in 0.3.0
+
+- ✨ **Comprehensive Documentation**: 5 detailed guides with 15+ working examples
+- 🎨 **Enhanced Theme System**: DMC figure templates, theme-aware charts, code blocks
+- 🎯 **Production Ready**: SEO-optimized HTML template with extensive developer guidance
+- 📊 **Better UX**: Custom navigation order, improved typography, consistent spacing
+- 🔧 **All Plotly Charts Theme-Aware**: Dynamic template switching in light/dark modes
 
 ---
 
@@ -433,6 +443,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support & Community
 
 ### Get Help
+[![Discord Invite](https://img.shields.io/discord/396334922522165248?color=4A55CC&label=Discord&logo=discord&style=for-the-badge)](https://discord.gg/uwQ2f3KCad)
+
 - **Documentation**: You're reading it!
 - **Issues**: [GitHub Issues](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/discussions)
