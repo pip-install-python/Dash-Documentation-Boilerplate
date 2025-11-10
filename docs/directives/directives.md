@@ -179,6 +179,7 @@ You can create fully interactive examples with callbacks using the `.. exec::` d
 Here's an interactive counter that demonstrates callbacks:
 
 .. exec::docs.directives.counter_example
+    :code: false
 
 The source code:
 
@@ -191,7 +192,7 @@ The source code:
 Let's create a more complex example with form inputs and validation:
 
 .. exec::docs.directives.form_example
-
+    :code: false
 Source code for this example:
 
 .. source::docs/directives/form_example.py
