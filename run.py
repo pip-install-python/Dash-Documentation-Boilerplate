@@ -8,8 +8,6 @@ import dash_mantine_components as dmc
 # AI/LLM Integration & SEO
 from dash_improve_my_llms import add_llms_routes, RobotsConfig, register_page_metadata
 
-_dash_renderer._set_react_version("18.2.0")
-
 stylesheets = [
     dmc.styles.ALL
 ]
@@ -35,11 +33,11 @@ app = Dash(
 # ============================================================================
 
 # Set base URL for SEO (change to your production URL)
-app._base_url = "https://your-app-url.com"  # Update this!
+app._base_url = "https://dash-documentation-boilerplate.onrender.com"  # Update this!
 
 # Configure bot management policies
 app._robots_config = RobotsConfig(
-    block_ai_training=True,      # Block GPTBot, CCBot, anthropic-ai, etc.
+    block_ai_training=False,      # Block GPTBot, CCBot, anthropic-ai, etc.
     allow_ai_search=True,         # Allow ChatGPT-User, ClaudeBot, PerplexityBot
     allow_traditional=True,       # Allow Googlebot, Bingbot, etc.
     crawl_delay=10,               # 10 second delay between bot requests
