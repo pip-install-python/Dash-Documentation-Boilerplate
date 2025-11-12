@@ -12,6 +12,7 @@ typing-extensions>=4.1.1
 dash>=3.0.0
 dash-iconify>=0.1.2
 dash-mantine-components>=2.4.0
+dash-ag-grid
 
 # Documentation & Utilities
 requests>=2.27.1
