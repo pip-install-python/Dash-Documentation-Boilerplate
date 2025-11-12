@@ -18,8 +18,8 @@ directory = "docs"
 # read all markdown files
 md_file = Path("pages") / "home.md"
 
-metadata, content = frontmatter.parse(md_file.read_text())
-
+post = frontmatter.loads(md_file.read_text())
+metadata, content = post.metadata, post.content
 
 # directives = [Admonition(), BlockExec(), Divider(), Image(), Kwargs(), SC(), TOC()]
 # parse = create_parser(directives)

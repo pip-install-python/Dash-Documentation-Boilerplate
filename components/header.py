@@ -63,14 +63,15 @@ def create_header(data):
                             dmc.Group(
                                 [
                                     html.Img(
-                                        src=get_asset_url('dash_documentation_boilerplate.png'),
+                                        src=get_asset_url('ddb.png'),
                                         style={'height': '36px', 'width': '36px'}
                                     ),
                                     dmc.Text(
                                         "Dash Docs",
                                         size="lg",
                                         fw=700,
-                                        c="teal",
+                                        c="#03c7e5",
+                                        id="dash-docs-title",
                                     ),
                                 ],
                                 gap="sm",

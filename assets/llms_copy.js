@@ -1,10 +1,10 @@
 /**
- * LLM Copy Button Functionality
- * Copies the current page's /llms.txt URL to clipboard
+ * LLM Copy and Page JSON Button Functionality
+ * Copies the current page's /llms.txt or /page.json URL to clipboard
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('LLM Copy handler loaded');
+    console.log('LLM Copy and Page JSON handler loaded');
 
     // Function to copy text using fallback methods
     async function copyToClipboard(text) {
@@ -120,19 +120,104 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial setup
+    // Function to setup page.json buttons
+    function setupPageJsonButtons() {
+        // Find all page.json buttons by class and by ID prefix
+        const buttonsByClass = document.querySelectorAll('.page-json-button');
+        const buttonsById = document.querySelectorAll('[id^="page-json-button-"]');
+
+        // Combine both selections
+        const allButtons = new Set([...buttonsByClass, ...buttonsById]);
+
+        console.log(`Found ${allButtons.size} page.json buttons to setup`);
+
+        allButtons.forEach(button => {
+            // Skip if already setup
+            if (button.dataset.jsonSetup) return;
+            button.dataset.jsonSetup = 'true';
+
+            // Add click handler
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                    // Get current page URL
+                    const currentPath = window.location.pathname;
+
+                    // Construct page.json URL
+                    // Remove trailing slash if present
+                    const cleanPath = currentPath.endsWith('/')
+                        ? currentPath.slice(0, -1)
+                        : currentPath;
+
+                    // Build full URL
+                    const pageJsonUrl = `${window.location.origin}${cleanPath}/page.json`;
+
+                    // Copy to clipboard
+                    const copySuccess = await copyToClipboard(pageJsonUrl);
+
+                    if (copySuccess) {
+                        // Update button text
+                        const originalText = button.textContent;
+                        button.textContent = '✓ Copied! ✓';
+                        button.style.color = 'var(--mantine-color-teal-6)';
+
+                        // Restore original text after 2 seconds
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.color = '';
+                        }, 2000);
+
+                        console.log('URL copied to clipboard:', pageJsonUrl);
+                    } else {
+                        throw new Error('All copy methods failed');
+                    }
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+
+                    // Show error feedback
+                    const originalText = button.textContent;
+                    button.textContent = '❌ Failed';
+                    button.style.color = 'var(--mantine-color-red-6)';
+
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.color = '';
+                    }, 2000);
+                }
+            });
+
+            console.log('Page JSON button setup for:', button.id);
+        });
+    }
+
+    // Initial setup for both button types
     setupCopyButtons();
+    setupPageJsonButtons();
 
     // Delayed setup for Dash-rendered content
-    setTimeout(setupCopyButtons, 500);
-    setTimeout(setupCopyButtons, 1000);
-    setTimeout(setupCopyButtons, 2000);
+    setTimeout(() => {
+        setupCopyButtons();
+        setupPageJsonButtons();
+    }, 500);
+    setTimeout(() => {
+        setupCopyButtons();
+        setupPageJsonButtons();
+    }, 1000);
+    setTimeout(() => {
+        setupCopyButtons();
+        setupPageJsonButtons();
+    }, 2000);
 
     // Re-run setup when Dash updates the page (for navigation)
     const observer = new MutationObserver(function(mutations) {
         // Debounce the setup calls
         clearTimeout(window.llmsCopyTimeout);
-        window.llmsCopyTimeout = setTimeout(setupCopyButtons, 100);
+        window.llmsCopyTimeout = setTimeout(() => {
+            setupCopyButtons();
+            setupPageJsonButtons();
+        }, 100);
     });
 
     // Observe the main content area for changes
@@ -142,5 +227,5 @@ document.addEventListener('DOMContentLoaded', function() {
         subtree: true
     });
 
-    console.log('LLM Copy buttons observer active');
+    console.log('LLM Copy and Page JSON buttons observer active');
 });

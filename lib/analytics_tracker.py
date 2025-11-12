@@ -1,11 +1,13 @@
 """
 Visitor Analytics Tracker
-Tracks visitor information including device type and bot detection
+Tracks visitor information including device type, bot detection, and geolocation
 """
 import json
 from pathlib import Path
 from datetime import datetime
 import re
+import requests
+from functools import lru_cache
 
 
 class AnalyticsTracker:
@@ -88,6 +90,45 @@ class AnalyticsTracker:
 
         return "unknown"
 
+    @lru_cache(maxsize=1000)
+    def get_geolocation(self, ip_address):
+        """Get geolocation data from IP address using ip-api.com (free service)."""
+        # Skip local/private IPs
+        if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:
+            return None
+
+        # Skip private IP ranges
+        if ip_address.startswith(('10.', '172.', '192.168.', 'fe80:', 'fc00:', 'fd00:')):
+            return None
+
+        try:
+            # Use ip-api.com free API (no key required, 45 requests/minute limit)
+            response = requests.get(
+                f'http://ip-api.com/json/{ip_address}',
+                timeout=2  # Short timeout to avoid slowing down requests
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+
+                # Check if request was successful
+                if data.get('status') == 'success':
+                    return {
+                        'country': data.get('country'),
+                        'country_code': data.get('countryCode'),
+                        'region': data.get('regionName'),
+                        'city': data.get('city'),
+                        'latitude': data.get('lat'),
+                        'longitude': data.get('lon'),
+                        'timezone': data.get('timezone')
+                    }
+        except Exception as e:
+            # Silently fail - geolocation is optional
+            print(f"Geolocation failed for {ip_address}: {e}")
+            pass
+
+        return None
+
     def track_visit(self, path, user_agent, ip_address=None):
         """Track a visitor."""
         # Skip internal Dash paths and static assets
@@ -119,6 +160,11 @@ class AnalyticsTracker:
 
         if ip_address:
             visit_data["ip_address"] = ip_address
+
+            # Try to get geolocation
+            geo_data = self.get_geolocation(ip_address)
+            if geo_data:
+                visit_data["location"] = geo_data
 
         # Load existing data
         try:

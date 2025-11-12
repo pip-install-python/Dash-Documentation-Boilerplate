@@ -19,7 +19,7 @@ class LlmsCopy(BaseDirective):
 
     def render(self, renderer, title: str, content: str, **options) -> Component:
         """
-        Render the LLM copy button component.
+        Render the LLM copy buttons component.
 
         Args:
             renderer: The markdown renderer
@@ -28,24 +28,47 @@ class LlmsCopy(BaseDirective):
             **options: Additional options (unused)
 
         Returns:
-            A Dash component with copy button and tooltip
+            A Dash component with copy buttons and tooltips
         """
-        # Create unique ID for this button (sanitize title for ID)
+        # Create unique ID for buttons (sanitize title for ID)
         safe_title = title.lower().replace(" ", "-").replace("/", "-")
-        button_id = f"llm-copy-button-{safe_title}"
+        llms_button_id = f"llm-copy-button-{safe_title}"
+        json_button_id = f"page-json-button-{safe_title}"
 
-        component = dmc.Tooltip(
+        # LLM Copy button
+        llms_button = dmc.Tooltip(
             dmc.Button(
                 "Copy for llm 📋",
-                id=button_id,
+                id=llms_button_id,
                 variant="subtle",
                 color="gray",
                 size="compact-sm",
                 className="llms-copy-button",  # Add class for JS to find
             ),
             label="Copy llms.txt URL for AI assistants",
-            position="right",
+            position="top",
             withArrow=True
+        )
+
+        # Page JSON button
+        json_button = dmc.Tooltip(
+            dmc.Button(
+                "page.json 📄",
+                id=json_button_id,
+                variant="subtle",
+                color="gray",
+                size="compact-sm",
+                className="page-json-button",  # Add class for JS to find
+            ),
+            label="View page structure as JSON",
+            position="top",
+            withArrow=True
+        )
+
+        # Group buttons together
+        component = dmc.Group(
+            [llms_button, json_button],
+            gap="xs"
         )
 
         return dmc.Box(component, c="dimmed", my="sm")
