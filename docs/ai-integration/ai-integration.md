@@ -30,7 +30,7 @@ A markdown file optimized for Large Language Models that includes:
 - **Component hierarchy** and relationships
 - **Key features** and capabilities
 
-Visit: [/llms.txt](/llms.txt)
+Visit: [/llms.txt](https://dash-documentation-boilerplate.onrender.com/llms.txt)
 
 #### 2. `/page.json` - Technical Architecture
 
@@ -46,13 +46,13 @@ A JSON file with technical details:
 }
 ```
 
-Visit: [/page.json](/page.json)
+Visit: [/page.json](https://dash-documentation-boilerplate.onrender.com/page.json)
 
 #### 3. `/architecture.txt` - ASCII Overview
 
 A text-based visual representation of your application structure.
 
-Visit: [/architecture.txt](/architecture.txt)
+Visit: [/architecture.txt](https://dash-documentation-boilerplate.onrender.com/architecture.txt)
 
 #### 4. `/robots.txt` - Bot Management
 
@@ -62,13 +62,13 @@ Controls which bots can access your application:
 - ❌ **Blocks**: AI training bots (GPTBot, CCBot, anthropic-ai, Google-Extended)
 - ✅ **Allows**: Traditional search engines (Googlebot, Bingbot)
 
-Visit: [/robots.txt](/robots.txt)
+Visit: [/robots.txt](https://dash-documentation-boilerplate.onrender.com/robots.txt)
 
 #### 5. `/sitemap.xml` - SEO Optimization
 
 An SEO-optimized sitemap with intelligent priority inference.
 
-Visit: [/sitemap.xml](/sitemap.xml)
+Visit: [/sitemap.xml](https://dash-documentation-boilerplate.onrender.com/sitemap.xml)
 
 ---
 
