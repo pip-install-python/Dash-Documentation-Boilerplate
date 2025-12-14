@@ -1,6 +1,6 @@
 ---
 name: AI/LLM Integration
-description: Make your documentation AI-friendly with automatic generation of llms.txt, robots.txt, and SEO optimization
+description: Make your documentation AI-friendly with automatic generation of llms.txt, TOON format, robots.txt, and SEO optimization
 endpoint: /examples/ai-integration
 package: ai-integration
 icon: mdi:robot-outline
@@ -12,7 +12,9 @@ icon: mdi:robot-outline
 
 ### Introduction
 
-This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v0.3.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
+This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v1.0.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
+
+**New in v1.0.0**: TOON format support for **50-60% fewer tokens** when consumed by LLMs!
 
 ---
 
@@ -69,6 +71,112 @@ Visit: [/robots.txt](https://dash-documentation-boilerplate.onrender.com/robots.
 An SEO-optimized sitemap with intelligent priority inference.
 
 Visit: [/sitemap.xml](https://dash-documentation-boilerplate.onrender.com/sitemap.xml)
+
+#### 6. `/llms.toon` - Token-Optimized Format (NEW in v1.0.0!)
+
+TOON (Token-Oriented Object Notation) format provides **50-60% fewer tokens** compared to markdown:
+
+```toon
+meta:
+  path: /equipment
+  name: Equipment Catalog
+interactive:
+  inputs[2]{id,type,placeholder}:
+    equipment-search,TextInput,Search equipment...
+    equipment-category,Select,
+```
+
+Visit: [/llms.toon](https://dash-documentation-boilerplate.onrender.com/llms.toon)
+
+#### 7. `/architecture.toon` - Token-Optimized Architecture (NEW!)
+
+The architecture file in TOON format for reduced token usage:
+
+Visit: [/architecture.toon](https://dash-documentation-boilerplate.onrender.com/architecture.toon)
+
+---
+
+### TOON Format (New in v1.0.0)
+
+TOON (Token-Oriented Object Notation) is a token-optimized alternative to markdown that achieves **50-60% fewer tokens** when consumed by LLMs.
+
+#### Benefits
+
+| Format | Typical Size | Best For |
+|--------|--------------|----------|
+| `llms.txt` | ~3000 tokens | Human readability, full context |
+| `llms.toon` | ~1200 tokens | API calls, large apps, cost savings |
+| `page.json` | Variable | Programmatic access, parsing |
+
+#### Example Comparison
+
+**Markdown llms.txt (~312 tokens):**
+```markdown
+## Interactive Elements
+**User Inputs:**
+- TextInput (ID: `equipment-search`) - Search equipment...
+- Select (ID: `equipment-category`)
+```
+
+**TOON format (~127 tokens):**
+```toon
+interactive:
+  inputs[2]{id,type,placeholder}:
+    equipment-search,TextInput,Search equipment...
+    equipment-category,Select,
+```
+
+#### Configure TOON Output
+
+```python
+from dash_improve_my_llms import TOONConfig
+
+toon_config = TOONConfig(
+    indent=2,                    # Spaces per indent level
+    delimiter=",",               # Array delimiter: "," | "\t" | "|"
+    include_metadata=True,       # Include generator metadata
+    include_content=True,        # Include text content arrays
+    max_content_items=20,        # Limit content array size
+    strict_mode=True,            # Validate array lengths
+    minify=False                 # Single-line primitives
+)
+
+app._toon_config = toon_config
+```
+
+#### Generate TOON Programmatically
+
+```python
+from dash_improve_my_llms import toon_encode, TOONConfig
+
+# Encode any Python data to TOON
+data = {
+    "name": "Dashboard",
+    "components": ["chart", "table", "filters"],
+    "stats": {"total": 42, "active": 38}
+}
+
+toon_string = toon_encode(data)
+# Output:
+# name: Dashboard
+# components[3]: chart,table,filters
+# stats:
+#   total: 42
+#   active: 38
+```
+
+#### Test TOON Endpoints
+
+```bash
+# Fetch TOON format (50-60% fewer tokens!)
+curl http://localhost:8553/llms.toon
+
+# Fetch architecture in TOON
+curl http://localhost:8553/architecture.toon
+
+# Page-specific TOON
+curl http://localhost:8553/getting-started/llms.toon
+```
 
 ---
 
@@ -446,11 +554,14 @@ curl http://localhost:8553/llms.txt
 | Route | Purpose |
 |-------|---------|
 | `/llms.txt` | LLM-friendly documentation |
+| `/llms.toon` | Token-optimized docs (NEW!) |
 | `/page.json` | Technical architecture |
 | `/architecture.txt` | App overview |
+| `/architecture.toon` | Token-optimized architecture (NEW!) |
 | `/robots.txt` | Bot access control |
 | `/sitemap.xml` | SEO sitemap |
 | `/<page>/llms.txt` | Page-specific docs |
+| `/<page>/llms.toon` | Page-specific TOON (NEW!) |
 
 #### Key Functions
 
@@ -460,7 +571,9 @@ from dash_improve_my_llms import (
     mark_important,            # Highlight components
     mark_hidden,               # Hide pages from bots
     register_page_metadata,    # Add custom metadata
-    RobotsConfig              # Configure bot policies
+    RobotsConfig,              # Configure bot policies
+    TOONConfig,                # Configure TOON output (NEW!)
+    toon_encode,               # Encode data to TOON (NEW!)
 )
 ```
 

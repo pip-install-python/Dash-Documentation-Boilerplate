@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-13
+
+### Added
+- **TOON Format Support** - Token-Oriented Object Notation for 50-60% fewer tokens
+  - New `/llms.toon` endpoint for token-optimized LLM documentation
+  - New `/architecture.toon` endpoint for token-optimized architecture
+  - New `/<page>/llms.toon` per-page TOON format endpoints
+  - TOON provides tabular arrays and explicit length markers for LLM validation
+  - Ideal for API calls, large apps, and cost-conscious deployments
+
+### Changed
+- **Upgraded dash-improve-my-llms from v0.3.0 to v1.0.0**
+  - Production-ready release with comprehensive test coverage (88 tests, 98% coverage)
+  - New API exports: `TOONConfig`, `toon_encode`, `generate_llms_toon`, `generate_architecture_toon`
+  - Zero-change migration: existing code works without modifications
+
+### Documentation
+- **Updated AI/LLM Integration Guide** with comprehensive TOON format documentation
+  - Added TOON format section with benefits comparison table
+  - Added example comparison (markdown vs TOON token usage)
+  - Added TOONConfig configuration examples
+  - Added programmatic TOON generation examples
+  - Updated available routes table with new TOON endpoints
+  - Updated key functions reference with new TOON imports
+
+### Improved
+- Better AI/LLM documentation organization
+- Enhanced developer experience with new format options
+- Cost optimization through token-efficient TOON format
+
+---
+
 ## [0.4.0] - 2025-11-10
 
 ### Added
@@ -203,6 +235,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Dash | DMC | Mantine | Python | Features |
 |---------|------|------|-----|---------|--------|----------|
+| 0.5.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | TOON format, dash-improve-my-llms v1.0.0 |
+| 0.4.0 | 2025-11-10 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | LLM Copy Button directive |
 | 0.3.0 | 2025-11-09 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Comprehensive docs, theme system, SEO |
 | 0.2.0 | 2025-11-09 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Migration to Dash 3.x, DMC 2.4.0, AI/LLM |
 | 0.1.0 | 2024-11-30 | 2.5.0+ | 0.14.7 | 7.14.1 | 3.11+ | Initial release |
@@ -210,6 +244,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Migration Guides
+
+### Migrating to 0.5.0 from 0.4.0
+
+**Zero changes required!** The upgrade is fully backwards compatible.
+
+Key changes:
+1. Update `dash-improve-my-llms` in requirements.txt to `>=1.0.0`
+2. New TOON endpoints are automatically available:
+   - `/llms.toon` - Token-optimized LLM docs
+   - `/architecture.toon` - Token-optimized architecture
+   - `/<page>/llms.toon` - Per-page TOON format
+
+Optional new features:
+```python
+# Configure TOON output (optional)
+from dash_improve_my_llms import TOONConfig
+
+app._toon_config = TOONConfig(
+    indent=2,
+    delimiter=",",
+    include_metadata=True
+)
+
+# Programmatic TOON encoding (optional)
+from dash_improve_my_llms import toon_encode
+toon_string = toon_encode({"key": "value"})
+```
 
 ### Migrating to 0.3.0 from 0.2.0
 

@@ -36,14 +36,15 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - Interactive code examples with live callbacks
 - Component props documentation auto-generation
 
-### 🤖 AI/LLM & SEO Integration (NEW!)
+### 🤖 AI/LLM & SEO Integration
 - **Automatic AI-friendly documentation** - llms.txt, page.json, architecture.txt
+- **TOON format support (NEW!)** - Token-optimized docs with 50-60% fewer tokens (llms.toon, architecture.toon)
 - **SEO optimization** - sitemap.xml with intelligent priority inference
 - **Bot management** - Control which bots can access your app (blocks AI training, allows AI search)
 - **Structured data** - Schema.org JSON-LD for better search engine understanding
 - **Privacy controls** - mark_hidden() for sensitive pages
 - **Share with AI** - Users can share your app URL with ChatGPT/Claude for help
-- Powered by [dash-improve-my-llms v0.3.0](https://pypi.org/project/dash-improve-my-llms/)
+- Powered by [dash-improve-my-llms v1.0.0](https://pypi.org/project/dash-improve-my-llms/)
 
 ### 🐋 Production Ready
 - Docker and docker-compose support
@@ -394,7 +395,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 
 ## 📊 Version Information
 
-**Current Version**: 0.3.0
+**Current Version**: 0.5.0
 
 | Component | Version |
 |-----------|---------|
@@ -404,17 +405,18 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 | Python | 3.11.8+ |
 | React | 18.2.0 |
 | Flask | 3.1.2 |
-| dash-improve-my-llms | 0.3.0 |
+| dash-improve-my-llms | 1.0.0 |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
-### What's New in 0.3.0
+### What's New in 0.5.0
 
-- ✨ **Comprehensive Documentation**: 5 detailed guides with 15+ working examples
-- 🎨 **Enhanced Theme System**: DMC figure templates, theme-aware charts, code blocks
-- 🎯 **Production Ready**: SEO-optimized HTML template with extensive developer guidance
-- 📊 **Better UX**: Custom navigation order, improved typography, consistent spacing
-- 🔧 **All Plotly Charts Theme-Aware**: Dynamic template switching in light/dark modes
+- 🎯 **TOON Format Support**: Token-optimized documentation with 50-60% fewer tokens
+  - New `/llms.toon` endpoint for cost-effective LLM integration
+  - New `/architecture.toon` for token-optimized architecture
+  - Per-page TOON format at `/<page>/llms.toon`
+- 🚀 **dash-improve-my-llms v1.0.0**: Production-ready release with 88 tests, 98% coverage
+- 🔧 **New API Exports**: `TOONConfig`, `toon_encode` for programmatic TOON generation
 
 ---
 
