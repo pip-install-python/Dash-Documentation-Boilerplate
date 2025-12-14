@@ -279,9 +279,73 @@ def serve_markdown_page_json(page_path):
     # If no markdown content found, let default handler process it
     abort(404)
 
+
+@app.server.route("/<path:page_path>/llms.toon")
+def serve_markdown_llms_toon(page_path):
+    """
+    Custom route to serve TOON format for documentation pages.
+
+    This route processes raw markdown content (including directives)
+    and generates documentation-aware TOON output. Unlike the default
+    dash-improve-my-llms route which only sees rendered components,
+    this route has access to the raw markdown with full directive context.
+
+    TOON format provides 40-50% token reduction while preserving
+    all semantic content from the documentation.
+    """
+    from lib.toon_generator import generate_documentation_toon
+    from dash_improve_my_llms import generate_llms_toon
+
+    # Construct the full path
+    full_path = "/" + page_path
+
+    # Find the page in the registry
+    for page in dash.page_registry.values():
+        if page.get("path") == full_path:
+            page_name = page.get("name")
+            page_description = page.get("description", "")
+
+            # Check if we have raw markdown content for this page
+            if page_name in NAME_CONTENT_MAP:
+                raw_markdown = NAME_CONTENT_MAP[page_name]
+
+                # Generate documentation-aware TOON
+                toon_output = generate_documentation_toon(
+                    page_path=full_path,
+                    page_name=page_name,
+                    page_description=page_description,
+                    raw_markdown=raw_markdown,
+                    page_registry=dash.page_registry.values(),
+                    base_url=getattr(app, '_base_url', '')
+                )
+
+                return Response(toon_output, mimetype="text/plain")
+
+            # Page found but not in NAME_CONTENT_MAP - use package's TOON generator
+            page_layout = page.get("layout")
+            if callable(page_layout):
+                try:
+                    page_layout = page_layout()
+                except:
+                    page_layout = None
+
+            if page_layout:
+                toon_output = generate_llms_toon(
+                    path=full_path,
+                    layout=page_layout,
+                    name=page_name,
+                    app=app
+                )
+                return Response(toon_output, mimetype="text/plain")
+
+    # Page not found
+    abort(404)
+
 # ============================================================================
 
 # Add LLMS routes - enables llms.txt, page.json, architecture.txt, robots.txt, sitemap.xml
+# Note: Custom routes above are registered BEFORE this, so they take precedence
+# for markdown-based documentation pages
 add_llms_routes(app)
 
 # Register metadata for home page (improves SEO and AI understanding)
@@ -317,4 +381,4 @@ def track_visitor():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port='8558')
+    app.run(debug=False, host='0.0.0.0', port='8559')

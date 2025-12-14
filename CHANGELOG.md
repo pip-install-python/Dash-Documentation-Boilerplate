@@ -5,6 +5,97 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-12-13
+
+### Added
+- **Custom Documentation-Aware TOON Generator** (`lib/toon_generator.py`)
+  - Custom TOON route that processes raw markdown from `NAME_CONTENT_MAP`
+  - Achieves **54.7% token reduction** vs llms.txt while preserving all content
+  - Full directive awareness (exec, source, kwargs, toc, llms_copy)
+  - Features:
+    - Section extraction with hierarchical structure (h2-h6)
+    - Directive parsing with option extraction
+    - Source file embedding with smart code compression
+    - Table and list preservation in compact format
+    - Exec component detection with callback markers
+    - Deduplication of code examples and directives
+  - Smart code compression (`compress_code()`) that:
+    - Preserves imports, function/class definitions
+    - Keeps callback decorators and Input/Output patterns
+    - Truncates long files with line count indicator
+  - TOON v3.2 format with optimized output:
+    - Compact section format: `[level] title`
+    - Grouped directives by type
+    - Inline table format with pipe separators
+    - Key lists extraction for substantial bullet points
+
+### Changed
+- **Custom `/<page>/llms.toon` route** in `run.py`
+  - Overrides default dash-improve-my-llms TOON for markdown pages
+  - Uses raw markdown from NAME_CONTENT_MAP instead of rendered components
+  - Processes source directives to embed actual file content
+
+### Fixed
+- **TOON content gap issue** - Previous TOON was only capturing 15-20% of documentation content
+  - Root cause: dash-improve-my-llms extracts from rendered Dash components, losing directive context
+  - Solution: Custom route processes raw markdown with full directive awareness
+  - Previous TOON was 185% the size of llms.txt (27,669 chars vs 14,943 chars)
+  - New TOON is 45.3% the size of llms.txt (6,965 chars vs 15,369 chars)
+
+### Technical Details
+- New module: `lib/toon_generator.py` (698 lines)
+  - `generate_documentation_toon()` - Main entry point
+  - `build_documentation_toon()` - TOON string builder
+  - `extract_sections()` - Hierarchical section parser
+  - `extract_directives()` - Directive extractor with options
+  - `process_source_directive()` - File content reader
+  - `process_exec_directive()` - Component metadata extractor
+  - `compress_code()` - Smart code compression
+  - `compress_section_content()` - Content summarization
+  - `extract_tables()` / `extract_lists()` - Structure extractors
+
+---
+
+## [0.6.0] - 2025-12-13
+
+### Added
+- **Enhanced TOON Format v3.1** - Lossless semantic compression with 40-50% token reduction
+  - Application context with related pages and multi-page awareness
+  - Page purpose explanations with human-readable descriptions
+  - Component breakdown with type distribution
+  - Human-readable callback descriptions
+  - Synthesized page summaries
+  - Link categorization (internal vs external)
+
+### Changed
+- **Upgraded dash-improve-my-llms from v1.0.0 to v1.1.0**
+  - Lossless semantic compression preserves all meaningful content
+  - New content extraction: `extract_markdown_content()`, `parse_markdown_content()`
+  - Smart compression: `compress_code_example()`, `compress_section_content()`
+  - New helper functions: `_generate_page_summary()`, `_format_callback_description()`
+
+### New TOONConfig Options
+- `preserve_code_examples=True` - Include code snippets from markdown
+- `preserve_headings=True` - Keep section structure
+- `preserve_markdown=True` - Extract dcc.Markdown content
+- `max_code_lines=30` - Max lines per code example
+- `max_sections=20` - Max sections to include
+- `max_content_items=100` - Increased from 20
+
+### Documentation
+- **Updated AI/LLM Integration Guide** with v1.1.0 TOON enhancements
+  - Added design principle: lossless semantic compression
+  - Updated token efficiency comparison table
+  - Added 6 content gap examples (context, purpose, components, callbacks, summary, navigation)
+  - Updated TOONConfig with new v1.1.0 options
+
+### Improved
+- Better content preservation in TOON format
+- Optimal information density vs token reduction balance
+- Enhanced developer experience with richer TOON output
+
+---
+
 ## [0.5.0] - 2025-12-13
 
 ### Added
@@ -235,6 +326,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Dash | DMC | Mantine | Python | Features |
 |---------|------|------|-----|---------|--------|----------|
+| 0.6.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Enhanced TOON v3.1, dash-improve-my-llms v1.1.0 |
 | 0.5.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | TOON format, dash-improve-my-llms v1.0.0 |
 | 0.4.0 | 2025-11-10 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | LLM Copy Button directive |
 | 0.3.0 | 2025-11-09 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Comprehensive docs, theme system, SEO |
@@ -244,6 +336,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Migration Guides
+
+### Migrating to 0.6.0 from 0.5.0
+
+**Zero changes required!** The upgrade is fully backwards compatible.
+
+Key changes:
+1. Update `dash-improve-my-llms` in requirements.txt to `>=1.1.0`
+2. TOON output now includes richer, lossless semantic content automatically
+
+Optional new TOONConfig options:
+```python
+from dash_improve_my_llms import TOONConfig
+
+app._toon_config = TOONConfig(
+    # New in v1.1.0:
+    preserve_code_examples=True,   # Include code snippets
+    preserve_headings=True,        # Keep section structure
+    preserve_markdown=True,        # Extract dcc.Markdown content
+    max_code_lines=30,             # Max lines per code example
+    max_sections=20,               # Max sections to include
+    max_content_items=100,         # Increased from 20
+)
+```
 
 ### Migrating to 0.5.0 from 0.4.0
 

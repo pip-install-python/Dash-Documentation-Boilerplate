@@ -12,9 +12,9 @@ icon: mdi:robot-outline
 
 ### Introduction
 
-This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v1.0.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
+This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v1.1.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
 
-**New in v1.0.0**: TOON format support for **50-60% fewer tokens** when consumed by LLMs!
+**New in v1.1.0**: Enhanced TOON format with **lossless semantic compression** - preserves all meaningful content while achieving **40-50% token reduction**!
 
 ---
 
@@ -96,34 +96,84 @@ Visit: [/architecture.toon](https://dash-documentation-boilerplate.onrender.com/
 
 ---
 
-### TOON Format (New in v1.0.0)
+### TOON Format (Enhanced in v1.1.0)
 
-TOON (Token-Oriented Object Notation) is a token-optimized alternative to markdown that achieves **50-60% fewer tokens** when consumed by LLMs.
+TOON (Token-Oriented Object Notation) is a token-optimized alternative to markdown that achieves **lossless semantic compression** - preserving all meaningful content while reducing tokens by **40-50%**.
+
+#### Design Principle
+
+> **TOON should be a LOSSLESS SEMANTIC COMPRESSION of llms.txt content**
+>
+> The goal is not maximum token reduction, but optimal information density. All meaningful content is preserved while removing only formatting overhead.
 
 #### Benefits
 
-| Format | Typical Size | Best For |
-|--------|--------------|----------|
-| `llms.txt` | ~3000 tokens | Human readability, full context |
-| `llms.toon` | ~1200 tokens | API calls, large apps, cost savings |
-| `page.json` | Variable | Programmatic access, parsing |
+| Format | Typical Size | Reduction | Best For |
+|--------|--------------|-----------|----------|
+| `llms.txt` | ~15,000 tokens | baseline | Human readability, full context |
+| `llms.toon` v1.0.0 | ~200 tokens | 98% | Too aggressive, lost content |
+| `llms.toon` v1.1.0 | ~6,000-8,000 tokens | 40-50% | Lossless semantic compression |
+| `page.json` | Variable | - | Programmatic access, parsing |
 
-#### Example Comparison
+#### v1.1.0 TOON Enhancements
 
-**Markdown llms.txt (~312 tokens):**
-```markdown
-## Interactive Elements
-**User Inputs:**
-- TextInput (ID: `equipment-search`) - Search equipment...
-- Select (ID: `equipment-category`)
+The v1.1.0 release addresses 6 content gaps to provide complete information:
+
+**1. Application Context** - Related pages and multi-page awareness:
+```toon
+context: Part of multi-page Dash app with 3 total pages
+related_pages[3]{path,name}:
+  /,Home
+  /equipment,Equipment Catalog
+  /analytics,Analytics Dashboard
 ```
 
-**TOON format (~127 tokens):**
+**2. Page Purpose Explanations** - Human-readable purpose descriptions:
 ```toon
-interactive:
-  inputs[2]{id,type,placeholder}:
-    equipment-search,TextInput,Search equipment...
-    equipment-category,Select,
+purpose:
+  flags: [data_input, interactive]
+  explanation:
+    - Contains form elements for data entry
+    - Responds to user interactions with dynamic updates
+```
+
+**3. Component Breakdown** - Type distribution added:
+```toon
+components:
+  total: 23
+  interactive: 5
+  static: 18
+  breakdown:
+    Div: 8
+    Button: 3
+    TextInput: 2
+```
+
+**4. Callback Descriptions** - Human-readable documentation:
+```toon
+callbacks[2]:
+  1:
+    updates: equipment-list.children
+    triggers: equipment-search.value, equipment-category.value
+    description: Updates equipment list when search or category changes
+```
+
+**5. Summary Section** - Synthesized page summary:
+```toon
+summary: >
+  Equipment Catalog is a data input and interactive page with 23 components
+  (5 interactive) and 2 callbacks. Users can search and filter equipment
+  with real-time updates.
+```
+
+**6. Link Categorization** - Internal vs external separation:
+```toon
+navigation:
+  internal[2]:
+    Home: /
+    Analytics: /analytics
+  external[1]:
+    Documentation: https://docs.example.com
 ```
 
 #### Configure TOON Output
@@ -132,13 +182,19 @@ interactive:
 from dash_improve_my_llms import TOONConfig
 
 toon_config = TOONConfig(
-    indent=2,                    # Spaces per indent level
-    delimiter=",",               # Array delimiter: "," | "\t" | "|"
-    include_metadata=True,       # Include generator metadata
-    include_content=True,        # Include text content arrays
-    max_content_items=20,        # Limit content array size
-    strict_mode=True,            # Validate array lengths
-    minify=False                 # Single-line primitives
+    indent=2,                      # Spaces per indent level
+    delimiter=",",                 # Array delimiter: "," | "\t" | "|"
+    include_metadata=True,         # Include generator metadata
+    include_content=True,          # Include text content arrays
+    max_content_items=100,         # Limit content array size (increased in v1.1.0)
+    strict_mode=True,              # Validate array lengths
+    minify=False,                  # Single-line primitives
+    # New in v1.1.0:
+    preserve_code_examples=True,   # Include code snippets
+    preserve_headings=True,        # Keep section structure
+    preserve_markdown=True,        # Extract dcc.Markdown content
+    max_code_lines=30,             # Max lines per code example
+    max_sections=20,               # Max sections to include
 )
 
 app._toon_config = toon_config

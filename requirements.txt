@@ -21,7 +21,7 @@ markdown2dash
 pydantic>=2.3.0
 
 # AI/LLM Integration & SEO
-dash-improve-my-llms>=1.0.0
+dash-improve-my-llms>=1.1.0
 
 # Production Server
 gunicorn>=21.2.0

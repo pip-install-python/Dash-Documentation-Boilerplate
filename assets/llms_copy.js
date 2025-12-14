@@ -1,10 +1,10 @@
 /**
- * LLM Copy and Page JSON Button Functionality
- * Copies the current page's /llms.txt or /page.json URL to clipboard
+ * LLM Copy, TOON, and Page JSON Button Functionality
+ * Copies the current page's /llms.txt, /llms.toon, or /page.json URL to clipboard
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('LLM Copy and Page JSON handler loaded');
+    console.log('LLM Copy, TOON, and Page JSON handler loaded');
 
     // Function to copy text using fallback methods
     async function copyToClipboard(text) {
@@ -120,6 +120,78 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Function to setup llms.toon buttons
+    function setupToonButtons() {
+        // Find all TOON buttons by class and by ID prefix
+        const buttonsByClass = document.querySelectorAll('.llms-toon-button');
+        const buttonsById = document.querySelectorAll('[id^="llms-toon-button-"]');
+
+        // Combine both selections
+        const allButtons = new Set([...buttonsByClass, ...buttonsById]);
+
+        console.log(`Found ${allButtons.size} TOON buttons to setup`);
+
+        allButtons.forEach(button => {
+            // Skip if already setup
+            if (button.dataset.toonSetup) return;
+            button.dataset.toonSetup = 'true';
+
+            // Add click handler
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                    // Get current page URL
+                    const currentPath = window.location.pathname;
+
+                    // Construct llms.toon URL
+                    // Remove trailing slash if present
+                    const cleanPath = currentPath.endsWith('/')
+                        ? currentPath.slice(0, -1)
+                        : currentPath;
+
+                    // Build full URL
+                    const toonUrl = `${window.location.origin}${cleanPath}/llms.toon`;
+
+                    // Copy to clipboard
+                    const copySuccess = await copyToClipboard(toonUrl);
+
+                    if (copySuccess) {
+                        // Update button text
+                        const originalText = button.textContent;
+                        button.textContent = '✓ Copied! ✓';
+                        button.style.color = 'var(--mantine-color-teal-6)';
+
+                        // Restore original text after 2 seconds
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.color = '';
+                        }, 2000);
+
+                        console.log('URL copied to clipboard:', toonUrl);
+                    } else {
+                        throw new Error('All copy methods failed');
+                    }
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+
+                    // Show error feedback
+                    const originalText = button.textContent;
+                    button.textContent = '❌ Failed';
+                    button.style.color = 'var(--mantine-color-red-6)';
+
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.color = '';
+                    }, 2000);
+                }
+            });
+
+            console.log('TOON button setup for:', button.id);
+        });
+    }
+
     // Function to setup page.json buttons
     function setupPageJsonButtons() {
         // Find all page.json buttons by class and by ID prefix
@@ -192,21 +264,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial setup for both button types
+    // Initial setup for all button types
     setupCopyButtons();
+    setupToonButtons();
     setupPageJsonButtons();
 
     // Delayed setup for Dash-rendered content
     setTimeout(() => {
         setupCopyButtons();
+        setupToonButtons();
         setupPageJsonButtons();
     }, 500);
     setTimeout(() => {
         setupCopyButtons();
+        setupToonButtons();
         setupPageJsonButtons();
     }, 1000);
     setTimeout(() => {
         setupCopyButtons();
+        setupToonButtons();
         setupPageJsonButtons();
     }, 2000);
 
@@ -216,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(window.llmsCopyTimeout);
         window.llmsCopyTimeout = setTimeout(() => {
             setupCopyButtons();
+            setupToonButtons();
             setupPageJsonButtons();
         }, 100);
     });
@@ -227,5 +304,5 @@ document.addEventListener('DOMContentLoaded', function() {
         subtree: true
     });
 
-    console.log('LLM Copy and Page JSON buttons observer active');
+    console.log('LLM Copy, TOON, and Page JSON buttons observer active');
 });
