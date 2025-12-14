@@ -68,6 +68,40 @@ class ListInfo:
     items: List[str]
 
 
+@dataclass
+class CodeTip:
+    """Short instructional code snippet with context."""
+    context: str  # Heading or description that precedes it
+    language: str
+    code: str
+    section_title: Optional[str] = None
+
+
+@dataclass
+class BestPractice:
+    """Numbered best practice with code example."""
+    number: int
+    title: str
+    description: str
+    code: Optional[str] = None
+    code_lang: str = "python"
+
+
+@dataclass
+class Pattern:
+    """Architectural pattern with implementation."""
+    name: str
+    description: str
+    code_blocks: List[Tuple[str, str]] = field(default_factory=list)  # [(language, code), ...]
+
+
+@dataclass
+class Resource:
+    """External resource link."""
+    name: str
+    url: str
+
+
 # Language extension mapping
 LANG_MAP = {
     'py': 'python', 'pyi': 'python',
@@ -402,6 +436,340 @@ def extract_lists(markdown: str) -> List[ListInfo]:
     return lists
 
 
+def extract_code_tips(markdown: str, exclude_sections: List[str] = None) -> List[CodeTip]:
+    """
+    Extract short instructional code snippets with their context.
+
+    Finds fenced code blocks that are preceded by a heading (#### or #####)
+    and are relatively short (< 15 lines). These are "tips" - instructional
+    snippets showing patterns or configurations.
+
+    Excludes:
+    - Code blocks that are markdown/shell examples showing usage syntax
+    - Very long code blocks (those should be in codeExamples)
+    - Code blocks in excluded sections (Best Practices, Patterns, etc.)
+    """
+    tips = []
+    exclude_sections = exclude_sections or []
+
+    # Find all code blocks with their positions
+    code_pattern = re.compile(r'```(\w+)?\n(.*?)```', re.DOTALL)
+    heading_pattern = re.compile(r'^(#{3,5})\s+(.+)$', re.MULTILINE)
+
+    # Get all headings with positions
+    headings = [(m.start(), m.group(2).strip()) for m in heading_pattern.finditer(markdown)]
+
+    # Find positions of code blocks (to exclude fake headings inside code blocks)
+    code_block_ranges = []
+    for cb_match in re.finditer(r'```.*?```', markdown, re.DOTALL):
+        code_block_ranges.append((cb_match.start(), cb_match.end()))
+
+    def is_in_code_block(pos):
+        return any(start <= pos < end for start, end in code_block_ranges)
+
+    # Find positions of excluded sections
+    excluded_ranges = []
+    for section_name in exclude_sections:
+        # Don't use re.escape - it escapes spaces incorrectly
+        # Instead, escape only special regex chars but not spaces
+        escaped_name = re.sub(r'([.^$*+?{}\\|\[\]()])', r'\\\1', section_name)
+        section_pattern = re.compile(
+            rf'^#{{2,4}}\s+{escaped_name}\s*$',
+            re.MULTILINE | re.IGNORECASE
+        )
+        section_match = section_pattern.search(markdown)
+        if section_match:
+            section_start = section_match.start()
+            # Find next same-level heading (not inside a code block)
+            section_level = markdown[section_match.start():section_match.end()].count('#')
+            next_heading_pattern = re.compile(rf'^#{{{1},{section_level}}}\s+[^#]', re.MULTILINE)
+
+            # Search for next heading, skipping those inside code blocks
+            section_end = len(markdown)
+            for next_match in next_heading_pattern.finditer(markdown, section_match.end()):
+                if not is_in_code_block(next_match.start()):
+                    section_end = next_match.start()
+                    break
+
+            excluded_ranges.append((section_start, section_end))
+
+    for match in code_pattern.finditer(markdown):
+        lang = match.group(1) or 'text'
+        code = match.group(2).strip()
+        code_start = match.start()
+
+        # Skip if in an excluded section
+        in_excluded = any(start <= code_start < end for start, end in excluded_ranges)
+        if in_excluded:
+            continue
+
+        # Skip markdown/text examples and very short/very long blocks
+        if lang in ('markdown', 'text', 'md'):
+            continue
+
+        lines = code.split('\n')
+        if len(lines) < 2 or len(lines) > 15:
+            continue
+
+        # Skip if this looks like a usage example (just showing syntax)
+        if code.startswith('.. ') or code.startswith('---'):
+            continue
+
+        # Find the nearest preceding heading
+        context = None
+        for h_pos, h_text in reversed(headings):
+            if h_pos < code_start:
+                # Check if heading is reasonably close (within 500 chars)
+                if code_start - h_pos < 500:
+                    context = h_text
+                break
+
+        if context:
+            # Clean context - remove markdown formatting
+            context = re.sub(r'`([^`]+)`', r'\1', context)
+            context = re.sub(r'\*\*([^*]+)\*\*', r'\1', context)
+            context = re.sub(r'^\d+\.\s*', '', context)  # Remove leading numbers
+
+            tips.append(CodeTip(
+                context=context,
+                language=lang,
+                code=code
+            ))
+
+    return tips
+
+
+def extract_best_practices(markdown: str) -> List[BestPractice]:
+    """
+    Extract numbered best practices from 'Best Practices' sections.
+
+    Looks for sections titled "Best Practices", "Guidelines", etc.
+    and extracts numbered sub-sections with their code examples.
+    """
+    practices = []
+
+    # Find "Best Practices" section
+    bp_pattern = re.compile(
+        r'^#{2,4}\s+(?:Best Practices|Guidelines|Recommendations)\s*$',
+        re.MULTILINE | re.IGNORECASE
+    )
+
+    bp_match = bp_pattern.search(markdown)
+    if not bp_match:
+        return practices
+
+    # Find code block ranges to exclude fake headings inside code blocks
+    code_block_ranges = []
+    for cb_match in re.finditer(r'```.*?```', markdown, re.DOTALL):
+        code_block_ranges.append((cb_match.start(), cb_match.end()))
+
+    def is_in_code_block(pos):
+        return any(start <= pos < end for start, end in code_block_ranges)
+
+    # Get content from Best Practices heading to next same-level heading or end
+    bp_start = bp_match.end()
+    bp_level = markdown[bp_match.start():bp_match.end()].count('#')
+
+    # Find next same-level or higher heading (not inside a code block)
+    next_heading_pattern = re.compile(rf'^#{{{1},{bp_level}}}\s+', re.MULTILINE)
+    bp_end = len(markdown)
+    for next_match in next_heading_pattern.finditer(markdown, bp_start):
+        if not is_in_code_block(next_match.start()):
+            bp_end = next_match.start()
+            break
+
+    bp_content = markdown[bp_start:bp_end]
+
+    # Find numbered sub-sections (#### 1. Title or #### Title)
+    subsection_pattern = re.compile(
+        r'^#{3,5}\s+(\d+)\.\s*(.+?)$|^#{3,5}\s+(.+?)$',
+        re.MULTILINE
+    )
+
+    # Get all subsections with positions
+    subsections = []
+    for m in subsection_pattern.finditer(bp_content):
+        if m.group(1):  # Numbered format: "#### 1. Title"
+            num = int(m.group(1))
+            title = m.group(2).strip()
+        else:  # Non-numbered format: "#### Title"
+            num = len(subsections) + 1
+            title = m.group(3).strip()
+
+        subsections.append((m.start(), m.end(), num, title))
+
+    # Extract content and code for each subsection
+    for i, (start, end, num, title) in enumerate(subsections):
+        # Content goes until next subsection or end of BP section
+        content_end = subsections[i + 1][0] if i + 1 < len(subsections) else len(bp_content)
+        content = bp_content[end:content_end].strip()
+
+        # Extract description (first paragraph before code block)
+        desc_match = re.match(r'^([^`\n]+(?:\n[^`\n#]+)*)', content)
+        description = desc_match.group(1).strip() if desc_match else ""
+
+        # Remove markdown formatting from description
+        description = re.sub(r'\*\*([^*]+)\*\*', r'\1', description)
+        description = re.sub(r'`([^`]+)`', r'\1', description)
+
+        # Extract code block if present
+        code_match = re.search(r'```(\w+)?\n(.*?)```', content, re.DOTALL)
+        code = None
+        code_lang = "python"
+        if code_match:
+            code_lang = code_match.group(1) or "python"
+            code = code_match.group(2).strip()
+
+        practices.append(BestPractice(
+            number=num,
+            title=title,
+            description=description[:200],  # Truncate long descriptions
+            code=code,
+            code_lang=code_lang
+        ))
+
+    return practices
+
+
+def extract_patterns(markdown: str) -> List[Pattern]:
+    """
+    Extract architectural patterns from 'Patterns' or 'Common Patterns' sections.
+
+    Looks for sections with "Pattern" in the title and extracts pattern name,
+    description, and associated code blocks.
+    """
+    patterns = []
+
+    # Find "Patterns" section
+    pattern_section = re.compile(
+        r'^#{2,4}\s+(?:Common\s+)?Patterns?\s*$',
+        re.MULTILINE | re.IGNORECASE
+    )
+
+    section_match = pattern_section.search(markdown)
+    if not section_match:
+        return patterns
+
+    # Find code block ranges to exclude fake headings inside code blocks
+    code_block_ranges = []
+    for cb_match in re.finditer(r'```.*?```', markdown, re.DOTALL):
+        code_block_ranges.append((cb_match.start(), cb_match.end()))
+
+    def is_in_code_block(pos):
+        return any(start <= pos < end for start, end in code_block_ranges)
+
+    # Get content from Patterns heading to next same-level heading or end
+    section_start = section_match.end()
+    section_level = markdown[section_match.start():section_match.end()].count('#')
+
+    next_heading_pattern = re.compile(rf'^#{{{1},{section_level}}}\s+[^#]', re.MULTILINE)
+    section_end = len(markdown)
+    for next_match in next_heading_pattern.finditer(markdown, section_start):
+        if not is_in_code_block(next_match.start()):
+            section_end = next_match.start()
+            break
+
+    section_content = markdown[section_start:section_end]
+
+    # Find pattern subsections (#### Pattern 1: Name or #### Name)
+    pattern_heading = re.compile(
+        r'^#{3,5}\s+(?:Pattern\s+\d+[:\s]+)?(.+?)$',
+        re.MULTILINE
+    )
+
+    subsections = [(m.start(), m.end(), m.group(1).strip())
+                   for m in pattern_heading.finditer(section_content)]
+
+    for i, (start, end, name) in enumerate(subsections):
+        # Content goes until next subsection or end
+        content_end = subsections[i + 1][0] if i + 1 < len(subsections) else len(section_content)
+        content = section_content[end:content_end].strip()
+
+        # Extract description (first paragraph)
+        desc_match = re.match(r'^([^`\n]+)', content)
+        description = desc_match.group(1).strip() if desc_match else ""
+        description = re.sub(r'\*\*([^*]+)\*\*', r'\1', description)
+
+        # Extract all code blocks
+        code_blocks = []
+        for code_match in re.finditer(r'```(\w+)?\n(.*?)```', content, re.DOTALL):
+            lang = code_match.group(1) or 'python'
+            code = code_match.group(2).strip()
+            # Skip markdown examples
+            if lang not in ('markdown', 'md', 'text'):
+                code_blocks.append((lang, code))
+
+        if name and (description or code_blocks):
+            patterns.append(Pattern(
+                name=name,
+                description=description[:150],
+                code_blocks=code_blocks
+            ))
+
+    return patterns
+
+
+def extract_resources(markdown: str) -> List[Resource]:
+    """
+    Extract external links from 'Resources', 'Links', or 'References' sections.
+
+    Preserves full URLs without truncation.
+    """
+    resources = []
+
+    # Find Resources section
+    resource_section = re.compile(
+        r'^#{2,4}\s+(?:Resources?|Links?|References?|See Also)\s*$',
+        re.MULTILINE | re.IGNORECASE
+    )
+
+    section_match = resource_section.search(markdown)
+    if not section_match:
+        # Also try to find inline resource links in the last part of the document
+        # Look for markdown links: [text](url)
+        link_pattern = re.compile(r'\[([^\]]+)\]\((https?://[^\)]+)\)')
+        for m in link_pattern.finditer(markdown):
+            name = m.group(1).strip()
+            url = m.group(2).strip()
+            # Only include if it looks like an external resource
+            if 'plotly.com' in url or 'dash.plotly.com' in url or 'github.com' in url or 'mantine' in url:
+                resources.append(Resource(name=name, url=url))
+        return resources
+
+    # Get content from Resources heading to next same-level heading or end
+    section_start = section_match.end()
+    section_level = markdown[section_match.start():section_match.end()].count('#')
+
+    next_heading = re.compile(rf'^#{{{1},{section_level}}}\s+[^#]', re.MULTILINE)
+    next_match = next_heading.search(markdown, section_start)
+    section_end = next_match.start() if next_match else len(markdown)
+
+    section_content = markdown[section_start:section_end]
+
+    # Find markdown links: [text](url)
+    link_pattern = re.compile(r'\[([^\]]+)\]\((https?://[^\)]+)\)')
+
+    for m in link_pattern.finditer(section_content):
+        name = m.group(1).strip()
+        url = m.group(2).strip()
+        resources.append(Resource(name=name, url=url))
+
+    # Also find plain URLs on bullet points: - **Name**: url or - Name: url
+    bullet_url_pattern = re.compile(
+        r'^[-*]\s+\*?\*?([^:*]+)\*?\*?:\s*(https?://\S+)',
+        re.MULTILINE
+    )
+
+    for m in bullet_url_pattern.finditer(section_content):
+        name = m.group(1).strip()
+        url = m.group(2).strip()
+        # Avoid duplicates
+        if not any(r.url == url for r in resources):
+            resources.append(Resource(name=name, url=url))
+
+    return resources
+
+
 def compress_section_content(content: str, max_chars: int = 500) -> str:
     """
     Compress section content while preserving key information.
@@ -483,7 +851,16 @@ def generate_documentation_toon(
     tables = extract_tables(raw_markdown)
     lists = extract_lists(raw_markdown)
 
+    # NEW: Extract tips, best practices, patterns, and resources
+    # Note: Extract best practices and patterns first, then exclude those sections from tips
+    best_practices = extract_best_practices(raw_markdown)
+    patterns = extract_patterns(raw_markdown)
+    resources = extract_resources(raw_markdown)
+    # Exclude Best Practices and Patterns sections from tips to avoid duplication
+    tips = extract_code_tips(raw_markdown, exclude_sections=['Best Practices', 'Common Patterns', 'Patterns'])
+
     # Process source directives to get actual code - DEDUPLICATE by file path
+    # Note: Only process SOURCE directives, not EXEC (which may have :code: false)
     code_examples = []
     seen_files = set()
     for directive in directives:
@@ -496,12 +873,8 @@ def generate_documentation_toon(
                     code_examples.append(example)
                     seen_files.add(target)
 
-    # Skip inline markdown code blocks (they add too much noise)
-    # markdown_code_blocks = extract_markdown_code_blocks(raw_markdown)
-    # Only add unique, substantial markdown code blocks not already from source
-    # code_examples.extend(markdown_code_blocks)
-
     # Get exec directive info - DEDUPLICATE by module
+    # Note: We track exec components but don't duplicate code if source directive exists
     exec_info = []
     seen_modules = set()
     for directive in directives:
@@ -522,6 +895,10 @@ def generate_documentation_toon(
         exec_info=exec_info,
         tables=tables,
         lists=lists,
+        tips=tips,
+        best_practices=best_practices,
+        patterns=patterns,
+        resources=resources,
         page_registry=page_registry,
         base_url=base_url
     )
@@ -537,6 +914,10 @@ def build_documentation_toon(
     exec_info: List[Dict[str, Any]],
     tables: List[TableInfo],
     lists: List[ListInfo],
+    tips: List[CodeTip],
+    best_practices: List[BestPractice],
+    patterns: List[Pattern],
+    resources: List[Resource],
     page_registry,
     base_url: str
 ) -> str:
@@ -550,7 +931,7 @@ def build_documentation_toon(
     if page_description:
         lines.append(f"  desc: {escape_toon_value(page_description)}")
     lines.append("  type: documentation")
-    lines.append("  format: toon/3.2")
+    lines.append("  format: toon/3.3")
     lines.append("")
 
     # ========== CONTEXT SECTION (compact) ==========
@@ -671,6 +1052,53 @@ def build_documentation_toon(
             lines.append(f"  - {lst.list_type}: {', '.join(items_preview)}")
         lines.append("")
 
+    # ========== CODE TIPS (short instructional snippets) ==========
+    if tips:
+        lines.append(f"tips[{len(tips)}]:")
+        for tip in tips:
+            # Show context and compact code preview
+            code_preview = tip.code.split('\n')[0][:60]
+            if len(tip.code.split('\n')) > 1 or len(tip.code.split('\n')[0]) > 60:
+                code_preview += "..."
+            lines.append(f"  {tip.context}:")
+            lines.append(f"    [{tip.language}] {code_preview}")
+        lines.append("")
+
+    # ========== BEST PRACTICES (with full multi-line code) ==========
+    if best_practices:
+        lines.append(f"bestPractices[{len(best_practices)}]:")
+        for bp in best_practices:
+            lines.append(f"  {bp.number}. {bp.title}")
+            if bp.description:
+                # Show first sentence of description
+                desc_short = bp.description.split('.')[0] + '.' if '.' in bp.description else bp.description
+                lines.append(f"     {desc_short[:100]}")
+            if bp.code:
+                lines.append(f"     code[{bp.code_lang}]: |")
+                for code_line in bp.code.split('\n')[:8]:  # Max 8 lines per practice
+                    lines.append(f"       {code_line}")
+        lines.append("")
+
+    # ========== PATTERNS (architectural patterns with code) ==========
+    if patterns:
+        lines.append(f"patterns[{len(patterns)}]:")
+        for pattern in patterns:
+            lines.append(f"  {pattern.name}:")
+            if pattern.description:
+                lines.append(f"    desc: {pattern.description}")
+            for lang, code in pattern.code_blocks[:2]:  # Max 2 code blocks per pattern
+                lines.append(f"    code[{lang}]: |")
+                for code_line in code.split('\n')[:12]:  # Max 12 lines per code block
+                    lines.append(f"      {code_line}")
+        lines.append("")
+
+    # ========== RESOURCES (full URLs preserved) ==========
+    if resources:
+        lines.append(f"resources[{len(resources)}]:")
+        for resource in resources:
+            lines.append(f"  - {resource.name}: {resource.url}")
+        lines.append("")
+
     # ========== SUMMARY ==========
     summary_parts = [f"{page_name}:"]
 
@@ -680,8 +1108,20 @@ def build_documentation_toon(
     if code_examples:
         summary_parts.append(f"{len(code_examples)} code examples")
 
+    if tips:
+        summary_parts.append(f"{len(tips)} tips")
+
+    if best_practices:
+        summary_parts.append(f"{len(best_practices)} best practices")
+
+    if patterns:
+        summary_parts.append(f"{len(patterns)} patterns")
+
     if tables:
         summary_parts.append(f"{len(tables)} tables")
+
+    if resources:
+        summary_parts.append(f"{len(resources)} resources")
 
     if unique_directives:
         directive_types = sorted(set(d.type.value for d in unique_directives))

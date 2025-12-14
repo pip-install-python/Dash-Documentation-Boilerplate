@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-12-14
+
+### Added
+- **TOON v3.3 Format Enhancements** - Major comprehension improvements from ~75-80% to ~95%+
+  - **New Dataclasses**:
+    - `CodeTip` - Short instructional code snippets with context
+    - `BestPractice` - Numbered best practices with multi-line code examples
+    - `Pattern` - Architectural patterns with implementation code
+    - `Resource` - External resource links with full URLs
+  - **New Extraction Functions**:
+    - `extract_code_tips()` - Finds short code snippets (2-15 lines) with headings
+    - `extract_best_practices()` - Extracts numbered practices from "Best Practices" sections
+    - `extract_patterns()` - Captures pattern implementations from "Common Patterns" sections
+    - `extract_resources()` - Extracts markdown links with full URLs preserved
+  - **New TOON Sections**:
+    - `tips[N]{context,lang,code}:` - Compact code tips with one-line previews
+    - `bestPractices[N]:` - Full multi-line code snippets for each practice
+    - `patterns[N]:` - Pattern descriptions with implementation code blocks
+    - `resources[N]{name,url}:` - External links without URL truncation
+
+### Changed
+- **Updated TOON format version from toon/3.2 to toon/3.3**
+- **Enhanced summary line** to include tips, best practices, patterns, and resources counts
+- **Improved content deduplication** - Tips exclude Best Practices and Patterns sections to avoid duplicate code
+
+### Fixed
+- **Code block detection in section boundaries** - Headings inside code blocks (like `## My Visualization` in markdown examples) were incorrectly detected as section boundaries
+  - Added code block range detection using `code_block_ranges` list
+  - Added `is_in_code_block()` helper to filter out false headings
+  - Applied fix to `extract_code_tips()`, `extract_best_practices()`, and `extract_patterns()`
+- **`re.escape()` issue** - `re.escape("Best Practices")` was escaping spaces incorrectly
+  - Changed to custom escaping that only escapes regex special chars but preserves spaces
+
+### Technical Details
+- Updated `lib/toon_generator.py` (~1100 lines after updates)
+- Test results for Data Visualization page:
+  - 6 tips (properly deduplicated)
+  - 5 best practices (all with full multi-line code)
+  - 3 patterns (all with implementation code)
+  - 4 resources (with full URLs)
+  - TOON size: 11,444 chars
+
+---
+
 ## [0.7.0] - 2025-12-13
 
 ### Added
@@ -326,6 +370,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Dash | DMC | Mantine | Python | Features |
 |---------|------|------|-----|---------|--------|----------|
+| 0.8.0 | 2025-12-14 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | TOON v3.3, tips/best practices/patterns/resources extraction |
+| 0.7.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Custom TOON generator, documentation-aware TOON v3.2 |
 | 0.6.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Enhanced TOON v3.1, dash-improve-my-llms v1.1.0 |
 | 0.5.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | TOON format, dash-improve-my-llms v1.0.0 |
 | 0.4.0 | 2025-11-10 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | LLM Copy Button directive |
@@ -421,7 +467,12 @@ Key changes to be aware of:
 
 ---
 
-[unreleased]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/releases/tag/v0.1.0
