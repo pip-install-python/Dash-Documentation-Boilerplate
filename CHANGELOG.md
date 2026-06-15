@@ -5,6 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-06-14
+
+First stable release. The boilerplate moves to **Dash 4.x** with pluggable
+backends and **dash-improve-my-llms 2.0**, and retires the experimental TOON
+format entirely. This is a significant architectural release — see the
+migration notes at the end of this section.
+
+> **Versioning note:** the `0.5.0`–`0.8.0` entries below were the December 2025
+> TOON line. That work has been removed (see "Removed" below) and the project
+> resumes a single, monotonic version line at `1.0.0`. A short-lived second
+> `0.5.0` (the May 2026 dash-improve-my-llms 2.0 preview) has been folded into
+> this entry.
+
+### Added — Pluggable backends (Flask / FastAPI / Quart)
+
+- **`lib/backend.py`** — single source of truth for backend selection. Reads
+  the `DASH_BACKEND` environment variable (`flask` | `fastapi` | `quart`),
+  falls back to `flask`, and exposes `BackendInfo` (label, color, icon,
+  async flag) so UI components stay in sync with the running backend.
+- **`run.py`** constructs `Dash(backend=resolve_backend(), ...)` and attaches
+  `app._backend_info` for layout components.
+- **`components/backend_badge.py`** — a navbar/header badge that shows which
+  backend the site is currently running on.
+- **`lib/asgi_middleware.py`** and **`lib/asgi_routes.py`** — ASGI middleware
+  and showcase routes (`/healthz`, `/api/backend`, `/api/pages`) that light up
+  on the FastAPI/Quart backends.
+- New documentation sections:
+  - **Pluggable Backends** (`docs/backends/`) — run the site on any of the
+    three backends with one env var.
+  - **Backend Deep Dive** (`docs/backend-comparison/`) — architecture,
+    strengths/weaknesses, deployment, and best practices for each backend.
+  - **FastAPI Showcase** (`docs/fastapi-showcase/`) — OpenAPI docs, a native
+    JSON API, ASGI middleware, async demo, endpoint explorer, and a stress
+    test, showing what the ASGI backends unlock.
+
+### Added — AI/LLM integration via dash-improve-my-llms 2.0
+
+- **`LLMS_DOC` pattern.** Pages expose a module-level prose string (or call
+  `register_page_metadata(path, llms_doc=...)`); the package serves it verbatim
+  at `/<page>/llms.txt` under whichever backend is active.
+  - `pages/markdown.py` registers the expanded markdown body (with
+    `.. source::` directives inlined) for every markdown-driven page.
+  - `pages/home.py` exports `LLMS_DOC = content` for the root prose.
+- **Multi-backend AI/LLM surfaces.** `add_llms_routes(app)` auto-detects the
+  backend and serves `/llms.txt`, `/<page>/llms.txt`, `/sitemap.xml`, and
+  `/robots.txt` under Flask, FastAPI, and Quart alike — no `if IS_FLASK:` gate.
+- **MCP resource bridge.** Each page's prose registers as a `dash.mcp` resource
+  on Dash 4.3+ (a silent no-op on older Dash).
+
+### Changed
+
+- **Upgraded Dash 3.2.0 → 4.2.0** and **Dash Mantine Components 2.4.0 → 2.7.0**
+  (Mantine 8.3.6). React 18.2.0.
+- **`docs/ai-integration/ai-integration.md`** fully rewritten for the 2.0
+  surface (LLMS_DOC, multi-backend, MCP bridge).
+- **`requirements.txt`** now pins `dash>=4.1.0`, `dash-mantine-components>=2.7.0`,
+  and `dash-improve-my-llms[flask]>=2.0.0`, with commented `[fastapi]`,
+  `[quart]`, and `[all]` extras plus `uvicorn` for ASGI deployment.
+- **`docs/example/example.md`** "Highlighting Important Elements" section
+  rewritten around the `LLMS_DOC` pattern.
+- **`components/header.py`**, **`components/appshell.py`**, and
+  **`components/navbar.py`** updated for the new backend badge and navigation
+  (TOON Format and Handoff entries removed).
+- **`lib/directives/llms_copy.py`** / **`assets/llms_copy.js`** updated for the
+  2.0 `/<page>/llms.txt` routing.
+- `APP_VERSION` and `package.json` bumped to `1.0.0`.
+
+### Removed
+
+- **The entire TOON format system** — `lib/toon_generator.py` (~1100 lines),
+  the `docs/toon-format/` page, the TOON Analytics Dashboard
+  (`docs/data-visualization/toon_dashboard.py`), and all `/llms.toon`
+  routes. `dash-improve-my-llms` 2.0 removed TOON from its public API
+  (`TOONConfig`, `toon_encode`, `generate_*_toon` no longer exist).
+- **`/page.json` and `/<page>/page.json`** routes — dropped in
+  dash-improve-my-llms 2.0; Dash 4.3 MCP exposes layouts as resources natively.
+- **`/architecture.txt`** — likewise superseded by MCP.
+- **`mark_important()`** and **`mark_component_hidden()`** — now deprecated
+  no-ops in 2.0. Write the emphasis directly into a page's `LLMS_DOC` markdown.
+- **`LLMS_INTEGRATION.md`** and the `docs/handoff/` doc (the FastAPI port plan
+  that became 2.0) — superseded by the in-app AI Integration page.
+
+### Migration notes (from any 0.x)
+
+1. **Backend:** the site defaults to Flask, so no change is required. To run on
+   FastAPI or Quart, install the matching extra (`pip install "dash[fastapi]"`)
+   and set `DASH_BACKEND=fastapi`.
+2. **AI/LLM prose:** give each page module an `LLMS_DOC = """..."""` string at
+   module scope (or `register_page_metadata(path, llms_doc=...)` when the prose
+   is computed). The startup `UserWarning` from 2.0 names every page still
+   missing prose.
+3. **dash-improve-my-llms extra:** pick `[flask]`, `[fastapi]`, `[quart]`, or
+   `[all]` in `requirements.txt`.
+4. **Removed APIs:** replace any `mark_important()` / `mark_component_hidden()`
+   calls (now no-ops) with `LLMS_DOC` content, and remove references to TOON,
+   `/page.json`, and `/architecture.txt`.
+
+---
+
 ## [0.8.0] - 2025-12-14
 
 ### Added
@@ -370,6 +469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Dash | DMC | Mantine | Python | Features |
 |---------|------|------|-----|---------|--------|----------|
+| 1.0.0 | 2026-06-14 | 4.2.0 | 2.7.0 | 8.3.6 | 3.11+ | Pluggable backends (Flask/FastAPI/Quart), dash-improve-my-llms 2.0, TOON removed |
 | 0.8.0 | 2025-12-14 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | TOON v3.3, tips/best practices/patterns/resources extraction |
 | 0.7.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Custom TOON generator, documentation-aware TOON v3.2 |
 | 0.6.0 | 2025-12-13 | 3.2.0 | 2.4.0 | 8.3.6 | 3.11+ | Enhanced TOON v3.1, dash-improve-my-llms v1.1.0 |
@@ -382,6 +482,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## Migration Guides
+
+### Migrating to 1.0.0 from any 0.x
+
+This is the major release that moves the boilerplate to Dash 4.x. See the
+**Migration notes** under [1.0.0](#100---2026-06-14) for the full checklist.
+In short:
+
+1. **Backend:** defaults to Flask — no change required. For FastAPI/Quart,
+   `pip install "dash[fastapi]"` (or `[quart]`) and set `DASH_BACKEND=fastapi`.
+2. **AI/LLM prose:** add an `LLMS_DOC` string to each page module (or call
+   `register_page_metadata(path, llms_doc=...)`); the 2.0 startup warning lists
+   pages still missing prose.
+3. **dash-improve-my-llms extra:** pick `[flask]` / `[fastapi]` / `[quart]` /
+   `[all]` in `requirements.txt`.
+4. **Removed APIs:** drop any TOON usage (`TOONConfig`, `toon_encode`,
+   `generate_*_toon`), `/page.json`, `/architecture.txt`, and the now-no-op
+   `mark_important()` / `mark_component_hidden()` calls — move emphasis into
+   `LLMS_DOC` instead.
 
 ### Migrating to 0.6.0 from 0.5.0
 
@@ -467,7 +585,8 @@ Key changes to be aware of:
 
 ---
 
-[unreleased]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.8.0...v1.0.0
 [0.8.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/pip-install-python/Dash-Documentation-Boilerplate/compare/v0.5.0...v0.6.0

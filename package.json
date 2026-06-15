@@ -1,6 +1,6 @@
 {
     "name": "dash_documentation_boilerplate",
-    "version": "0.2.0",
+    "version": "1.0.0",
     "description": "Plotly Dash Documentation based on Dash Mantine Components",
     "main": "index.ts",
     "repository": {

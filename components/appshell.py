@@ -170,6 +170,9 @@ def create_appshell(data):
         children=[
             dcc.Location(id="url", refresh="callback-nav"),
             dcc.Store(id="color-scheme-storage", storage_type="local"),
+            # Persists the desktop-navbar collapse state across reloads.
+            # null/false = visible (default), true = collapsed.
+            dcc.Store(id="desktop-navbar-collapsed", storage_type="local"),
             dmc.NotificationContainer(),
             dmc.AppShell(
                 [
@@ -181,6 +184,7 @@ def create_appshell(data):
                         style={"minHeight": "calc(100vh - 70px)"}  # Full height minus header
                     ),
                 ],
+                id="m2d-appshell",
                 header={"height": 70},
                 padding="xl",
                 navbar={
@@ -252,4 +256,54 @@ clientside_callback(
     Input("color-scheme-toggle", "n_clicks"),
     State("color-scheme-storage", "data"),
     prevent_initial_call=True,
+)
+
+
+# ---------------------------------------------------------------------------
+# Desktop navbar collapse (the Burger in the header)
+# ---------------------------------------------------------------------------
+# dmc.Burger does NOT expose n_clicks — its public API is just `opened`,
+# which flips internally on click and emits as an Input. So the data flow is:
+#
+#     User click → Burger.opened flips → callbacks below fire
+#         ├→ AppShell navbar prop re-emitted with collapsed.desktop = !opened
+#         └→ desktop-navbar-collapsed store updated (for cross-reload persistence)
+#
+# On page load, a separate callback rehydrates Burger.opened from the store.
+
+# Burger opened → AppShell navbar config + persisted store (single source of truth)
+clientside_callback(
+    """
+    function(opened) {
+        const navbar = {
+            width: 280,
+            breakpoint: 'md',
+            collapsed: {mobile: true, desktop: opened !== true}
+        };
+        // opened === true means navbar visible → store false. Default true so a
+        // first-time visitor (store === null) gets the navbar open.
+        const storeValue = opened === true ? false : true;
+        return [navbar, storeValue];
+    }
+    """,
+    [
+        Output("m2d-appshell", "navbar"),
+        Output("desktop-navbar-collapsed", "data"),
+    ],
+    Input("desktop-navbar-toggle", "opened"),
+)
+
+# On first render, rehydrate the Burger from the persisted store.
+# Pathname is just a once-per-load trigger; the State is the value we actually use.
+clientside_callback(
+    """
+    function(_pathname, collapsed) {
+        // null/false/undefined = navbar visible (opened=true)
+        // true = navbar collapsed (opened=false)
+        return collapsed !== true;
+    }
+    """,
+    Output("desktop-navbar-toggle", "opened"),
+    Input("url", "pathname"),
+    State("desktop-navbar-collapsed", "data"),
 )

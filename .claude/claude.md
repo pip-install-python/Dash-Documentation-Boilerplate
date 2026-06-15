@@ -1,12 +1,12 @@
-# Dash Documentation Boilerplate - Migration Complete
+# Dash Documentation Boilerplate
 
 ## Project Overview
 
 This project is a modern documentation boilerplate for Dash applications, providing a markdown-driven documentation system with interactive examples, comprehensive theming, and AI/LLM integration.
 
-**Current Version:** 0.3.0
-**Last Updated:** November 9, 2025
-**Migration Status:** ✅ Complete (Dash 3.2.0, DMC 2.4.0, Mantine 8.3.6)
+**Current Version:** 0.5.0
+**Last Updated:** 2026-05-26
+**Status:** Dash 4.1+ pluggable backends (Flask / FastAPI / Quart), dash-improve-my-llms 2.0
 
 ---
 
@@ -14,24 +14,24 @@ This project is a modern documentation boilerplate for Dash applications, provid
 
 ### Core Framework
 ```
-dash: 3.2.0
-dash-mantine-components: 2.4.0
+dash: >=4.1.0
+dash-mantine-components: >=2.7.0
 mantine: 8.3.6
 react: 18.2.0
-python: 3.11.8+
-flask: 3.1.2
-plotly: 6.4.0
+python: 3.11+
+flask: >=3.0.0 (default backend)
+plotly: >=5.0.0
 ```
 
 ### Key Dependencies
 ```
-dash-iconify: 0.1.2
-python-frontmatter: 1.0.0
+dash-iconify: >=0.1.2
+python-frontmatter: >=1.0.0
 markdown2dash: (latest)
-pydantic: 2.3.0+
-pandas: 1.2.3+
-dash-improve-my-llms: 0.3.0
-gunicorn: 21.2.0
+pydantic: >=2.3.0
+pandas: >=1.2.3
+dash-improve-my-llms: >=2.0.0
+gunicorn: >=21.2.0
 ```
 
 ---
@@ -246,7 +246,7 @@ dash-documentation-boilerplate/
 
 ---
 
-## Key Features (v0.3.0)
+## Key Features (current)
 
 ### 📝 Markdown-Driven Documentation
 - Write documentation in Markdown with Python integration
@@ -273,13 +273,13 @@ dash-documentation-boilerplate/
 - 15+ working Python examples across 5 comprehensive guides
 
 ### 🤖 AI/LLM & SEO Integration
-- Automatic AI-friendly documentation (llms.txt, page.json, architecture.txt)
+- Per-page prose via the `LLMS_DOC` pattern (served at `/<page>/llms.txt`, registered as a `dash.mcp` resource on Dash 4.3+)
 - SEO optimization with sitemap.xml and intelligent priority inference
 - Bot management (blocks AI training, allows AI search)
 - Structured data (Schema.org JSON-LD) for better search engine understanding
 - Privacy controls with mark_hidden() for sensitive pages
 - Share with AI feature for ChatGPT/Claude integration
-- Powered by dash-improve-my-llms v0.3.0
+- Powered by dash-improve-my-llms 2.0 — multi-backend (Flask/FastAPI/Quart), MCP bridge, the LLMS_DOC pattern. `mark_important()` and `mark_component_hidden()` are deprecated no-ops; `/page.json`, `/architecture.txt`, `/llms.toon` were dropped (Dash 4.3 MCP covers them).
 
 ### 🐋 Production Ready
 - Docker and docker-compose support (optimized)

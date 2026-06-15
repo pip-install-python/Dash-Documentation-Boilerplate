@@ -2,6 +2,9 @@ import dash_mantine_components as dmc
 from dash import Output, Input, clientside_callback, html, get_asset_url
 from dash_iconify import DashIconify
 
+from components.backend_badge import create_backend_badge
+from lib.backend import get_backend_info
+
 
 def create_link(icon, href):
     """Create an external link icon button"""
@@ -43,12 +46,37 @@ def create_search(data):
     )
 
 
+def _create_openapi_link():
+    """Show a Swagger UI link only when the FastAPI backend is active."""
+    info = get_backend_info()
+    if info.name != "fastapi":
+        return None
+    return dmc.Tooltip(
+        label="OpenAPI docs (Swagger UI) — available on the FastAPI backend",
+        position="bottom",
+        withArrow=True,
+        children=dmc.Anchor(
+            dmc.Badge(
+                "OpenAPI",
+                leftSection=DashIconify(icon="logos:swagger", width=14),
+                variant="light",
+                color="cyan",
+                radius="sm",
+                styles={"root": {"textTransform": "none", "fontWeight": 600}},
+            ),
+            href="/docs",
+            target="_blank",
+            underline=False,
+        ),
+    )
+
+
 def create_header(data):
     """Create application header with logo, search, and theme toggle"""
     return dmc.AppShellHeader(
         dmc.Group(
             [
-                # Left section: Hamburger menu + Logo
+                # Left section: Hamburger (mobile) + Burger (desktop collapse) + Logo
                 dmc.Group(
                     [
                         dmc.ActionIcon(
@@ -58,6 +86,15 @@ def create_header(data):
                             size="lg",
                             color="gray",
                             hiddenFrom="md",
+                        ),
+                        # Desktop-only burger: collapses/expands the AppShell navbar
+                        # on md-xl screens. Default opened=True so users see the X
+                        # state on first load (navbar visible).
+                        dmc.Burger(
+                            id="desktop-navbar-toggle",
+                            opened=True,
+                            size="sm",
+                            visibleFrom="md",
                         ),
                         dmc.Anchor(
                             dmc.Group(
@@ -83,9 +120,11 @@ def create_header(data):
                     gap="md",
                 ),
 
-                # Right section: Search + GitHub + Theme toggle
+                # Right section: Backend badge + OpenAPI (fastapi only) + Search + GitHub + Theme toggle
                 dmc.Group(
                     [
+                        dmc.Box(create_backend_badge(), visibleFrom="sm"),
+                        dmc.Box(_create_openapi_link(), visibleFrom="md"),
                         create_search(data),
                         create_link(
                             "radix-icons:github-logo",

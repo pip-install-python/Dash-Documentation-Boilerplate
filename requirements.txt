@@ -1,27 +1,46 @@
-flask>=3.0.0
-importlib-metadata
-nest-asyncio
+# Core scientific stack
 pandas>=1.2.3
 plotly>=5.0.0
-requests
+requests>=2.27.1
 retrying
 setuptools
 typing-extensions>=4.1.1
+nest-asyncio
+importlib-metadata
 
-# Core Dash 3.x (components now included in dash package)
-dash>=3.0.0
+# Core Dash 4.x (pluggable backends, MCP, websocket callbacks)
+# Flask is included by default. For other backends, install the extras below.
+dash>=4.1.0
 dash-iconify>=0.1.2
-dash-mantine-components>=2.4.0
+dash-mantine-components>=2.7.0
 dash-ag-grid
 
+# Default backend (Flask is bundled but pinned here for clarity)
+flask>=3.0.0
+
+# Optional backends (uncomment / install to use):
+#   pip install "dash[fastapi]"   -> FastAPI backend (async, websockets, MCP-friendly)
+#   pip install "dash[quart]"     -> Quart backend (async Flask-compatible API)
+# fastapi>=0.110.0
+# quart>=0.19.0
+
 # Documentation & Utilities
-requests>=2.27.1
 python-frontmatter>=1.0.0
 markdown2dash
 pydantic>=2.3.0
+python-dotenv>=1.0.0
 
 # AI/LLM Integration & SEO
-dash-improve-my-llms>=1.1.0
+# 2.0.0 adds multi-backend support (Flask / FastAPI / Quart) via auto-detect,
+# the LLMS_DOC pattern for per-page prose, and an MCP resource bridge on
+# Dash 4.3+. Pick the install extra that matches your backend below.
+dash-improve-my-llms[flask]>=2.0.0
+# dash-improve-my-llms[fastapi]>=2.0.0   # Dash 4.1+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.0.0     # Dash 4.1+ Quart backend
+# dash-improve-my-llms[all]>=2.0.0       # all three
 
-# Production Server
+# Production Servers
+# - gunicorn   -> WSGI (Flask)
+# - uvicorn    -> ASGI (FastAPI / Quart)
 gunicorn>=21.2.0
+# uvicorn[standard]>=0.27.0

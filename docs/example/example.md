@@ -343,31 +343,61 @@ The source code for this example is shown below:
 
 ---
 
-### Highlighting Important Elements for AI
+### Documenting a Page for AI Assistants
 
-If you want AI assistants (like ChatGPT or Claude) to better understand your interactive components, use the `mark_important()` function:
+When users paste your documentation URL into ChatGPT, Claude, or any
+MCP-aware client, the request hits `/<page>/llms.txt`. With
+**dash-improve-my-llms 2.0**, that endpoint serves a module-level string
+called `LLMS_DOC` verbatim — no layout walking, no extraction, no surprises:
 
 ```python
-from dash_improve_my_llms import mark_important
-from dash import html, dcc
+# pages/my_feature.py
+from dash import html, register_page
 
-# Mark key interactive sections
-component = html.Div([
-    html.H2("My Feature"),
+register_page(__name__, path="/my-feature", name="My Feature")
 
-    mark_important(
-        html.Div([
-            dcc.Input(id='search', placeholder='Search...'),
-            dcc.Dropdown(id='filter', options=[...]),
-        ], id='filters'),
-        component_id='filters'
-    ),
+LLMS_DOC = """\
+# My Feature
 
-    html.Div(id='results')
-])
+> One-line tagline that explains what this page is for.
+
+## What this page does
+
+A short narrative description: what controls exist, how they relate to
+the data, and what the user is supposed to do here.
+
+## What the user can do
+
+- Type in the search box to narrow by name.
+- Switch category to constrain by class.
+
+## What the page does NOT do
+
+This is a demo. No persistence, no edit/create, no per-item detail view.
+"""
+
+def layout():
+    return html.Div([...])
 ```
 
-This helps when users share your documentation URL with AI assistants for help.
+For pages that don't have a module (like the markdown-driven docs in
+this boilerplate), pass the prose explicitly:
+
+```python
+from dash_improve_my_llms import register_page_metadata
+
+register_page_metadata(
+    path="/my-feature",
+    name="My Feature",
+    description="Search and filter the catalog.",
+    llms_doc="""... your prose here ...""",
+)
+```
+
+`dash-improve-my-llms 2.0` will emit a `UserWarning` at startup naming
+any page that's missing prose, so you'll know exactly where to fill in.
+See the **AI/LLM Integration** page for the full LLMS_DOC pattern and
+the rest of the 2.0 toolkit.
 
 ---
 

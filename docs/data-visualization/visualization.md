@@ -66,22 +66,6 @@ Source code:
 
 ---
 
-### TOON Analytics Dashboard
-
-A real-world dashboard showcasing the token efficiency of **TOON v3.3** format compared to traditional `llms.txt`. This dashboard visualizes actual metrics from the documentation system:
-
-- **25.5% Token Reduction** - TOON achieves significant compression while preserving content
-- **95% LLM Comprehension** - Improved from 75-80% in earlier versions
-- **43 Content Items** - Sections, code examples, tips, best practices, patterns, and resources
-
-.. exec::docs.data-visualization.toon_dashboard
-    :code: false
-Source code:
-
-.. source::docs/data-visualization/toon_dashboard.py
-
----
-
 ### Chart Types Reference
 
 #### Available Plotly Chart Types

@@ -14,9 +14,9 @@ The Dash Documentation Boilerplate is a **production-ready framework** for creat
 
 ### Built With Modern Technologies
 
-- **Dash 3.2.0** - Latest Plotly Dash framework
-- **Dash Mantine Components 2.4.0** - Beautiful, accessible UI components
-- **Mantine 8.3.6** - Modern React component library
+- **Dash 4.1+** - Pluggable backends (Flask / FastAPI / Quart), MCP-aware
+- **Dash Mantine Components 2.7+** - Beautiful, accessible UI components
+- **Mantine 8.3+** - Modern React component library
 - **React 18** - Latest React features
 - **Python 3.11+** - Modern Python with type hints
 
@@ -50,13 +50,14 @@ Powerful directives to enhance your documentation:
 - `.. kwargs::ComponentName` - Auto-generate component props documentation
 
 ### 🤖 AI/LLM Integration
-**New in v0.2.0!** Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/):
+Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.0**:
 
-- **Automatic AI-friendly documentation** - llms.txt, page.json, architecture.txt
-- **SEO optimization** - sitemap.xml with intelligent priority inference
-- **Bot management** - Control which bots can access your app
-- **Structured data** - Schema.org JSON-LD for better search engines
-- **Share with AI** - Users can share your URL with ChatGPT/Claude for help
+- **`LLMS_DOC` pattern** — write a module-level prose string per page; the package serves it verbatim at `/<page>/llms.txt`
+- **Multi-backend** — same surface under Flask, FastAPI, and Quart (auto-detected)
+- **MCP bridge** — each page's prose registers as a `dash.mcp` resource on Dash 4.3+
+- **SEO** — `/sitemap.xml` with priority inference, `/robots.txt` with bot-class policies
+- **Bot management** — training crawlers blocked, search citations allowed, browsers untouched
+- **Share with AI** — paste your URL into ChatGPT/Claude; they read the prose docs directly
 
 ### 🐋 Production Ready
 

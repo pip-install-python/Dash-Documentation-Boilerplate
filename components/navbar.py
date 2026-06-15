@@ -54,6 +54,9 @@ def create_content(data):
     # Define the desired order for documentation pages
     page_order = [
         "Getting Started",
+        "Pluggable Backends",
+        "Backend Deep Dive",
+        "FastAPI Showcase",
         "Custom Directives",
         "AI/LLM Integration",
         "Interactive .md",
@@ -146,8 +149,8 @@ def create_content(data):
                     [
                         create_nav_link(
                             "mdi:cast-tutorial",
-                            "Plotly.pro",
-                            "https://plotly.pro",
+                            "2plot",
+                            "https://2plot.ai",
                             external=True
                         ),
                         create_nav_link(
@@ -158,8 +161,8 @@ def create_content(data):
                         ),
                         create_nav_link(
                             "arcticons:world-geography",
-                            "GeoMapIndex",
-                            "https://dash.geomapindex.com/",
+                            "piratesbargain",
+                            "https://piratesbagain.com",
                             external=True
                         ),
                         ]

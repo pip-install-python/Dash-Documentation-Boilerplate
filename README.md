@@ -2,8 +2,9 @@
 
 > A modern, responsive documentation system for Dash applications built with Dash Mantine Components
 
-[![Dash](https://img.shields.io/badge/Dash-3.2.0-blue.svg)](https://dash.plotly.com/)
-[![DMC](https://img.shields.io/badge/DMC-2.4.0-teal.svg)](https://www.dash-mantine-components.com/)
+[![Dash](https://img.shields.io/badge/Dash-4.2.0-blue.svg)](https://dash.plotly.com/)
+[![DMC](https://img.shields.io/badge/DMC-2.7.0-teal.svg)](https://www.dash-mantine-components.com/)
+[![Backends](https://img.shields.io/badge/Backends-Flask%20%7C%20FastAPI%20%7C%20Quart-orange.svg)](https://dash.plotly.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -37,24 +38,30 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - Component props documentation auto-generation
 
 ### 🤖 AI/LLM & SEO Integration
-- **Automatic AI-friendly documentation** - llms.txt, page.json, architecture.txt
-- **TOON format with lossless semantic compression** - 40-50% fewer tokens with full content preservation (llms.toon, architecture.toon)
-- **SEO optimization** - sitemap.xml with intelligent priority inference
-- **Bot management** - Control which bots can access your app (blocks AI training, allows AI search)
-- **Structured data** - Schema.org JSON-LD for better search engine understanding
-- **Privacy controls** - mark_hidden() for sensitive pages
-- **Share with AI** - Users can share your app URL with ChatGPT/Claude for help
-- Powered by [dash-improve-my-llms v1.1.0](https://pypi.org/project/dash-improve-my-llms/)
+- **`LLMS_DOC` pattern** — write a module-level prose string per page; served verbatim at `/<page>/llms.txt`
+- **Multi-backend** — `add_llms_routes(app)` auto-detects Flask, FastAPI, or Quart and dispatches to the matching adapter
+- **MCP bridge** — each page's prose registers as a `dash.mcp` resource on Dash 4.3+ (silent no-op otherwise)
+- **SEO** — `sitemap.xml` with intelligent priority inference; respects `mark_hidden()`
+- **Bot management** — training crawlers blocked (configurable), AI search citations allowed, browsers untouched
+- **Privacy controls** — `mark_hidden()` to exclude pages from sitemap, robots, MCP, and crawler prerender
+- **Share with AI** — paste the app URL into ChatGPT/Claude/etc.; they fetch the prose docs directly
+- Powered by [dash-improve-my-llms 2.0](https://pypi.org/project/dash-improve-my-llms/)
+
+### 🔌 Pluggable Backends (Dash 4.x)
+- Run the **same app** on **Flask**, **FastAPI**, or **Quart** — switch with a single `DASH_BACKEND` environment variable
+- Backend selection centralized in [`lib/backend.py`](lib/backend.py); a live badge shows which backend is serving the page
+- FastAPI/Quart (ASGI) unlock async callbacks, websocket callbacks, OpenAPI docs, a native JSON API (`/api/backend`, `/api/pages`, `/healthz`), and ASGI middleware
+- Dedicated docs: **Pluggable Backends**, **Backend Deep Dive**, and a **FastAPI Showcase**
 
 ### 🐋 Production Ready
 - Docker and docker-compose support
-- Gunicorn production server included
+- Gunicorn (WSGI) and Uvicorn (ASGI) production servers
 - Optimized for deployment
 - Environment-based configuration
 
 ### 🚀 Built With Latest Technologies
-- **Dash 3.2.0** - Modern Plotly Dash framework
-- **DMC 2.4.0** - Dash Mantine Components
+- **Dash 4.2.0** - Modern Plotly Dash framework with pluggable backends
+- **DMC 2.7.0** - Dash Mantine Components
 - **Mantine 8.3.6** - Beautiful React UI library
 - **React 18** - Latest React features
 - **Python 3.11+** - Modern Python
@@ -69,17 +76,26 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **npm**: 6+
 
 ### Python Dependencies
-- dash >= 3.0.0
-- dash-mantine-components >= 2.4.0
-- flask >= 3.0.0
+- dash >= 4.1.0
+- dash-mantine-components >= 2.7.0
+- dash-ag-grid
+- dash-improve-my-llms[flask] >= 2.0.0
+- flask >= 3.0.0 (default backend)
 - plotly >= 5.0.0
 - pandas >= 1.2.3
 - pydantic >= 2.3.0
 - python-frontmatter >= 1.0.0
 - markdown2dash
-- gunicorn >= 21.2.0 (production)
+- gunicorn >= 21.2.0 (WSGI production server)
 
-See [`requirements.txt`](requirements.txt) for complete list.
+**Optional backends** (install the matching extra to switch off Flask):
+```bash
+pip install "dash[fastapi]"   # FastAPI (ASGI) backend
+pip install "dash[quart]"     # Quart (ASGI) backend
+# then run with: DASH_BACKEND=fastapi python run.py  (needs uvicorn)
+```
+
+See [`requirements.txt`](requirements.txt) for the complete list.
 
 ---
 
@@ -130,35 +146,45 @@ docs/
 ```
 dash-documentation-boilerplate/
 ├── assets/                      # Static assets and CSS
-│   ├── dash_documentation_boilerplate.png
-│   ├── intro_img.png
-│   ├── m2d.css                 # Markdown-to-Dash styling
-│   └── main.css                # Custom styles
+│   ├── m2d.css                 # Markdown-to-Dash styling (theme-aware)
+│   ├── main.css                # Custom styles (theme-aware)
+│   └── llms_copy.js            # "Copy for LLM" button handler
 │
 ├── components/                  # Reusable UI components
 │   ├── appshell.py             # Main app layout with MantineProvider
 │   ├── header.py               # Header with search and theme toggle
-│   └── navbar.py               # Navigation sidebar and drawer
+│   ├── navbar.py               # Navigation sidebar and drawer
+│   └── backend_badge.py        # Badge showing the active backend
 │
 ├── docs/                        # Documentation content
-│   └── example/
-│       ├── example.md          # Example documentation page
-│       └── introduction.py     # Example interactive component
+│   ├── example/                # Getting Started guide
+│   ├── directives/             # Custom Directives guide
+│   ├── interactive-components/ # Callback patterns guide
+│   ├── data-visualization/     # Theme-aware charts guide
+│   ├── ai-integration/         # AI/LLM integration (dash-improve-my-llms 2.0)
+│   ├── backends/               # Pluggable Backends guide
+│   ├── backend-comparison/     # Flask vs FastAPI vs Quart deep dive
+│   └── fastapi-showcase/       # What the FastAPI backend unlocks
 │
 ├── lib/                         # Utility libraries
-│   ├── constants.py            # App-wide constants
+│   ├── constants.py            # App-wide constants (APP_VERSION, colors)
+│   ├── backend.py              # Backend selection (DASH_BACKEND)
+│   ├── asgi_middleware.py      # ASGI middleware (FastAPI/Quart)
+│   ├── asgi_routes.py          # Showcase routes (/healthz, /api/*)
+│   ├── analytics_tracker.py    # Lightweight visitor analytics
 │   └── directives/             # Custom markdown directives
 │       ├── kwargs.py           # Component props table generator
 │       ├── source.py           # Source code display directive
-│       └── toc.py              # Table of contents directive
+│       ├── toc.py              # Table of contents directive
+│       └── llms_copy.py        # "Copy for LLM" button directive
 │
 ├── pages/                       # Dash multi-page app pages
 │   ├── home.md                 # Home page content
-│   ├── home.py                 # Home page layout
+│   ├── home.py                 # Home page layout (exports LLMS_DOC)
 │   └── markdown.py             # Dynamic markdown page loader
 │
 ├── templates/
-│   └── index.html              # Custom HTML template
+│   └── index.html              # SEO-optimized HTML template
 │
 ├── .gitignore
 ├── CHANGELOG.md                # Version history and changes
@@ -226,6 +252,9 @@ Displays source code with syntax highlighting.
 
 #### `.. kwargs::ComponentName`
 Generates a props documentation table for a component.
+
+#### `.. llms_copy::Page Title`
+Adds a "Copy for LLM" button that copies the page's `/<page>/llms.txt` URL to the clipboard for sharing with ChatGPT, Claude, and other AI assistants.
 
 ### Customizing Themes
 
@@ -329,6 +358,7 @@ Create a `.env` file (optional):
 DASH_DEBUG=False
 DASH_HOST=0.0.0.0
 DASH_PORT=8553
+DASH_BACKEND=flask     # flask | fastapi | quart (requires the matching dash extra)
 ```
 
 ### Customization Points
@@ -378,7 +408,10 @@ Contributions are welcome! Here's how you can help:
 ### Common Issues
 
 **Issue**: `ModuleNotFoundError: No module named 'dash_html_components'`
-- **Solution**: You're using an old version. Update to 0.2.0+ which uses Dash 3.x
+- **Solution**: You're on an old version. Update to 1.0.0+ and import from the main package (`from dash import html, dcc`); 1.0.0 runs on Dash 4.x.
+
+**Issue**: `DASH_BACKEND=fastapi` (or `quart`) fails to start
+- **Solution**: Install the matching extra — `pip install "dash[fastapi]"` (or `[quart]`) — and serve with an ASGI server (`uvicorn`). The app falls back to Flask if the backend is unavailable.
 
 **Issue**: Theme doesn't persist
 - **Solution**: Check browser localStorage is enabled and not blocked
@@ -395,29 +428,29 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 
 ## 📊 Version Information
 
-**Current Version**: 0.6.0
+**Current Version**: 1.0.0
 
 | Component | Version |
 |-----------|---------|
-| Dash | 3.2.0 |
-| Dash Mantine Components | 2.4.0 |
+| Dash | 4.2.0 |
+| Dash Mantine Components | 2.7.0+ |
 | Mantine | 8.3.6 |
-| Python | 3.11.8+ |
+| Python | 3.11+ |
 | React | 18.2.0 |
-| Flask | 3.1.2 |
-| dash-improve-my-llms | 1.1.0 |
+| Flask / FastAPI / Quart | pluggable backends |
+| dash-improve-my-llms | 2.0.0+ |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
-### What's New in 0.6.0
+### What's New in 1.0.0
 
-- 🎯 **Enhanced TOON Format v3.1**: Lossless semantic compression with 40-50% token reduction
-  - Application context with related pages
-  - Human-readable callback descriptions
-  - Synthesized page summaries
-  - Component breakdown with type distribution
-- 🚀 **dash-improve-my-llms v1.1.0**: Enhanced content extraction and preservation
-- 🔧 **New TOONConfig Options**: `preserve_code_examples`, `preserve_headings`, `preserve_markdown`
+First stable release — a major architectural milestone:
+
+- 🚀 **Dash 4.x (4.2.0)** and **DMC 2.7.0** — modern framework with pluggable backends.
+- 🔌 **Pluggable backends**: run the same app on **Flask**, **FastAPI**, or **Quart** by setting `DASH_BACKEND` — no code changes. ASGI backends add async/websocket callbacks, OpenAPI docs, a native JSON API, and ASGI middleware. New **Pluggable Backends**, **Backend Deep Dive**, and **FastAPI Showcase** docs.
+- 🎯 **dash-improve-my-llms 2.0**: the `LLMS_DOC` pattern (per-page prose served at `/<page>/llms.txt`), multi-backend AI/LLM surfaces, and an MCP resource bridge on Dash 4.3+.
+- 🧹 **Removed the TOON format** entirely — `lib/toon_generator.py`, the TOON docs/dashboard, and `/llms.toon` routes are gone (the package no longer exports `TOONConfig`, `toon_encode`, `generate_*_toon`).
+- ⚠️ **Removed `mark_important()` / `mark_component_hidden()`** (now no-ops) and the `/page.json` / `/architecture.txt` routes — Dash 4.3 MCP covers structured introspection. Write emphasis directly into a page's `LLMS_DOC` markdown.
 
 ---
 

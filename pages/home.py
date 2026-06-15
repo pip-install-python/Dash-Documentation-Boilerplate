@@ -15,14 +15,15 @@ register_page(
 
 directory = "docs"
 
-# read all markdown files
+# read the home page markdown
 md_file = Path("pages") / "home.md"
 
 post = frontmatter.loads(md_file.read_text())
 metadata, content = post.metadata, post.content
 
-# directives = [Admonition(), BlockExec(), Divider(), Image(), Kwargs(), SC(), TOC()]
-# parse = create_parser(directives)
+# Module-level LLMS_DOC — dash-improve-my-llms 2.0 picks this up automatically
+# and serves it verbatim at /llms.txt. No layout walking, no extraction.
+LLMS_DOC = content
 
 layout = dmc.Container(
     size="lg",

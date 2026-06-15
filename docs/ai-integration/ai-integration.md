@@ -1,6 +1,6 @@
 ---
 name: AI/LLM Integration
-description: Make your documentation AI-friendly with automatic generation of llms.txt, TOON format, robots.txt, and SEO optimization
+description: Make your Dash app discoverable to MCP clients, web crawlers, and paste-into-chat users with dash-improve-my-llms 2.0
 endpoint: /examples/ai-integration
 package: ai-integration
 icon: mdi:robot-outline
@@ -12,678 +12,269 @@ icon: mdi:robot-outline
 
 ### Introduction
 
-This documentation boilerplate includes **AI/LLM integration** powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) v1.1.0. This feature automatically generates AI-friendly documentation, manages bot access, and optimizes your site for search engines.
+This boilerplate ships with [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.0**, a small companion package that fills the gaps Dash itself doesn't cover for AI-friendliness.
 
-**New in v1.1.0**: Enhanced TOON format with **lossless semantic compression** - preserves all meaningful content while achieving **40-50% token reduction**!
+2.0 narrows the scope from earlier releases to the three jobs that are genuinely not addressed by Dash 4.3's native MCP server:
 
----
+| Audience              | Protocol                        | What 2.0 serves                                |
+|-----------------------|---------------------------------|------------------------------------------------|
+| MCP clients           | JSON-RPC over Streamable HTTP   | Bridges `LLMS_DOC` → `dash.mcp` resources       |
+| Web crawlers          | Plain HTTPS, often no JS        | `/robots.txt`, `/sitemap.xml`, prerender HTML  |
+| Paste-into-chat users | One-shot HTTP fetch             | `/llms.txt`, `/<page>/llms.txt` as markdown    |
 
-### What Gets Generated
-
-The integration automatically creates several files that help AI assistants understand your application:
-
-#### 1. `/llms.txt` - AI-Friendly Documentation
-
-A markdown file optimized for Large Language Models that includes:
-
-- **Application overview** and purpose
-- **Interactive elements** (buttons, inputs, graphs)
-- **Data flow** and callback descriptions
-- **Component hierarchy** and relationships
-- **Key features** and capabilities
-
-Visit: [/llms.txt](https://dash-documentation-boilerplate.onrender.com/llms.txt)
-
-#### 2. `/page.json` - Technical Architecture
-
-A JSON file with technical details:
-
-```json
-{
-  "app_name": "Dash Documentation Boilerplate",
-  "version": "0.2.0",
-  "components": [...],
-  "callbacks": [...],
-  "routes": [...]
-}
-```
-
-Visit: [/page.json](https://dash-documentation-boilerplate.onrender.com/page.json)
-
-#### 3. `/architecture.txt` - ASCII Overview
-
-A text-based visual representation of your application structure.
-
-Visit: [/architecture.txt](https://dash-documentation-boilerplate.onrender.com/architecture.txt)
-
-#### 4. `/robots.txt` - Bot Management
-
-Controls which bots can access your application:
-
-- ✅ **Allows**: AI search bots (ChatGPT-User, ClaudeBot, PerplexityBot)
-- ❌ **Blocks**: AI training bots (GPTBot, CCBot, anthropic-ai, Google-Extended)
-- ✅ **Allows**: Traditional search engines (Googlebot, Bingbot)
-
-Visit: [/robots.txt](https://dash-documentation-boilerplate.onrender.com/robots.txt)
-
-#### 5. `/sitemap.xml` - SEO Optimization
-
-An SEO-optimized sitemap with intelligent priority inference.
-
-Visit: [/sitemap.xml](https://dash-documentation-boilerplate.onrender.com/sitemap.xml)
-
-#### 6. `/llms.toon` - Token-Optimized Format (NEW in v1.0.0!)
-
-TOON (Token-Oriented Object Notation) format provides **50-60% fewer tokens** compared to markdown:
-
-```toon
-meta:
-  path: /equipment
-  name: Equipment Catalog
-interactive:
-  inputs[2]{id,type,placeholder}:
-    equipment-search,TextInput,Search equipment...
-    equipment-category,Select,
-```
-
-Visit: [/llms.toon](https://dash-documentation-boilerplate.onrender.com/llms.toon)
-
-#### 7. `/architecture.toon` - Token-Optimized Architecture (NEW!)
-
-The architecture file in TOON format for reduced token usage:
-
-Visit: [/architecture.toon](https://dash-documentation-boilerplate.onrender.com/architecture.toon)
+If you're on Dash 4.3+, MCP clients also get **live** component-tree introspection from Dash itself — `dash-improve-my-llms` no longer duplicates that.
 
 ---
 
-### TOON Format (Enhanced in v1.1.0)
+### What you get
 
-TOON (Token-Oriented Object Notation) is a token-optimized alternative to markdown that achieves **lossless semantic compression** - preserving all meaningful content while reducing tokens by **40-50%**.
+| Route | Purpose |
+|---|---|
+| `/llms.txt` | Site-wide narrative documentation (the root page's `LLMS_DOC`) |
+| `/<page>/llms.txt` | Per-page narrative documentation (that page's `LLMS_DOC`) |
+| `/robots.txt` | Bot policy — generated from your `RobotsConfig` |
+| `/sitemap.xml` | SEO sitemap with priority inference, respects `mark_hidden()` |
+| Bot middleware | Training bots → 403, search bots → static HTML, browsers → React app |
+| MCP bridge | Each non-hidden page's `LLMS_DOC` registers as a `dash.mcp` resource on Dash 4.3+ |
 
-#### Design Principle
+**Removed in 2.0** (the package no longer serves these — Dash MCP or your own `LLMS_DOC` covers them):
 
-> **TOON should be a LOSSLESS SEMANTIC COMPRESSION of llms.txt content**
->
-> The goal is not maximum token reduction, but optimal information density. All meaningful content is preserved while removing only formatting overhead.
+- `/page.json`, `/<page>/page.json`
+- `/architecture.txt`, `/architecture.toon`
+- `/llms.toon`, `/<page>/llms.toon`
 
-#### Benefits
+If your old code linked to any of those endpoints, the fix is to either delete the link or point it at the equivalent `/<page>/llms.txt`.
 
-| Format | Typical Size | Reduction | Best For |
-|--------|--------------|-----------|----------|
-| `llms.txt` | ~15,000 tokens | baseline | Human readability, full context |
-| `llms.toon` v1.0.0 | ~200 tokens | 98% | Too aggressive, lost content |
-| `llms.toon` v1.1.0 | ~6,000-8,000 tokens | 40-50% | Lossless semantic compression |
-| `page.json` | Variable | - | Programmatic access, parsing |
+---
 
-#### v1.1.0 TOON Enhancements
-
-The v1.1.0 release addresses 6 content gaps to provide complete information:
-
-**1. Application Context** - Related pages and multi-page awareness:
-```toon
-context: Part of multi-page Dash app with 3 total pages
-related_pages[3]{path,name}:
-  /,Home
-  /equipment,Equipment Catalog
-  /analytics,Analytics Dashboard
-```
-
-**2. Page Purpose Explanations** - Human-readable purpose descriptions:
-```toon
-purpose:
-  flags: [data_input, interactive]
-  explanation:
-    - Contains form elements for data entry
-    - Responds to user interactions with dynamic updates
-```
-
-**3. Component Breakdown** - Type distribution added:
-```toon
-components:
-  total: 23
-  interactive: 5
-  static: 18
-  breakdown:
-    Div: 8
-    Button: 3
-    TextInput: 2
-```
-
-**4. Callback Descriptions** - Human-readable documentation:
-```toon
-callbacks[2]:
-  1:
-    updates: equipment-list.children
-    triggers: equipment-search.value, equipment-category.value
-    description: Updates equipment list when search or category changes
-```
-
-**5. Summary Section** - Synthesized page summary:
-```toon
-summary: >
-  Equipment Catalog is a data input and interactive page with 23 components
-  (5 interactive) and 2 callbacks. Users can search and filter equipment
-  with real-time updates.
-```
-
-**6. Link Categorization** - Internal vs external separation:
-```toon
-navigation:
-  internal[2]:
-    Home: /
-    Analytics: /analytics
-  external[1]:
-    Documentation: https://docs.example.com
-```
-
-#### Configure TOON Output
+### Quick start — five lines
 
 ```python
-from dash_improve_my_llms import TOONConfig
+from dash import Dash
+from dash_improve_my_llms import add_llms_routes
 
-toon_config = TOONConfig(
-    indent=2,                      # Spaces per indent level
-    delimiter=",",                 # Array delimiter: "," | "\t" | "|"
-    include_metadata=True,         # Include generator metadata
-    include_content=True,          # Include text content arrays
-    max_content_items=100,         # Limit content array size (increased in v1.1.0)
-    strict_mode=True,              # Validate array lengths
-    minify=False,                  # Single-line primitives
-    # New in v1.1.0:
-    preserve_code_examples=True,   # Include code snippets
-    preserve_headings=True,        # Keep section structure
-    preserve_markdown=True,        # Extract dcc.Markdown content
-    max_code_lines=30,             # Max lines per code example
-    max_sections=20,               # Max sections to include
-)
-
-app._toon_config = toon_config
+app = Dash(__name__, use_pages=True)
+add_llms_routes(app)
 ```
 
-#### Generate TOON Programmatically
+That's it. `add_llms_routes` detects the active backend (**Flask**, **FastAPI**, or **Quart**) and dispatches to the matching adapter — no `if backend == "flask"` gate, no environment variable, no code change.
+
+On Dash 4.3+, it also registers each page's prose as an MCP resource.
+
+---
+
+### The LLMS_DOC pattern
+
+This is the one new idea in 2.0. Each page module exports a module-level string named `LLMS_DOC`. That string is the literal body of `/<page>/llms.txt`. No layout walking, no extraction.
 
 ```python
-from dash_improve_my_llms import toon_encode, TOONConfig
+# pages/equipment.py
+from dash import html, register_page
 
-# Encode any Python data to TOON
-data = {
-    "name": "Dashboard",
-    "components": ["chart", "table", "filters"],
-    "stats": {"total": 42, "active": 38}
-}
+register_page(__name__, path="/equipment", name="Equipment Catalog")
 
-toon_string = toon_encode(data)
-# Output:
-# name: Dashboard
-# components[3]: chart,table,filters
-# stats:
-#   total: 42
-#   active: 38
+LLMS_DOC = """\
+# Equipment Catalog
+
+> Browse the equipment library with text search and a category dropdown.
+
+## What this page does
+
+The catalog renders a list of equipment items with name, category, and
+status. Two controls filter the list in real time:
+
+- A free-text search input that matches against the item name.
+- A category dropdown: All, Tools, Machinery, Vehicles.
+
+## What the user can do
+
+- Type in the search box to narrow by name.
+- Switch category to constrain by class.
+- Combine both — filters AND together.
+
+## What the page does NOT do
+
+This is a demo. Item list is in-memory. No persistence, no edit/create,
+no per-item detail view.
+"""
+
+def layout():
+    return html.Div([...])
 ```
 
-#### Test TOON Endpoints
+#### Where the prose lives
+
+| Where | When to use it |
+|---|---|
+| Module-level `LLMS_DOC` | Default. Keeps prose next to the layout. |
+| `register_page_metadata(path, llms_doc="...")` | When the prose is computed, imported from another file, or generated at runtime. |
+
+The package looks up explicit registration first, then falls back to the module attribute.
+
+#### Recommended structure for a good LLMS_DOC
+
+1. `# Title` — matches the page name.
+2. `> One-line tagline` — quoted blockquote at the top.
+3. `## What this page does` — narrative description.
+4. `## What the user can do` — interactions, in plain prose.
+5. `## What the page does NOT do` — guard against the LLM hallucinating capabilities.
+
+Length: 300–2000 words is typical. The package emits a warning naming pages without prose but never truncates.
+
+#### How this boilerplate wires it up
+
+Markdown-driven pages get their prose registered automatically. `pages/markdown.py` reads each `.md` file, expands `.. source::` directives by inlining the referenced file, then calls `register_page_metadata(path, llms_doc=expanded_markdown)`. That's why `/getting-started/llms.txt` returns the full page content with code samples already inlined — exactly what a paste-into-chat user wants.
+
+The home page uses the simpler pattern: `pages/home.py` exports `LLMS_DOC = content` where `content` is the markdown body of `pages/home.md`.
+
+---
+
+### Multi-backend support
 
 ```bash
-# Fetch TOON format (50-60% fewer tokens!)
-curl http://localhost:8553/llms.toon
-
-# Fetch architecture in TOON
-curl http://localhost:8553/architecture.toon
-
-# Page-specific TOON
-curl http://localhost:8553/getting-started/llms.toon
+pip install "dash-improve-my-llms[flask]>=2.0.0"      # Dash 3.x classic
+pip install "dash-improve-my-llms[fastapi]>=2.0.0"    # Dash 4.1+ FastAPI
+pip install "dash-improve-my-llms[quart]>=2.0.0"      # Dash 4.1+ Quart
+pip install "dash-improve-my-llms[all]>=2.0.0"        # all three
 ```
+
+`add_llms_routes(app)` inspects `app.server` (via `dash.backends.get_server_type` on Dash 4.2+, falling back to `type(app.server).__name__`) and dispatches to the matching adapter. `GET /robots.txt` returns byte-identical content whether the app is Flask, FastAPI, or Quart.
+
+The handlers live in `dash_improve_my_llms/handlers.py` as **pure functions**. Each adapter is a thin I/O wrapper, so behavior across backends is identical by construction.
 
 ---
 
-### Configuration
-
-All configuration is done in `run.py`:
-
-#### Base URL Configuration
-
-```python
-# Set your production URL for proper sitemap generation
-app._base_url = "https://your-app-url.com"
-```
-
-#### Bot Management
+### Bot management
 
 ```python
 from dash_improve_my_llms import RobotsConfig
 
+# Balanced (default-ish) — block training, allow citations
 app._robots_config = RobotsConfig(
-    block_ai_training=True,      # Block GPTBot, CCBot, etc.
-    allow_ai_search=True,         # Allow ChatGPT-User, ClaudeBot
-    allow_traditional=True,       # Allow Googlebot, Bingbot
-    crawl_delay=10,               # Delay between requests (seconds)
-    disallowed_paths=[],          # Paths to block
+    block_ai_training=True,      # GPTBot, CCBot, anthropic-ai, Google-Extended
+    allow_ai_search=True,        # ChatGPT-User, ClaudeBot, PerplexityBot
+    allow_traditional=True,      # Googlebot, Bingbot, DuckDuckBot
+    crawl_delay=10,
+    disallowed_paths=["/admin", "/api/*"],
 )
 ```
 
-#### Page Metadata
+The bot middleware:
 
-```python
-from dash_improve_my_llms import register_page_metadata
+1. Training bot + `block_ai_training=True` → **403 Forbidden**.
+2. Search or traditional bot → **prerendered static HTML** built from the page's `LLMS_DOC` (so they actually see content instead of an empty React shell).
+3. Real browser → passes through to the Dash app.
 
-register_page_metadata(
-    path="/",
-    name="Dash Documentation Boilerplate",
-    description="A modern, responsive documentation system for Dash applications"
-)
+Verify with `curl`:
+
+```bash
+# Training bot — expect 403 when block_ai_training=True
+curl -A "Mozilla/5.0 (compatible; GPTBot/1.0)" http://localhost:8559/
+
+# Search bot — expect static HTML with the LLMS_DOC content baked in
+curl -A "Mozilla/5.0 (compatible; Googlebot/2.1)" http://localhost:8559/
+
+# Real browser — passes through to Dash
+curl -A "Mozilla/5.0 (Macintosh)" http://localhost:8559/ | head -20
 ```
 
 ---
 
-### Highlighting Important Components
-
-Use `mark_important()` to help AI understand key interactive elements:
-
-#### Example Usage
-
-```python
-from dash_improve_my_llms import mark_important
-from dash import html, dcc
-
-component = html.Div([
-    html.H2("Search Feature"),
-
-    # Mark key interactive sections
-    mark_important(
-        html.Div([
-            dcc.Input(id='search', placeholder='Search...'),
-            dcc.Dropdown(id='filter', options=[...]),
-        ], id='search-controls'),
-        component_id='search-controls'
-    ),
-
-    html.Div(id='results')
-])
-```
-
-#### Benefits
-
-- LLMs recognize these as key interactive elements
-- Appears prominently in llms.txt
-- Helps AI assistants guide users more effectively
-
----
-
-### Privacy Controls
-
-#### Hiding Sensitive Pages
-
-Use `mark_hidden()` to exclude pages from bots and AI:
+### Hiding pages from crawlers and MCP
 
 ```python
 from dash_improve_my_llms import mark_hidden
 
-# Hide admin or internal pages
 mark_hidden("/admin")
 mark_hidden("/internal/metrics")
-
-# These pages will:
-# - Not appear in sitemap.xml
-# - Be blocked in robots.txt
-# - Return 404 for /admin/llms.txt
 ```
 
-#### Hiding Components
+Effects: excluded from `/sitemap.xml`, added to `/robots.txt` Disallow list, returns 404 to crawler requests, returns 404 to `/admin/llms.txt`, and skipped when registering MCP resources.
+
+There is **no component-level hiding** in 2.0. To hide content from extraction, simply don't write it into the page's `LLMS_DOC`.
+
+---
+
+### MCP integration
+
+On Dash 4.3+, every non-hidden page's `LLMS_DOC` is registered as a `dash.mcp` resource:
+
+- **URI**: `llms:///<page-path>` (e.g. `llms:///equipment`, `llms:///` for root)
+- **mimeType**: `text/markdown`
+- **content**: the `LLMS_DOC` string
+
+This means an MCP-aware client can fetch the prose docs through its existing tool-call surface without an extra HTTP fetch. To opt out:
 
 ```python
-from dash_improve_my_llms import mark_component_hidden
-from dash import html
-
-# Hide sensitive information from extraction
-api_keys = html.Div([
-    html.P("API Key: sk-..."),
-    html.P("Secret: abc123")
-], id="api-keys")
-
-mark_component_hidden(api_keys)
+from dash_improve_my_llms import LLMSConfig, add_llms_routes
+add_llms_routes(app, LLMSConfig(register_mcp_resources=False))
 ```
+
+On Dash 3.x or 4.1/4.2 the MCP bridge silently no-ops — the HTTP routes still work.
 
 ---
 
-### How Users Can Share Your Docs with AI
+### Migration notes (1.x → 2.0)
 
-Your users can now share your documentation URL directly with AI assistants:
+If you upgraded an existing app:
 
-#### With ChatGPT
+1. **Install the right extra** — `pip install "dash-improve-my-llms[flask]>=2.0"` (or `[fastapi]`, `[quart]`).
+2. **Add `LLMS_DOC` to each page module.** The startup `UserWarning` names every page that's missing prose.
+3. **Remove `mark_important()` and `mark_component_hidden()` calls.** They're deprecation no-ops in 2.0 and will be deleted in 2.1.
+4. **Remove links to dropped routes** — `/page.json`, `/architecture.txt`, `/architecture.toon`, `/llms.toon` (and per-page variants).
+5. **Stop using `TOONConfig`, `PageType`, `generate_*_toon`, `toon_encode`, `extract_*`** — all removed from the public API.
 
-1. User: "Can you help me understand this documentation? https://your-app.com"
-2. ChatGPT fetches `/llms.txt` automatically
-3. ChatGPT understands your app structure and helps the user
-
-#### With Claude
-
-1. User: "Here's a Dash app I'm using: https://your-app.com"
-2. Claude fetches `/llms.txt` automatically
-3. Claude provides context-aware assistance
-
-#### What AI Sees
-
-The AI assistant receives structured information about:
-
-- Your app's purpose and capabilities
-- Interactive components and their IDs
-- Data flow and callback logic
-- How to use different features
-- Component relationships
+The HTTP surfaces that survived (`/llms.txt`, `/robots.txt`, `/sitemap.xml`) and the APIs `RobotsConfig`, `mark_hidden`, `register_page_metadata` are byte-compatible with 1.x.
 
 ---
 
-### Bot Types Explained
-
-#### AI Training Bots (Blocked by Default)
-
-These bots train AI models on web content:
-
-- **GPTBot** (OpenAI)
-- **CCBot** (Common Crawl)
-- **anthropic-ai** (Anthropic)
-- **Google-Extended** (Google AI training)
-- **FacebookBot** (Meta AI)
-
-**Why block?** Prevent your content from being used in AI training datasets.
-
-#### AI Search Bots (Allowed by Default)
-
-These bots help AI assistants answer user queries:
-
-- **ChatGPT-User** (OpenAI)
-- **ClaudeBot** (Anthropic)
-- **PerplexityBot** (Perplexity)
-- **YouBot** (You.com)
-
-**Why allow?** Enable users to get help from AI assistants.
-
-#### Traditional Search Engines (Allowed by Default)
-
-Standard search engine crawlers:
-
-- **Googlebot** (Google)
-- **Bingbot** (Microsoft)
-- **Slurp** (Yahoo)
-- **DuckDuckBot** (DuckDuckGo)
-
-**Why allow?** Improve SEO and discoverability.
-
----
-
-### SEO Benefits
-
-The integration provides several SEO advantages:
-
-#### 1. Sitemap Generation
-
-Automatic sitemap with smart priorities:
-
-- Home page: Priority 1.0
-- Documentation pages: Priority 0.7-0.9
-- Example pages: Priority 0.5-0.7
-- Change frequency inference
-
-#### 2. Structured Data
-
-Schema.org JSON-LD in HTML:
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "Your App",
-  "description": "Your description",
-  "documentation": {...}
-}
-```
-
-#### 3. Meta Tags
-
-LLM discovery meta tags:
-
-```html
-<meta name="llms-txt" content="/llms.txt">
-<meta name="llms-page-json" content="/page.json">
-<meta name="llms-architecture" content="/architecture.txt">
-```
-
-#### 4. Noscript Fallback
-
-For bots that don't execute JavaScript:
-
-```html
-<noscript>
-  <div>
-    <h1>App Name</h1>
-    <ul>
-      <li><a href="/llms.txt">LLM Documentation</a></li>
-      <li><a href="/sitemap.xml">Sitemap</a></li>
-    </ul>
-  </div>
-</noscript>
-```
-
----
-
-### Testing the Integration
-
-#### Test Different User Agents
+### Debugging
 
 ```bash
-# AI Search Bot (will see static HTML with llms.txt content)
-curl -H "User-Agent: Mozilla/5.0 (compatible; ClaudeBot/1.0)" \\
-  http://localhost:8553/ | head -50
+# Confirm routes are wired
+curl -s http://localhost:8559/llms.txt | head -5
+curl -s http://localhost:8559/robots.txt | head -10
+curl -s http://localhost:8559/sitemap.xml | head -10
 
-# AI Training Bot (will get 403 Forbidden)
-curl -H "User-Agent: Mozilla/5.0 (compatible; GPTBot/1.0)" \\
-  http://localhost:8553/
-
-# Regular Browser (will get full React app)
-curl http://localhost:8553/ | head -50
+# See which pages are missing prose: just boot the app and read the UserWarning.
+python run.py 2>&1 | grep -i "llms_doc"
 ```
-
-#### Verify Routes
-
-```bash
-# Start your app
-python run.py
-
-# Test all routes
-curl http://localhost:8553/llms.txt
-curl http://localhost:8553/page.json
-curl http://localhost:8553/architecture.txt
-curl http://localhost:8553/robots.txt
-curl http://localhost:8553/sitemap.xml
-
-# Test page-specific docs
-curl http://localhost:8553/getting-started/llms.txt
-```
-
----
-
-### Advanced Configuration
-
-#### Custom Bot Rules
 
 ```python
-from dash_improve_my_llms import RobotsConfig
-
-app._robots_config = RobotsConfig(
-    block_ai_training=True,
-    allow_ai_search=True,
-    allow_traditional=True,
-    crawl_delay=15,
-    disallowed_paths=["/admin", "/api/*", "/internal/*"],
-    custom_rules=[
-        "User-agent: MyCustomBot",
-        "Disallow: /private",
-        "",
-        "User-agent: AnotherBot",
-        "Allow: /public"
-    ]
-)
+# Inspect backend detection
+from dash_improve_my_llms import _detect_backend
+print(_detect_backend(app))   # "flask" | "fastapi" | "quart"
 ```
-
-#### Custom Sitemap Priorities
 
 ```python
-from dash_improve_my_llms import register_page_metadata
+# Pure-function trace of a crawler request — no server needed
+from dash_improve_my_llms.handlers import handle_bot_request
 
-register_page_metadata(
-    path="/important-page",
-    name="Important Page",
-    description="This is important",
-    priority=0.95,  # Custom priority (0.0-1.0)
-    changefreq="daily"  # daily, weekly, monthly, yearly
-)
-```
-
----
-
-### Best Practices
-
-#### 1. Update Base URL
-
-Always set your production URL:
-
-```python
-app._base_url = "https://docs.yourcompany.com"
-```
-
-#### 2. Mark Important Sections
-
-Use `mark_important()` for key UI elements:
-
-```python
-mark_important(
-    my_search_component,
-    component_id='main-search'
-)
-```
-
-#### 3. Hide Sensitive Pages
-
-Protect internal pages:
-
-```python
-mark_hidden("/admin")
-mark_hidden("/api/internal")
-```
-
-#### 4. Provide Good Metadata
-
-Register metadata for all important pages:
-
-```python
-register_page_metadata(
-    path="/my-feature",
-    name="My Feature",
-    description="Clear, descriptive text about this feature"
-)
-```
-
-#### 5. Test Regularly
-
-Verify your AI-friendly docs are working:
-
-```bash
-curl http://localhost:8553/llms.txt
-```
-
----
-
-### Resources
-
-- **Package**: [dash-improve-my-llms on PyPI](https://pypi.org/project/dash-improve-my-llms/)
-- **llms.txt Spec**: [llmstxt.org](https://llmstxt.org/)
-- **Integration Guide**: [LLMS_INTEGRATION.md](/LLMS_INTEGRATION.md)
-- **Schema.org**: [schema.org](https://schema.org/)
-- **Robots.txt**: [robotstxt.org](https://www.robotstxt.org/)
-
----
-
-### Quick Reference
-
-#### Available Routes
-
-| Route | Purpose |
-|-------|---------|
-| `/llms.txt` | LLM-friendly documentation |
-| `/llms.toon` | Token-optimized docs (NEW!) |
-| `/page.json` | Technical architecture |
-| `/architecture.txt` | App overview |
-| `/architecture.toon` | Token-optimized architecture (NEW!) |
-| `/robots.txt` | Bot access control |
-| `/sitemap.xml` | SEO sitemap |
-| `/<page>/llms.txt` | Page-specific docs |
-| `/<page>/llms.toon` | Page-specific TOON (NEW!) |
-
-#### Key Functions
-
-```python
-from dash_improve_my_llms import (
-    add_llms_routes,           # Add all routes
-    mark_important,            # Highlight components
-    mark_hidden,               # Hide pages from bots
-    register_page_metadata,    # Add custom metadata
-    RobotsConfig,              # Configure bot policies
-    TOONConfig,                # Configure TOON output (NEW!)
-    toon_encode,               # Encode data to TOON (NEW!)
-)
-```
-
----
-
-### Example: Complete Setup
-
-Here's a complete example showing all features:
-
-```python
-from dash import Dash
-from dash_improve_my_llms import (
-    add_llms_routes,
-    RobotsConfig,
-    register_page_metadata,
-    mark_hidden
-)
-
-app = Dash(__name__, use_pages=True)
-
-# Configure base URL
-app._base_url = "https://docs.myapp.com"
-
-# Configure bots
-app._robots_config = RobotsConfig(
-    block_ai_training=True,
-    allow_ai_search=True,
-    allow_traditional=True,
-    crawl_delay=10,
-    disallowed_paths=["/admin", "/internal"]
-)
-
-# Add LLMS routes
-add_llms_routes(app)
-
-# Register page metadata
-register_page_metadata(
+result = handle_bot_request(
     path="/",
-    name="My App",
-    description="A comprehensive Dash application"
+    user_agent="Mozilla/5.0 (compatible; GPTBot/1.0)",
+    app=app,
+    page_metadata={},
+    hidden_paths=set(),
 )
-
-# Hide sensitive pages
-mark_hidden("/admin")
-mark_hidden("/api/secrets")
-
-app.layout = # your layout
-
-if __name__ == "__main__":
-    app.run(debug=False)
 ```
 
 ---
 
-Your documentation is now **AI-friendly and SEO-optimized**! 🤖✨
+### Why the surface shrank
 
-Users can share your URL with ChatGPT, Claude, or other AI assistants, and they'll understand your app structure to provide better help.
+Earlier releases generated `/page.json`, `/architecture.txt`, `/llms.toon`, and tried to extract prose from Dash component trees. Two things changed:
+
+1. **Dash 4.3 shipped MCP.** A live, structurally-accurate description of the component tree is available natively through Streamable HTTP. Reading it from a boot-time snapshot is strictly worse.
+2. **Layout extraction was never reliable.** Walking `dcc.Markdown` children and guessing what was important led to surprising outputs. The `LLMS_DOC` pattern moves the responsibility to you — write the prose, the package serves it.
+
+The result is ~4,400 → ~1,900 lines of public surface, fewer endpoints to remember, and no quiet "the extraction missed my best paragraph" failures.
+
+---
+
+### Where to read more
+
+- [`SKILLS.md`](https://github.com/pip-install-python/dash-improve-my-llms/blob/main/SKILLS.md) — the practical guide bundled with the package.
+- [`CHANGELOG.md`](https://github.com/pip-install-python/dash-improve-my-llms/blob/main/CHANGELOG.md) — full 2.0 breaking-changes list.
+- [PyPI: dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) — install + latest version.
+- [llms.txt spec](https://llmstxt.org/) — the convention the package implements.
