@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import sys
+import ssl
 import urllib.error
 import urllib.request
 from typing import Dict, List, Optional, Tuple
@@ -37,6 +38,25 @@ STUB_MARKER = "This page contains interactive content that requires JavaScript"
 CHROME = re.compile(r'<[a-z]+ class="dv-banner')
 TIMEOUT = 30
 
+
+def _ssl_context() -> ssl.SSLContext:
+    """Verify certificates via certifi when available.
+
+    macOS Python ships without OS trust-store integration, so bare urllib
+    fails every https fetch with CERTIFICATE_VERIFY_FAILED — which reads as
+    "the whole site is down" (every check 0s). Same fix as audit_links.py.
+    Verification stays ON either way; certifi only supplies the CA bundle.
+    """
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+SSL_CONTEXT = _ssl_context()
+
 failures: List[str] = []
 checks_run = 0
 
@@ -55,7 +75,9 @@ def fetch(
         headers["Accept"] = accept
     request = urllib.request.Request(url, headers=headers)
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        with urllib.request.urlopen(
+            request, timeout=TIMEOUT, context=SSL_CONTEXT
+        ) as response:
             body = response.read().decode("utf-8", "replace")
             return response.status, body, dict(response.headers)
     except urllib.error.HTTPError as exc:
