@@ -79,11 +79,9 @@ jobs:
           # import. httpx backs starlette's TestClient.
           if [ "${{ matrix.backend }}" != "flask" ]; then
             pip install "dash[${{ matrix.backend }}]" httpx
-            # Globbed, not hardcoded: a version bump in requirements.txt used
-            # to leave this line pointing at a tarball that no longer exists,
-            # which fails only on the two ASGI legs.
-            sdist=$(ls ./vendor/dash_improve_my_llms-*.tar.gz)
-            pip install "${sdist}[${{ matrix.backend }}]"
+            # The backend extra from PyPI, same floor as requirements.txt.
+            # (Until 2.3.2 published this installed a vendored sdist.)
+            pip install "dash-improve-my-llms[${{ matrix.backend }}]>=2.3.2"
           fi
           pip install pytest pytest-cov
           # An explicit matrix pin overrides requirements.txt, to prove the

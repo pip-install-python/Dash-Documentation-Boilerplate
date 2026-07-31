@@ -53,19 +53,31 @@ def test_robots_txt(client):
 
 
 def test_robots_artifact_fingerprint(client):
-    """`OAI-SearchBot -> Allow: /` is the network's proof-of-artifact.
+    """The robots.txt crawler split is the network's proof-of-artifact.
 
-    Pre-2.3.2 builds of dash-improve-my-llms disallow OAI-SearchBot (ChatGPT
-    search's crawler). pip metadata is invisible from outside, so this exact
-    robots.txt pair is how a live host is fingerprinted as running the fixed
-    artifact — the post-deploy check on every host in the rollout. If this
-    fails locally, the vendored tarball regressed.
+    pip metadata is invisible from outside, so these exact robots.txt pairs
+    are how a live host is fingerprinted as running the intended
+    dash-improve-my-llms — the post-deploy check on every host in the
+    rollout. If this fails locally, the installed package regressed.
+
+    The signature, by release that introduced it:
+
+    - 2.3.2: `OAI-SearchBot -> Allow` (ChatGPT search's crawler; pre-fix
+      builds disallowed it).
+    - 2.3.3: `ClaudeBot -> Disallow` (the actual *training* crawler, moved to
+      the training bucket) while `Claude-User` and `Claude-SearchBot` — the
+      user-triggered and search fetchers — are allowed.
     """
     lines = client.get("/robots.txt").text.splitlines()
-    idx = lines.index("User-agent: OAI-SearchBot")
-    assert lines[idx + 1] == "Allow: /", (
-        f"OAI-SearchBot -> {lines[idx + 1]!r}: this is the pre-fix artifact"
-    )
+
+    def rule(agent):
+        idx = lines.index(f"User-agent: {agent}")
+        return lines[idx + 1]
+
+    assert rule("OAI-SearchBot") == "Allow: /", "pre-2.3.2 artifact"
+    assert rule("ClaudeBot") == "Disallow: /", "pre-2.3.3 artifact"
+    assert rule("Claude-User") == "Allow: /", "pre-2.3.3 artifact"
+    assert rule("Claude-SearchBot") == "Allow: /", "pre-2.3.3 artifact"
 
 
 def test_sitemap_lists_every_page_on_this_host(client, page_paths):

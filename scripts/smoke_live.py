@@ -126,21 +126,33 @@ def main(base: str) -> int:
         f"Sitemap: {base}/sitemap.xml" in robots,
         "sitemap line missing or pointing elsewhere",
     )
-    # The artifact fingerprint: pre-2.3.2 builds disallow OAI-SearchBot. pip
-    # metadata is invisible from outside, so this pair of lines is how a live
-    # host is proven to run the fixed dash-improve-my-llms.
+    # The artifact fingerprint. pip metadata is invisible from outside, so
+    # these robots.txt pairs are how a live host is proven to run the intended
+    # dash-improve-my-llms: 2.3.2 allowed OAI-SearchBot; 2.3.3 moved ClaudeBot
+    # (the training crawler) to Disallow while allowing the user-triggered and
+    # search fetchers Claude-User / Claude-SearchBot.
     robots_lines = robots.splitlines()
-    oai_idx = (
-        robots_lines.index("User-agent: OAI-SearchBot")
-        if "User-agent: OAI-SearchBot" in robots_lines
-        else -1
-    )
-    oai_ok = oai_idx >= 0 and robots_lines[oai_idx + 1: oai_idx + 2] == ["Allow: /"]
-    check(
-        "/robots.txt allows OAI-SearchBot (2.3.2 artifact fingerprint)",
-        oai_ok,
-        "Disallow or missing: this host runs a pre-fix artifact",
-    )
+
+    def robots_rule(agent: str) -> str:
+        marker = f"User-agent: {agent}"
+        if marker not in robots_lines:
+            return "(missing)"
+        idx = robots_lines.index(marker)
+        following = robots_lines[idx + 1: idx + 2]
+        return following[0] if following else "(missing)"
+
+    for agent, expected, since in (
+        ("OAI-SearchBot", "Allow: /", "2.3.2"),
+        ("ClaudeBot", "Disallow: /", "2.3.3"),
+        ("Claude-User", "Allow: /", "2.3.3"),
+        ("Claude-SearchBot", "Allow: /", "2.3.3"),
+    ):
+        got = robots_rule(agent)
+        check(
+            f"/robots.txt {agent} -> {expected.split(':')[0]} ({since} artifact fingerprint)",
+            got == expected,
+            f"got {got}: this host runs a pre-{since} artifact",
+        )
 
     status, sitemap, _ = fetch(f"{base}/sitemap.xml")
     check("/sitemap.xml responds 200", status == 200, f"got {status}")

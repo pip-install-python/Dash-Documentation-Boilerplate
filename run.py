@@ -227,12 +227,17 @@ app._base_url = BASE_URL
 # lib/network_directory.py — one definition, imported by every satellite.
 network_directory.apply(BASE_URL)
 
-# Configure bot management policies. See dash-improve-my-llms 2.0 SKILLS for
-# the full menu — balanced default = block training crawlers, allow AI search
-# citations and traditional search.
+# Configure bot management policies — the balanced default this project
+# documents: block training crawlers, allow AI search citations and
+# traditional search. As of dash-improve-my-llms 2.3.3 the buckets are
+# correct per vendor: ClaudeBot (Anthropic's *training* crawler) sits in the
+# training block, while the user-triggered and search fetchers Claude-User /
+# Claude-SearchBot are allowed alongside ChatGPT-User / OAI-SearchBot /
+# PerplexityBot. With block_ai_training=False the training bucket is never
+# emitted at all, which silently allows training — not "balanced".
 app._robots_config = RobotsConfig(
-    block_ai_training=False,      # Block GPTBot, CCBot, anthropic-ai, etc.
-    allow_ai_search=True,         # Allow ChatGPT-User, ClaudeBot, PerplexityBot
+    block_ai_training=True,       # Disallow GPTBot, ClaudeBot, CCBot, etc.
+    allow_ai_search=True,         # Allow Claude-User/-SearchBot, ChatGPT-User, ...
     allow_traditional=True,       # Allow Googlebot, Bingbot, etc.
     crawl_delay=10,
     disallowed_paths=[],

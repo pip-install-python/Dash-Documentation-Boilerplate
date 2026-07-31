@@ -60,11 +60,11 @@ python-dotenv>=1.0.0
 
 # AI/LLM Integration & SEO
 #
-# 2.3.2 is installed from the vendored sdist because it is not on PyPI yet —
-# the network is being validated on the tarball first, across all four
-# production apps. Only after that does 2.3.2 get published, and only then do
-# vendor/ and this block go away in favour of the commented pins below.
-# (2.1.0 and 2.3.1 were assigned during development and never published.)
+# 2.3.2 is on PyPI as of 2026-07-30, published only after the network
+# validated the identical vendored tarball across all four production apps.
+# The vendor/ copy of this package is no longer referenced and can be
+# deleted. (2.1.0 and 2.3.1 were assigned during development and never
+# published.)
 #
 # What it changes, on this app specifically: `register_page_metadata` merges
 # instead of assigning (no prose can be erased by a later bookkeeping call),
@@ -76,20 +76,17 @@ python-dotenv>=1.0.0
 # same URL content-negotiates — agents get the Markdown byte for byte,
 # browsers get it rendered behind a header carrying the network wordmark.
 #
-# 2.3.2 specifically fixes robots.txt: OAI-SearchBot (ChatGPT search's
-# crawler) is now allowed. `User-agent: OAI-SearchBot` -> `Allow: /` in a
-# host's /robots.txt is the fingerprint that it runs this artifact — pip
-# metadata is not visible from outside.
-./vendor/dash_improve_my_llms-2.3.2.tar.gz[flask]
-# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[fastapi]   # Dash 4.4+ FastAPI backend
-# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[quart]     # Dash 4.4+ Quart backend
-# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[all]       # all three
-#
-# --- once 2.3.2 is on PyPI, this replaces the block above -------------------
-# dash-improve-my-llms[flask]>=2.3.2
-# dash-improve-my-llms[fastapi]>=2.3.2
-# dash-improve-my-llms[quart]>=2.3.2
-# dash-improve-my-llms[all]>=2.3.2
+# The robots.txt crawler split doubles as the artifact fingerprint — pip
+# metadata is not visible from outside. 2.3.2 allows OAI-SearchBot (ChatGPT
+# search's crawler); 2.3.3 moves ClaudeBot (the actual *training* crawler) to
+# Disallow while allowing the user-triggered and search fetchers Claude-User
+# and Claude-SearchBot, and strips unexpanded directive lines from prose.
+# The >= floor lets 2.3.3+ flow; tests/test_llms_routes.py asserts the
+# fingerprint so a regressed resolve fails CI rather than production.
+dash-improve-my-llms[flask]>=2.3.2
+# dash-improve-my-llms[fastapi]>=2.3.2   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.3.2     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.3.2       # all three
 
 # Production Servers
 # - gunicorn   -> WSGI (Flask)

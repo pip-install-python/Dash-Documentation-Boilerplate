@@ -14,6 +14,32 @@ analytics reporting, and the upgrade to `dash-improve-my-llms` 2.2.0.
 there is no 2.1.0 anywhere and 2.0.0 upgrades straight to 2.2.0. Work
 described here as "2.1-era" in earlier drafts shipped as part of 2.2.0.
 
+### Changed — dash-improve-my-llms from PyPI (2.3.3); vendored copy removed
+
+The four-host verification gate passed, `dash-improve-my-llms` published, and
+this repo switched from the vendored sdist to the PyPI pin
+(`dash-improve-my-llms[flask]>=2.3.2`) — the Phase-5 step the vendor block
+always anticipated. `vendor/dash_improve_my_llms-*.tar.gz` is gone; CI's ASGI
+legs and the Dockerfile install from PyPI too. `vendor/` still carries
+`dash_clerk_auth` (not on PyPI, deliberately outside requirements.txt).
+
+The floor resolves to 2.3.3, which recategorises the Anthropic crawlers:
+`ClaudeBot` — the actual *training* crawler — moves to `Disallow`, while the
+user-triggered and search fetchers `Claude-User` / `Claude-SearchBot` are
+allowed, matching the intent the OAI-SearchBot fix established for OpenAI.
+It also strips unexpanded directive lines from resolved prose. The artifact
+fingerprint in `tests/test_llms_routes.py` and `scripts/smoke_live.py` now
+asserts the full crawler split, so a host running a stale build fails its
+post-deploy battery by name.
+
+Verifying that fingerprint exposed a real misconfiguration:
+`run.py` set `block_ai_training=False`, so the training bucket was never
+emitted and every training crawler was silently allowed — the opposite of the
+"blocks AI training, allows AI search" policy this project documents, and it
+would have made 2.3.3's ClaudeBot recategorisation invisible on this host.
+Now `block_ai_training=True`, matching the documented policy and the rest of
+the network.
+
 ### Changed — production rollout: re-vendor 2.3.2 / 0.9.1, live hub contract
 
 Deployment prep for `boilerplate.2plot.dev` (rollout step 4; the hub's auth
