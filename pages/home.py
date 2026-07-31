@@ -3,7 +3,6 @@ from pathlib import Path
 import frontmatter
 import dash_mantine_components as dmc
 from dash import dcc, register_page
-from dash import html
 
 from lib.constants import PAGE_TITLE_PREFIX
 
@@ -26,6 +25,9 @@ metadata, content = post.metadata, post.content
 LLMS_DOC = content
 
 layout = dmc.Container(
+    # Page-unique id: keeps React's keyed reconciliation of page swaps atomic
+    # (see the wrapper comment in pages/markdown.py).
+    id="m2d-page-home",
     size="lg",
     py="xl",
     children=[

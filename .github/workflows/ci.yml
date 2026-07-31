@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Called by cd.yml so a deploy can never ship something the matrix rejected.
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  FORCE_COLOR: "1"
+  # Never let a CI run inherit production behaviour: the base-URL guard keys
+  # off RENDER / APP_ENV, and the satellite reporter keys off the webhook
+  # secret. Both must stay inert here.
+  APP_ENV: ci
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install flake8
+      - name: flake8
+        run: flake8 lib components pages tests run.py
+
+  test:
+    name: py${{ matrix.python }} · ${{ matrix.backend }} · dash${{ matrix.dash && format(" {0}", matrix.dash) || " (pinned)" }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every backend gets a run on the current Python and the pinned Dash...
+        python: ["3.12"]
+        backend: [flask, fastapi, quart]
+        dash: [""]
+        include:
+          # ...the supported Python range gets a run on the default backend...
+          - python: "3.11"
+            backend: flask
+            dash: ""
+          - python: "3.13"
+            backend: flask
+            dash: ""
+          # ...and the bottom of the `~=4.4.1` range is pinned explicitly on
+          # both backends that matter, so a 4.4.0-only regression cannot hide
+          # behind pip resolving to 4.4.1. 4.3.0 is deliberately absent: its
+          # FastAPI backend 500s on every non-root URL (upstream, fixed in
+          # 4.4.0), which is why requirements.txt floors at 4.4.
+          - python: "3.12"
+            backend: fastapi
+            dash: "4.4.0"
+          - python: "3.12"
+            backend: flask
+            dash: "4.4.0" 
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install the app
+        run: |
+          pip install -r requirements.txt
+          # Dash's own extras are required for the ASGI backends: a bare
+          # `fastapi` install is not enough for dash.backends._fastapi to
+          # import. httpx backs starlette's TestClient.
+          if [ "${{ matrix.backend }}" != "flask" ]; then
+            pip install "dash[${{ matrix.backend }}]" httpx
+            # Globbed, not hardcoded: a version bump in requirements.txt used
+            # to leave this line pointing at a tarball that no longer exists,
+            # which fails only on the two ASGI legs.
+            sdist=$(ls ./vendor/dash_improve_my_llms-*.tar.gz)
+            pip install "${sdist}[${{ matrix.backend }}]"
+          fi
+          pip install pytest pytest-cov
+          # An explicit matrix pin overrides requirements.txt, to prove the
+          # bottom of the supported range still works.
+          if [ -n "${{ matrix.dash }}" ]; then
+            pip install "dash[${{ matrix.backend }}]==${{ matrix.dash }}" \
+              || pip install "dash==${{ matrix.dash }}"
+          fi
+
+      - name: Confirm the pinned dependency versions
+        run: |
+          python - <<'PY'
+          import dash, dash_improve_my_llms as pkg
+          # Dash 4.3.0's FastAPI backend 500s on every non-root URL. The floor
+          # in requirements.txt is 4.4.0 for that reason; assert it held.
+          def parts(v):
+              return tuple(int(x) for x in v.split(".")[:3] if x.isdigit())
+          # 4.4 floor: 4.3.0's FastAPI backend 500s on every non-root URL.
+          assert parts(dash.__version__)[:2] >= (4, 4), dash.__version__
+          assert parts(pkg.__version__) >= (2, 3, 0), pkg.__version__
+          print(f"dash {dash.__version__}, dash-improve-my-llms {pkg.__version__}")
+          PY
+
+      - name: Test suite (${{ matrix.backend }})
+        env:
+          DASH_BACKEND: ${{ matrix.backend }}
+        run: pytest tests -q
+
+      - name: Boot under a production server
+        if: matrix.backend == 'flask'
+        run: |
+          pip install gunicorn
+          gunicorn run:server -b 127.0.0.1:8550 --daemon --access-logfile - --error-logfile -
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8550/healthz && break
+            sleep 1
+          done
+          # A page that renders under the test client can still fail under a
+          # real WSGI worker — different import path, different working
+          # directory, no test-client conveniences.
+          curl -sf http://127.0.0.1:8550/ > /dev/null
+          curl -sf http://127.0.0.1:8550/networks > /dev/null
+          curl -sf http://127.0.0.1:8550/llms.txt | grep -q "## Network"
+          if curl -sf -A "Googlebot/2.1" http://127.0.0.1:8550/ \
+               | grep -q "requires JavaScript"; then
+            echo "::error::the home page served the JavaScript stub to a crawler"
+            exit 1
+          fi
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: docker build -t dash-docs-boilerplate:ci .
+
+      - name: Boot the image and probe it
+        run: |
+          docker run -d --name docs -p 8550:8550 dash-docs-boilerplate:ci
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8550/healthz && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:8550/getting-started > /dev/null
+          curl -sf http://127.0.0.1:8550/sitemap.xml | grep -q "<urlset"
+          docker logs docs
+          docker rm -f docs

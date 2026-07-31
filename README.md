@@ -2,11 +2,16 @@
 
 > A modern, responsive documentation system for Dash applications built with Dash Mantine Components
 
-[![Dash](https://img.shields.io/badge/Dash-4.2.0-blue.svg)](https://dash.plotly.com/)
+[![CI](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/ci.yml/badge.svg)](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/ci.yml)
+[![CD](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/cd.yml/badge.svg)](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/cd.yml)
+[![Dash](https://img.shields.io/badge/Dash-4.4.1-blue.svg)](https://dash.plotly.com/)
 [![DMC](https://img.shields.io/badge/DMC-2.7.0-teal.svg)](https://www.dash-mantine-components.com/)
 [![Backends](https://img.shields.io/badge/Backends-Flask%20%7C%20FastAPI%20%7C%20Quart-orange.svg)](https://dash.plotly.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**Live:** [boilerplate.2plot.dev](https://boilerplate.2plot.dev) · the template every
+[2plot.dev](https://2plot.dev) component documentation site is built from.
 
 
 A comprehensive boilerplate for creating beautiful, interactive documentation for your Dash components, data science workflows, and applications. Features markdown-driven content, live code examples, and automatic theme persistence.
@@ -45,7 +50,8 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **Bot management** — training crawlers blocked (configurable), AI search citations allowed, browsers untouched
 - **Privacy controls** — `mark_hidden()` to exclude pages from sitemap, robots, MCP, and crawler prerender
 - **Share with AI** — paste the app URL into ChatGPT/Claude/etc.; they fetch the prose docs directly
-- Powered by [dash-improve-my-llms 2.0](https://pypi.org/project/dash-improve-my-llms/)
+- **Cross-host network directory** — `lib/network_directory.py` publishes the sibling sites so an agent landing on one satellite can find the rest ([docs](https://boilerplate.2plot.dev/networks))
+- Powered by [dash-improve-my-llms 2.2](https://pypi.org/project/dash-improve-my-llms/)
 
 ### 🔌 Pluggable Backends (Dash 4.x)
 - Run the **same app** on **Flask**, **FastAPI**, or **Quart** — switch with a single `DASH_BACKEND` environment variable
@@ -76,10 +82,10 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **npm**: 6+
 
 ### Python Dependencies
-- dash >= 4.1.0
+- dash `~=4.4.1` — see the support matrix below; **not 4.3.0**
 - dash-mantine-components >= 2.7.0
 - dash-ag-grid
-- dash-improve-my-llms[flask] >= 2.0.0
+- dash-improve-my-llms >= 2.2.0 (installed from `vendor/` until 2.2.0 is on PyPI — see below)
 - flask >= 3.0.0 (default backend)
 - plotly >= 5.0.0
 - pandas >= 1.2.3
@@ -96,6 +102,47 @@ pip install "dash[quart]"     # Quart (ASGI) backend
 ```
 
 See [`requirements.txt`](requirements.txt) for the complete list.
+
+#### Dash support matrix
+
+Verified against real apps on each backend, with the failure reproduced on a
+stock Dash app with `dash-improve-my-llms` uninstalled:
+
+| Dash | Flask | FastAPI | Quart |
+|---|---|---|---|
+| 4.1.0 | ✅ | — no pluggable backends | — |
+| 4.2.0 | ✅ | ✅ | ✅ |
+| **4.3.0** | ✅ | ❌ **every non-root page 500s** | ✅ |
+| 4.4.0 | ✅ | ✅ | ✅ |
+| 4.4.1 | ✅ | ✅ | ✅ |
+
+4.3.0 added an early-return path guard to the ASGI middleware that returns
+*before* `set_current_request`, while the page catch-all still calls
+`get_current_request()` — so it raises `RuntimeError: No active request in
+context`. The catch-all is byte-identical between 4.2.0 and 4.3.0; only the
+middleware changed. 4.4.0 fixed it by setting the context inside the catch-all
+too.
+
+That distinction matters for the pin: 4.2.0 works only because a single
+upstream code path happens to cover it, whereas 4.4.x sets the context in both
+places, so a future middleware guard can't reintroduce the bug. **4.4.x isn't
+just currently-passing, it's structurally safer.**
+
+`~=4.4.1` lets 4.4.2 patches flow without twenty pull requests but blocks
+4.5.0, so a minor bump goes through the matrix deliberately. The pin is for the
+most constrained backend **network-wide, including Flask-only apps** —
+`DASH_BACKEND` is an environment variable and this repo is a shared template,
+so a Flask deployment becomes a FastAPI deployment with one env change and no
+code change.
+
+> **Note on `dash-improve-my-llms`.** The pinned version is 2.2.0, which is not
+> published to PyPI yet, so `requirements.txt` installs it from the sdist in
+> [`vendor/`](vendor/). The network is being validated on the tarball first —
+> this app, then the other three, then all four in production. Only once that
+> is clean does 2.2.0 go to PyPI, `vendor/` get deleted, and the commented
+> PyPI lines already in `requirements.txt` take over. (2.1.0 was assigned
+> during development and never published, so 2.0.0 upgrades straight to
+> 2.2.0.)
 
 ---
 
@@ -123,10 +170,20 @@ npm install
 ### 3. Run the Development Server
 
 ```bash
-python run.py
+./scripts/dev.sh              # backend from .env (default flask)
+./scripts/dev.sh fastapi      # override for one run
 ```
 
-Visit **http://localhost:8553** in your browser.
+Visit **http://localhost:8559** in your browser.
+
+`scripts/dev.sh` resolves the interpreter from its own location, so it always
+uses this project's `.venv`. `python run.py` works too — but an IDE run
+configuration pointing at *another project's* virtualenv starts the app
+against that project's dependency versions, which is silent and expensive:
+on `dash-improve-my-llms` 2.0.0 there is no viewer module at all, so
+`/<page>/llms.txt` serves plain Markdown to everyone and nothing looks broken.
+The app now refuses to boot below the pinned floors and prints
+`sys.executable`, but the launcher avoids the question entirely.
 
 ### 4. Start Documenting!
 
@@ -161,13 +218,15 @@ dash-documentation-boilerplate/
 │   ├── directives/             # Custom Directives guide
 │   ├── interactive-components/ # Callback patterns guide
 │   ├── data-visualization/     # Theme-aware charts guide
-│   ├── ai-integration/         # AI/LLM integration (dash-improve-my-llms 2.0)
+│   ├── ai-integration/         # AI/LLM integration (dash-improve-my-llms 2.2)
+│   ├── networks/               # Multi-site network wiring for satellites
 │   ├── backends/               # Pluggable Backends guide
 │   ├── backend-comparison/     # Flask vs FastAPI vs Quart deep dive
 │   └── fastapi-showcase/       # What the FastAPI backend unlocks
 │
 ├── lib/                         # Utility libraries
-│   ├── constants.py            # App-wide constants (APP_VERSION, colors)
+│   ├── constants.py            # BASE_URL + guard, APP_VERSION, colors
+│   ├── network_directory.py    # Cross-host directory shared by every satellite
 │   ├── backend.py              # Backend selection (DASH_BACKEND)
 │   ├── asgi_middleware.py      # ASGI middleware (FastAPI/Quart)
 │   ├── asgi_routes.py          # Showcase routes (/healthz, /api/*)
@@ -176,6 +235,7 @@ dash-documentation-boilerplate/
 │       ├── kwargs.py           # Component props table generator
 │       ├── source.py           # Source code display directive
 │       ├── toc.py              # Table of contents directive
+│       ├── headings.py         # Heading ids that survive inline formatting
 │       └── llms_copy.py        # "Copy for LLM" button directive
 │
 ├── pages/                       # Dash multi-page app pages
@@ -183,16 +243,37 @@ dash-documentation-boilerplate/
 │   ├── home.py                 # Home page layout (exports LLMS_DOC)
 │   └── markdown.py             # Dynamic markdown page loader
 │
+├── scripts/
+│   └── smoke_live.py           # Post-deploy checks against a live site
+│
+├── tests/                       # pytest suite (runs on all three backends)
+│   ├── conftest.py             # Boots run.py once; one client per backend
+│   ├── test_pages.py           # Every page loads and serves real content
+│   ├── test_llms_routes.py     # llms.txt, sitemap, robots, canonicals
+│   ├── test_network_directory.py
+│   ├── test_docs_content.py    # Frontmatter, directives, heading anchors
+│   ├── test_config.py          # BASE_URL guard, index.html metadata
+│   └── test_smoke_live.py      # The CD script, run against this app
+│
 ├── templates/
 │   └── index.html              # SEO-optimized HTML template
 │
+├── vendor/                      # dash-improve-my-llms 2.2.0 sdist (temporary)
+│
+├── .github/workflows/
+│   ├── ci.yml                  # Lint, test matrix, Docker build
+│   └── cd.yml                  # Render deploy + live verification
+│
+├── .flake8
 ├── .gitignore
 ├── CHANGELOG.md                # Version history and changes
 ├── Dockerfile                  # Docker container definition
 ├── docker-compose.yml          # Docker compose configuration
 ├── package.json                # Node.js dependencies
 ├── package-lock.json           # Locked npm versions
+├── pytest.ini
 ├── README.md                   # This file
+├── render.yaml                 # Render Blueprint for boilerplate.2plot.dev
 ├── requirements.txt            # Python dependencies
 └── run.py                      # Application entry point
 ```
@@ -277,36 +358,138 @@ The boilerplate automatically saves user theme preference (light/dark) in localS
 
 ---
 
-## 🐳 Docker Deployment
+## ✅ Testing
 
-### Build the Docker Image
+The suite boots `run.py` itself rather than a test app assembled for the
+occasion — almost everything worth catching here lives in the wiring
+(registration order, which middleware runs first, whether a page's prose
+survived to the response), and a test app that re-implements the wiring only
+tests the re-implementation.
+
+```bash
+pip install pytest
+pytest                       # whichever backend DASH_BACKEND / .env selects
+
+DASH_BACKEND=flask pytest    # the three backends, one at a time
+DASH_BACKEND=fastapi pytest
+DASH_BACKEND=quart pytest
+
+flake8 lib components pages tests run.py
+```
+
+What it covers, and why each one is there:
+
+| Area | The failure it catches |
+|---|---|
+| Page registration & reachability | A markdown file that silently stops registering — invisible to any test that iterates whatever *did* register |
+| Crawler bodies | A page serving the JavaScript stub. This is the regression that cost the network 12 of 14 crawlable URLs |
+| Rendered prose | Links, tables, code fences and rules coming through as literal text instead of HTML |
+| Canonical tags | Exactly one per page, on **this** host. A wrong one deindexes the site and looks like nothing is wrong |
+| sitemap / robots / llms.txt | Missing pages, foreign hosts, a sitemap line pointing elsewhere |
+| Network directory | Self-listed peers, duplicate or overlapping tiers, entries missing from the published output |
+| Docs content | Broken `.. exec::` / `.. source::` targets, duplicate endpoints, incomplete frontmatter |
+| Heading anchors | A TOC link whose target id doesn't exist — clicking it does nothing, silently |
+| `BASE_URL` guard | A fork deploying with the boilerplate's own canonical host |
+| `scripts/smoke_live.py` | The CD script itself, run against the in-process app, so a typo can't turn every live check into a silent pass |
+
+### CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and
+pull request:
+
+- **lint** — flake8, blocking
+- **test** — the full suite on Flask, FastAPI and Quart (Python 3.12), plus
+  Python 3.11 and 3.13 on Flask. Asserts the installed Dash is ≥ 4.4 and
+  `dash-improve-my-llms` is ≥ 2.1 before running anything
+- **boot under gunicorn** — a page can render under a test client and still
+  fail under a real WSGI worker
+- **docker** — builds the image, boots it, and probes the live routes
+
+---
+
+## 🚀 Deployment
+
+### Render (how boilerplate.2plot.dev is hosted)
+
+[`render.yaml`](render.yaml) is the Blueprint for the live deployment:
+gunicorn with two workers, `/healthz` as the health check, a persistent disk
+for the analytics ledger, and the custom domain attached.
+
+```bash
+render blueprint launch        # or point a new Render service at this repo
+```
+
+**The one environment variable you must set** is `APP_BASE_URL`. It drives
+`<link rel="canonical">`, `sitemap.xml`, and the absolute URLs in `llms.txt`.
+A fork that leaves it unset inherits `https://boilerplate.2plot.dev` and tells
+Google that every one of its pages is a duplicate of this one — traffic
+disappears and nothing in the app looks broken. `lib/constants.py` refuses to
+boot on Render without it, and rejects `*.onrender.com` values too, because
+those keep resolving after a custom domain is attached and quietly split link
+equity across two hosts.
+
+```env
+APP_BASE_URL=https://yoursite.2plot.dev   # required in production
+DASH_BACKEND=flask                        # flask | fastapi | quart
+CROSS_APP_WEBHOOK_SECRET=...              # optional: network analytics
+TRAFFIC_ANALYTICS_FILE=/var/data/visitor_analytics.json
+```
+
+### CD
+
+[`.github/workflows/cd.yml`](.github/workflows/cd.yml) runs CI, POSTs to the
+Render deploy hook in the `RENDER_DEPLOY_HOOK_URL` secret, waits for the new
+instance to be reliably healthy, and then verifies the **live** site with
+[`scripts/smoke_live.py`](scripts/smoke_live.py).
+
+Without that secret the deploy step skips itself and the workflow still
+verifies whatever is currently live — so a fork doesn't fail CD on day one
+over a secret it was never given.
+
+You can run the same checks by hand against any satellite:
+
+```bash
+python scripts/smoke_live.py https://emojimart.2plot.dev
+```
+
+It checks the four things that are silent in production: a canonical on the
+wrong host, a page serving the JavaScript stub, a missing network directory,
+and dead peer `llms.txt` links.
+
+### Docker
 
 ```bash
 docker build -t dash-docs-boilerplate .
-```
-
-### Run with Docker
-
-```bash
-docker run -p 8550:8550 dash-docs-boilerplate
-```
-
-Visit **http://localhost:8550**
-
-### Using Docker Compose
-
-```bash
+docker run -p 8550:8550 dash-docs-boilerplate     # http://localhost:8550
 docker-compose up
 ```
 
-The app will be available at **http://localhost:8550**
+The image serves with **gunicorn** and declares a `HEALTHCHECK` against
+`/healthz`. Note that `vendor/` is copied in *before* the pip layer — while
+`dash-improve-my-llms` installs from the sdist, the build fails without it.
 
-### Production Deployment
+---
 
-The Docker container uses **Gunicorn** for production-ready serving:
-- Multiple workers for better performance
-- Automatic worker restart on failure
-- Suitable for production environments
+## 🛰️ Forking this into a satellite site
+
+This repo is the template the `*.2plot.dev` documentation sites are built
+from, so changes here propagate. Four things to change when you fork it:
+
+1. **`APP_BASE_URL`** in your host's environment, and `DEFAULT_BASE_URL` in
+   [`lib/constants.py`](lib/constants.py). See above for why this one matters
+   more than everything else combined.
+2. **[`lib/network_directory.py`](lib/network_directory.py)** — keep it
+   identical across every satellite. Twelve hand-maintained peer lists will
+   drift, and a directory that disagrees with itself across hosts is worse
+   than no directory. Only list hosts that are actually live.
+3. **[`templates/index.html`](templates/index.html)** — title, description,
+   Open Graph card, and the Schema.org blocks.
+4. **`docs/`** — replace the example pages with your component's.
+
+Leave `warn_missing_llms_doc=True` on. It names every page with no prose,
+which is exactly the list of pages serving a stub to crawlers. Turning it off
+hides the to-do list rather than shortening it. The full guide is at
+[boilerplate.2plot.dev/networks](https://boilerplate.2plot.dev/networks).
 
 ---
 
@@ -360,6 +543,53 @@ DASH_HOST=0.0.0.0
 DASH_PORT=8553
 DASH_BACKEND=flask     # flask | fastapi | quart (requires the matching dash extra)
 ```
+
+### Network analytics (2plot.ai)
+
+When deployed as a satellite of the 2plot network, this app reports its own
+traffic to the hub so the owner-only `/traffic` dashboard can chart it. Two
+signals, both hourly:
+
+| Signal | How |
+|--------|-----|
+| **Health** | The hub probes `/healthz` (served on every backend) and records up/down + latency. |
+| **Traffic** | `lib/satellite_reporter` POSTs a signed daily rollup to `https://2plot.ai/api/satellite/traffic`. |
+
+```env
+CROSS_APP_WEBHOOK_SECRET=...   # shared HMAC secret — without it, reporting is off
+SATELLITE_APP_KEY=dev          # this app's key in the hub network directory
+                               # (falls back to AD_APP_ID, then "dev")
+
+# Optional
+SATELLITE_TRAFFIC_URL=https://2plot.ai/api/satellite/traffic
+SATELLITE_REPORT_INTERVAL_S=3600
+ANALYTICS_GEO_LOOKUP=1         # 0 to skip ip-api.com (unnecessary behind Cloudflare)
+ANALYTICS_RETENTION_DAYS=45    # local ledger retention; the hub keeps the history
+```
+
+Reporting is **off by default** — no secret, no POSTs, and the app logs that it
+is disabled. Check what would be sent without sending it:
+
+```bash
+python -m lib.satellite_reporter --dry-run
+```
+
+The numbers (`visitors`, `sessions`, `median_session_s`, top pages, countries)
+are computed in `lib/traffic_rollup.py` using the hub's own definitions — a
+visitor is an `(IP, user-agent)` pair, a session breaks on a 30-minute gap, and
+the median session length counts multi-page sessions only, so single pageviews
+are never padded in. Behind a proxy or CDN, the tracker reads
+`CF-Connecting-IP` / `X-Forwarded-For` for the client address and
+`CF-IPCountry` for the country; without that, every visitor would look like the
+proxy.
+
+> **Deployment note — give the ledger a persistent disk.** The hub takes the
+> *last* report for a given `(app, date)`. On an ephemeral filesystem (a plain
+> Render/Heroku instance) a mid-day deploy wipes `visitor_analytics.json`, and
+> the next hourly report overwrites today's correct total with the handful of
+> hits collected since the restart. Mount a disk and point
+> `TRAFFIC_ANALYTICS_FILE` at it (e.g. `/var/data/visitor_analytics.json`) so a
+> deploy doesn't cost you a day of numbers.
 
 ### Customization Points
 
@@ -422,25 +652,42 @@ Contributions are welcome! Here's how you can help:
 **Issue**: Port already in use
 - **Solution**: Change port in `run.py` or stop the conflicting process
 
+**Issue**: `RuntimeError: APP_BASE_URL is not set` on Render
+- **Solution**: Working as intended. Set `APP_BASE_URL` to this deployment's real origin. Without it the app would serve the boilerplate's canonical host on every page.
+
+**Issue**: `pip install -r requirements.txt` fails on `./vendor/dash_improve_my_llms-2.2.0.tar.gz`
+- **Solution**: Run pip from the repo root — the path is relative. In Docker, `vendor/` must be copied before the pip layer.
+
+**Issue**: Every non-root URL 500s with `No active request in context`
+- **Solution**: You're on Dash 4.3.0 with the FastAPI backend. Upgrade to 4.4.0+; `requirements.txt` already floors it there.
+
 For more issues, check [GitHub Issues](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/issues)
 
 ---
 
 ## 📊 Version Information
 
-**Current Version**: 1.0.0
+**Current Version**: 1.1.0
 
 | Component | Version |
 |-----------|---------|
-| Dash | 4.2.0 |
+| Dash | 4.4.0+ (4.3.0 excluded — broken FastAPI backend) |
 | Dash Mantine Components | 2.7.0+ |
 | Mantine | 8.3.6 |
 | Python | 3.11+ |
 | React | 18.2.0 |
 | Flask / FastAPI / Quart | pluggable backends |
-| dash-improve-my-llms | 2.0.0+ |
+| dash-improve-my-llms | 2.2.0 |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+### What's New in 1.1.0
+
+- 🧪 **CI/CD**: a pytest suite that boots the real app on all three backends, flake8, a Docker build, and a CD workflow that deploys to Render and then verifies the live site.
+- 🛰️ **Cross-host network directory** (`lib/network_directory.py`) plus a [Multi-Site Networks](https://boilerplate.2plot.dev/networks) guide for satellite authors.
+- 🔒 **`APP_BASE_URL` guard**: production boots fail rather than silently serving another site's canonical host.
+- 🎯 **dash-improve-my-llms 2.2**: merge semantics for page metadata, universal prerender, a Markdown renderer that emits real anchors, tables and code fences, a navigation block so a page's `llms.txt` is no longer a dead end, and content negotiation on that URL — Markdown for agents, a rendered view with the network wordmark for browsers.
+- 🐛 **Fixes**: duplicate canonical tags on every page; a heading containing inline code crashing the renderer at startup; TOC anchors pointing at ids that didn't exist; MCP wiring that never ran because it imported a symbol that doesn't exist; dead `/page.json` and `/architecture.txt` links; a broken Open Graph image; `piratesbagain.com`.
 
 ### What's New in 1.0.0
 
@@ -491,8 +738,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **GitHub**: [@pip-install-python](https://github.com/pip-install-python)
 ![GitHub Followers](https://img.shields.io/github/followers/pip-install-python?style=social)
 
-**YouTube**: [Pip Install Python](https://www.youtube.com/channel/UC-pBvv8mzLpj0k-RIbc2Nog?sub_confirmation=1)
-![YouTube Subscribers](https://img.shields.io/youtube/channel/subscribers/UC-pBvv8mzLpj0k-RIbc2Nog?style=social)
+**YouTube**: [@2plotai](https://www.youtube.com/@2plotai?sub_confirmation=1) — build-alongs and component walkthroughs
 
 ---
 
@@ -507,7 +753,7 @@ Check out open issues labeled [`good first issue`](https://github.com/pip-instal
 
 Made with ❤️ by the Dash community
 
-Pip Install Python LLC @ https://plotly.pro
+Pip Install Python LLC @ [2plot.ai](https://2plot.ai)
 
 **Star this repo** if you find it useful! ⭐
 

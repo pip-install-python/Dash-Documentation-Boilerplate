@@ -87,10 +87,10 @@ npm install
 ### 2. Run the Development Server
 
 ```bash
-python run.py
+./scripts/dev.sh          # or: python run.py
 ```
 
-Visit **http://localhost:8553** in your browser.
+Visit `http://localhost:8559` in your browser.
 
 ### 3. Create Your First Documentation Page
 
@@ -162,12 +162,16 @@ dash-documentation-boilerplate/
 │   ├── home.py                 # Home page layout
 │   └── markdown.py             # Dynamic markdown loader
 │
+├── scripts/                     # Post-deploy checks against a live site
+├── tests/                       # pytest suite (all three backends)
+├── .github/workflows/           # CI and CD
+│
 ├── templates/
 │   └── index.html              # Custom HTML template
 │
 ├── CHANGELOG.md                # Version history
 ├── README.md                   # Full documentation
-├── LLMS_INTEGRATION.md         # AI/LLM integration guide
+├── render.yaml                 # Render deployment blueprint
 ├── requirements.txt            # Python dependencies
 ├── package.json                # Node dependencies
 ├── Dockerfile                  # Docker container
@@ -226,7 +230,7 @@ docker run -p 8550:8550 dash-docs-boilerplate
 docker-compose up
 ```
 
-Visit **http://localhost:8550**
+Visit `http://localhost:8550`
 
 ---
 
@@ -235,12 +239,13 @@ Visit **http://localhost:8550**
 - **GitHub Repository**: [Dash-Documentation-Boilerplate](https://github.com/pip-install-python/Dash-Documentation-Boilerplate)
 - **Full Documentation**: See [README.md](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/blob/main/README.md)
 - **Changelog**: [CHANGELOG.md](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/blob/main/CHANGELOG.md)
-- **AI Integration Guide**: [LLMS_INTEGRATION.md](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/blob/main/LLMS_INTEGRATION.md)
+- **AI Integration Guide**: [AI/LLM Integration](/examples/ai-integration)
+- **Multi-Site Networks**: [Wiring a family of documentation sites together](/networks)
 
 ### Community
 
 - **GitHub**: [@pip-install-python](https://github.com/pip-install-python) ![GitHub](https://img.shields.io/github/followers/pip-install-python?style=social)
-- **YouTube**: [Pip Install Python](https://www.youtube.com/channel/UC-pBvv8mzLpj0k-RIbc2Nog?sub_confirmation=1) ![YouTube](https://img.shields.io/youtube/channel/subscribers/UC-pBvv8mzLpj0k-RIbc2Nog?style=social)
+- **YouTube**: [2plot.ai](https://www.youtube.com/@2plotai?sub_confirmation=1) — build-alongs and component walkthroughs
 
 ---
 

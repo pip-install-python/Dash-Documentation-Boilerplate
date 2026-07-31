@@ -34,10 +34,41 @@
          Customize these for your project
          ======================================================================== -->
 
-    <!-- Title - Shows in browser tab and search results (50-60 chars optimal) -->
-    <title>Dash Documentation Boilerplate - Modern Dash Documentation System</title>
+    <!-- Shows in the browser tab and in search results (50-60 chars optimal).
 
-    <!-- Main title for SEO - should match or complement the <title> tag -->
+         {%title%} is Dash's own placeholder. It resolves to the `title=`
+         passed to dash.register_page for the current page, falling back to
+         app.title. pages/markdown.py registers one per page already, and the
+         hard-coded string that used to sit here silently discarded every one
+         of them.
+
+         dash-improve-my-llms rewrites this element per page as well. Keeping
+         the placeholder is what makes titles correct even when that rewriting
+         is switched off: LLMSConfig(prerender=False) is the documented
+         one-argument rollback, and without the placeholder it would quietly
+         revert every page on every satellite to one identical string.
+
+         TWO RULES IF YOU EDIT THIS BLOCK.
+
+         1. Keep the title element. The package locates it with a dot-matches-
+            newline regex anchored on the opening and closing tags, and
+            rewrites the first match. Remove the element and there is no
+            closing tag left to anchor on, so nothing is rewritten and no page
+            has a title at all.
+
+         2. Never spell the tag name in angle brackets anywhere in this
+            comment. The same regex would then start matching HERE and run to
+            the next closing tag it finds, so everything in between — every
+            line of this comment, and any markup after it — is replaced by the
+            rewritten title and vanishes from the served page. With rewriting
+            on it still looks correct, which is what makes it expensive: the
+            damage is only visible in the served bytes. The comment below this
+            one used to do exactly that, which is why it now says "title
+            element" in words.
+         ======================================================================== -->
+    <title>{%title%}</title>
+
+    <!-- Main title for SEO - should match or complement the title element -->
     <meta name="title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
 
     <!-- Description - Shows in search results (150-160 chars optimal) -->
@@ -47,7 +78,7 @@
     <meta name="keywords" content="Python Dash, documentation, Dash Mantine Components, interactive docs, Python documentation, Plotly Dash, markdown docs, technical documentation, developer tools">
 
     <!-- Author - Your name or organization -->
-    <meta name="author" content="Your Name or Organization">
+    <meta name="author" content="Pip Install Python LLC">
 
     <!-- Robots - Tell search engines how to index your site -->
     <meta name="robots" content="index, follow">
@@ -64,7 +95,7 @@
     <meta property="og:type" content="website">
 
     <!-- OG URL - The canonical URL of your site -->
-    <meta property="og:url" content="https://yourdomain.com/">
+    <meta property="og:url" content="https://boilerplate.2plot.dev/">
 
     <!-- OG Title - Title shown in social media shares (max 60 chars) -->
     <meta property="og:title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
@@ -72,13 +103,18 @@
     <!-- OG Description - Description shown in social shares (max 200 chars) -->
     <meta property="og:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
 
-    <!-- OG Image - Preview image for social shares
-         Requirements: 1200x630px, JPG/PNG/GIF, < 8MB
-         Create your image at: https://www.canva.com/ or similar
-         Place in /assets/ folder and update path below -->
-    <meta property="og:image" content="https://yourdomain.com/assets/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <!-- OG Image - Preview image for social shares.
+         Ideal is 1200x630px, JPG/PNG/GIF, < 8MB.
+
+         This pointed at assets/og-image.png, which never existed in the repo,
+         so every share rendered a blank card. It now points at a real asset
+         and declares that file's ACTUAL dimensions — a width/height that
+         disagrees with the image is worse than declaring none at all. Make a
+         purpose-built 1200x630 card and replace all three lines. -->
+    <meta property="og:image" content="https://boilerplate.2plot.dev/assets/ddb.png">
+    <meta property="og:image:width" content="784">
+    <meta property="og:image:height" content="741">
+    <meta property="og:image:alt" content="Dash Documentation Boilerplate">
 
     <!-- OG Site Name - Your site/brand name -->
     <meta property="og:site_name" content="Dash Documentation Boilerplate">
@@ -93,7 +129,7 @@
     <meta property="twitter:card" content="summary_large_image">
 
     <!-- Twitter URL - Same as your canonical URL -->
-    <meta property="twitter:url" content="https://yourdomain.com/">
+    <meta property="twitter:url" content="https://boilerplate.2plot.dev/">
 
     <!-- Twitter Title - Title for Twitter shares -->
     <meta property="twitter:title" content="Dash Documentation Boilerplate - Modern Dash Documentation System">
@@ -102,7 +138,7 @@
     <meta property="twitter:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
 
     <!-- Twitter Image - Same as OG image (1200x630px recommended) -->
-    <meta property="twitter:image" content="https://yourdomain.com/assets/og-image.png">
+    <meta property="twitter:image" content="https://boilerplate.2plot.dev/assets/ddb.png">
 
     <!-- Optional: Twitter Creator - Your Twitter handle -->
     <!-- <meta property="twitter:creator" content="@yourtwitterhandle"> -->
@@ -120,23 +156,29 @@
     <!-- <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"> -->
     <!-- <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"> -->
 
-    <!-- Apple Touch Icon - Shows when site is added to iOS home screen (180x180) -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
-
-    <!-- Web App Manifest - Defines how your app appears when installed -->
-    <link rel="manifest" href="/assets/site.webmanifest">
+    <!-- Apple Touch Icon (180x180) and web app manifest. Commented out
+         because neither file ships in assets/ — a live <link> to a missing
+         one is a 404 on every page load, requested by iOS and by Chrome's
+         install prompt. Generate them (https://realfavicongenerator.net/),
+         drop them in assets/, then uncomment. -->
+    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"> -->
+    <!-- <link rel="manifest" href="/assets/site.webmanifest"> -->
 
     <!-- Theme color - Sets the browser UI color on mobile (matches your brand) -->
     <meta name="theme-color" content="#12B886">
 
     <!-- ========================================================================
-         CANONICAL URL
-         Tells search engines which version of a page is the "main" one
-         Important for preventing duplicate content issues
-         ======================================================================== -->
+         CANONICAL URL — deliberately NOT set here.
 
-    <!-- Update with your actual domain -->
-    <link rel="canonical" href="https://dash-documentation-boilerplate.onrender.com">
+         dash-improve-my-llms injects a per-page <link rel="canonical"> built
+         from app._base_url (see lib/constants.py). A hard-coded tag in this
+         template does not replace that one, it joins it: every page then
+         ships two canonical tags, one of them pointing at the site root, and
+         a conflicting pair is treated as no signal at all.
+
+         Change the origin with the APP_BASE_URL environment variable, not
+         here.
+         ======================================================================== -->
 
     <!-- ========================================================================
          SEARCH ENGINE VERIFICATION
@@ -163,13 +205,14 @@
     {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Your Organization Name",
-        "description": "A modern documentation system for Dash applications with markdown support, custom directives, and LLM integration.",
-        "url": "https://dash-documentation-boilerplate.onrender.com",
-        "logo": "https://dash-documentation-boilerplate.onrender.com/assets/logo.png",
+        "name": "Pip Install Python LLC",
+        "description": "Open-source Dash component libraries and the documentation system they are published with.",
+        "url": "https://2plot.ai",
+        "logo": "https://boilerplate.2plot.dev/assets/logo.svg",
         "sameAs": [
             "https://github.com/pip-install-python",
-            "https://www.youtube.com/@pipinstallpython",
+            "https://www.youtube.com/@2plotai",
+            "https://2plot.dev",
             "https://www.linkedin.com/in/austin-k-274140161/"
         ],
         "contactPoint": {
@@ -189,16 +232,19 @@
         "description": "A modern, responsive documentation system for Dash applications",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any",
+        "url": "https://boilerplate.2plot.dev",
+        "license": "https://opensource.org/licenses/MIT",
         "offers": {
             "@type": "Offer",
-            "price": "29_000_000",
+            "price": "0",
             "priceCurrency": "USD"
         },
         "author": {
             "@type": "Organization",
-            "name": "Pip Install Python LLC"
+            "name": "Pip Install Python LLC",
+            "url": "https://2plot.ai"
         },
-        "softwareVersion": "3.2.0",
+        "softwareVersion": "1.1.0",
         "programmingLanguage": "Python"
     }
     </script>
@@ -209,10 +255,11 @@
          Part of dash-improve-my-llms integration
          ======================================================================== -->
 
-    <meta name="llms-architecture" content="https://dash-documentation-boilerplate.onrender.com/sitemap.xml">
-    <meta name="llms-architecture" content="https://dash-documentation-boilerplate.onrender.com/architecture.txt">
-    <meta name="llms-page-json" content="https://dash-documentation-boilerplate.onrender.com/page.json">
-    <meta name="llms-txt" content="https://dash-documentation-boilerplate.onrender.com/llms.txt">
+    <!-- /page.json and /architecture.txt were removed in dash-improve-my-llms
+         2.0 (Dash 4.3's MCP server covers structured introspection). Pointing
+         agents at them advertised two 404s. -->
+    <meta name="llms-txt" content="https://boilerplate.2plot.dev/llms.txt">
+    <meta name="llms-architecture" content="https://boilerplate.2plot.dev/sitemap.xml">
     <meta name="llms-github-repo" content="https://github.com/pip-install-python/Dash-Documentation-Boilerplate">
 
 
@@ -253,11 +300,10 @@
             <p>This site provides comprehensive documentation in multiple formats optimized for both humans and AI assistants:</p>
 
             <ul style="margin: 20px 0;">
-                <li><a href="https://dash-documentation-boilerplate.onrender.com/llms.txt" style="color: #12B886; text-decoration: none;"><strong>llms.txt</strong></a> - LLM-friendly documentation format</li>
-                <li><a href="https://dash-documentation-boilerplate.onrender.com/page.json" style="color: #12B886; text-decoration: none;"><strong>page.json</strong></a> - Technical architecture and components</li>
-                <li><a href="https://dash-documentation-boilerplate.onrender.com/architecture.txt" style="color: #12B886; text-decoration: none;"><strong>architecture.txt</strong></a> - Application structure overview</li>
-                <li><a href="https://dash-documentation-boilerplate.onrender.com/sitemap.xml" style="color: #12B886; text-decoration: none;"><strong>sitemap.xml</strong></a> - Complete site structure for search engines</li>
-                <li><a href="https://dash-documentation-boilerplate.onrender.com/robots.txt" style="color: #12B886; text-decoration: none;"><strong>robots.txt</strong></a> - Crawler instructions</li>
+                <li><a href="https://boilerplate.2plot.dev/llms.txt" style="color: #12B886; text-decoration: none;"><strong>llms.txt</strong></a> - Every page's prose, plus the cross-host network directory</li>
+                <li><a href="https://boilerplate.2plot.dev/getting-started/llms.txt" style="color: #12B886; text-decoration: none;"><strong>&lt;page&gt;/llms.txt</strong></a> - One page's documentation on its own</li>
+                <li><a href="https://boilerplate.2plot.dev/sitemap.xml" style="color: #12B886; text-decoration: none;"><strong>sitemap.xml</strong></a> - Complete site structure for search engines</li>
+                <li><a href="https://boilerplate.2plot.dev/robots.txt" style="color: #12B886; text-decoration: none;"><strong>robots.txt</strong></a> - Crawler instructions</li>
             </ul>
 
             <p>These endpoints provide detailed information about the application structure, components, functionality, and usage patterns in formats optimized for automated processing.</p>

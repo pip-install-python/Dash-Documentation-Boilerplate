@@ -64,6 +64,11 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
+# Server-side session store. NEVER commit this — Flask-Session writes pickled
+# session payloads here, which in apps built on this boilerplate carry Clerk
+# identity data and live session ids. Committing it leaks credentials.
+flask_session/
+
 # Scrapy stuff:
 .scrapy
 
@@ -130,5 +135,18 @@ dmypy.json
 .DS_Store
 .idea
 
+# Runtime analytics store written by lib/analytics_tracker.py on app start.
+# Generated state, not seed data — committing it means every local run shows up
+# as a diff. Unanchored so it matches whatever directory the app is run from.
+visitor_analytics.json
+visitor_analytics.json.lock
+visitor_analytics.json.tmp
+# Reporter lease — which worker POSTed the last hourly rollup to 2plot.ai.
+.satellite_report.lease
+
 # Node
 node_modules/
+# Local Claude Code workspace: session notes, design scratch, and the vendored
+# package copy used while iterating. Useful locally, noise in a template other
+# people fork.
+.claude/

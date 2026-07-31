@@ -2,6 +2,7 @@ import importlib
 import inspect
 from markdown2dash.src.directives.kwargs import Kwargs as KwargsBase
 
+
 def convert_docstring_to_dict(docstring):
     """Convert numpy style parameter docstring to a list of dicts with keys name, type, description"""
 
@@ -20,6 +21,7 @@ def convert_docstring_to_dict(docstring):
     params.append(new_param)
 
     return params
+
 
 class Kwargs(KwargsBase):
 
@@ -64,6 +66,7 @@ class Kwargs(KwargsBase):
                 else:
                     # If no proper docstring, use component's __init__ signature
                     attrs["kwargs"] = []
-            except (ModuleNotFoundError, AttributeError, Exception) as e:
-                # If import fails, just skip kwargs generation
+            except Exception:
+                # Import failed or the component has no usable docstring;
+                # a props table is a nice-to-have, not worth failing a page for.
                 attrs["kwargs"] = []

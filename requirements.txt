@@ -10,7 +10,35 @@ importlib-metadata
 
 # Core Dash 4.x (pluggable backends, MCP, websocket callbacks)
 # Flask is included by default. For other backends, install the extras below.
-dash>=4.1.0
+#
+# Verified support matrix (dash-hook-my-ai `scripts/matrix.py` — real apps on
+# each backend, with stock-Dash reproduction of the failure):
+#
+#   Dash    Flask   FastAPI                       Quart
+#   4.1.0   ok      n/a (no pluggable backends)   n/a
+#   4.2.0   ok      ok                            ok
+#   4.3.0   ok      BROKEN — every non-root 500s  ok
+#   4.4.0   ok      ok                            ok
+#   4.4.1   ok      ok                            ok
+#
+# 4.3.0 added an early-return path guard to the ASGI middleware that returns
+# before `set_current_request`, while the page catch-all still calls
+# `get_current_request()` — so it raises. The catch-all is byte-identical
+# between 4.2.0 and 4.3.0; only the middleware changed. 4.4.0 fixed it by
+# setting the context inside the catch-all as well, which is belt-and-braces:
+# a future middleware guard cannot reintroduce it. That is why 4.4.x is not
+# merely "currently passing" but structurally safer than 4.2.0, which works
+# only because a single upstream code path happens to cover it.
+#
+# `~=4.4.1` lets 4.4.2 patches flow without twenty pull requests, but blocks
+# 4.5.0 so a minor bump goes through the matrix deliberately.
+#
+# Pinned for the most constrained backend network-wide, INCLUDING the Flask
+# apps: DASH_BACKEND is an environment variable and this repo is a shared
+# template, so a Flask deployment becomes a FastAPI deployment with one env
+# change and no code change. A Flask-only pin would encode an assumption that
+# a single deploy setting can invalidate.
+dash~=4.4.1
 dash-iconify>=0.1.2
 dash-mantine-components>=2.7.0
 dash-ag-grid
@@ -31,13 +59,37 @@ pydantic>=2.3.0
 python-dotenv>=1.0.0
 
 # AI/LLM Integration & SEO
-# 2.0.0 adds multi-backend support (Flask / FastAPI / Quart) via auto-detect,
-# the LLMS_DOC pattern for per-page prose, and an MCP resource bridge on
-# Dash 4.3+. Pick the install extra that matches your backend below.
-dash-improve-my-llms[flask]>=2.0.0
-# dash-improve-my-llms[fastapi]>=2.0.0   # Dash 4.1+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.0.0     # Dash 4.1+ Quart backend
-# dash-improve-my-llms[all]>=2.0.0       # all three
+#
+# 2.3.2 is installed from the vendored sdist because it is not on PyPI yet —
+# the network is being validated on the tarball first, across all four
+# production apps. Only after that does 2.3.2 get published, and only then do
+# vendor/ and this block go away in favour of the commented pins below.
+# (2.1.0 and 2.3.1 were assigned during development and never published.)
+#
+# What it changes, on this app specifically: `register_page_metadata` merges
+# instead of assigning (no prose can be erased by a later bookkeeping call),
+# the prerender reaches every visitor rather than only recognised crawlers,
+# the Markdown renderer emits real anchors / code fences / tables / rules
+# instead of literal text, and `register_network` publishes the cross-host
+# directory that lib/network_directory.py feeds it. A page's llms.txt opens
+# with a nav block pointing back at the site index and the network, and the
+# same URL content-negotiates — agents get the Markdown byte for byte,
+# browsers get it rendered behind a header carrying the network wordmark.
+#
+# 2.3.2 specifically fixes robots.txt: OAI-SearchBot (ChatGPT search's
+# crawler) is now allowed. `User-agent: OAI-SearchBot` -> `Allow: /` in a
+# host's /robots.txt is the fingerprint that it runs this artifact — pip
+# metadata is not visible from outside.
+./vendor/dash_improve_my_llms-2.3.2.tar.gz[flask]
+# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[fastapi]   # Dash 4.4+ FastAPI backend
+# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[quart]     # Dash 4.4+ Quart backend
+# ./vendor/dash_improve_my_llms-2.3.2.tar.gz[all]       # all three
+#
+# --- once 2.3.2 is on PyPI, this replaces the block above -------------------
+# dash-improve-my-llms[flask]>=2.3.2
+# dash-improve-my-llms[fastapi]>=2.3.2
+# dash-improve-my-llms[quart]>=2.3.2
+# dash-improve-my-llms[all]>=2.3.2
 
 # Production Servers
 # - gunicorn   -> WSGI (Flask)

@@ -24,10 +24,13 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         try:
             client = request.client
             ip = client.host if client else None
+            # Headers carry the real client IP/country behind a proxy or CDN;
+            # request.client is the last hop (the proxy) in production.
             tracker.track_visit(
                 request.url.path,
                 request.headers.get("user-agent", ""),
                 ip,
+                headers=dict(request.headers),
             )
         except Exception:
             pass

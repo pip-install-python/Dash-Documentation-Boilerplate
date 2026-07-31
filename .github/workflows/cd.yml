@@ -1,0 +1,95 @@
+name: CD
+
+# Deploys boilerplate.2plot.dev, then checks the live site.
+#
+# The deploy step POSTs to a Render deploy hook held in the
+# RENDER_DEPLOY_HOOK_URL secret. Without that secret the step is skipped and
+# the workflow goes straight to verification — useful when Render is already
+# auto-deploying from GitHub on its own, and it means a fork of this template
+# doesn't fail CD on day one for a secret it was never given.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: Site to verify (skips the deploy when set to another host)
+        required: false
+        type: string
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  SITE_URL: ${{ inputs.target_url || 'https://boilerplate.2plot.dev' }}
+
+jobs:
+  test:
+    name: ci
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: deploy to render
+    needs: [test]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://boilerplate.2plot.dev
+    outputs:
+      deployed: ${{ steps.hook.outputs.deployed }}
+    steps:
+      - name: Trigger the Render deploy hook
+        id: hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::RENDER_DEPLOY_HOOK_URL is not set. Skipping the deploy trigger and verifying whatever is currently live."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the new build to serve traffic
+        if: steps.hook.outputs.deployed == 'true'
+        run: |
+          # Render swaps instances rather than restarting in place, so the old
+          # build answers /healthz throughout. Waiting for a 200 proves
+          # nothing; give the build time, then require sustained health.
+          sleep 120
+          ok=0
+          for _ in $(seq 1 40); do
+            if curl -fsS "$SITE_URL/healthz" > /dev/null; then
+              ok=$((ok + 1))
+              [ "$ok" -ge 5 ] && break
+            else
+              ok=0
+            fi
+            sleep 15
+          done
+          if [ "$ok" -lt 5 ]; then
+            echo "::error::$SITE_URL never became reliably healthy"
+            exit 1
+          fi
+
+  verify:
+    name: verify the live site
+    needs: [deploy]
+    if: always() && needs.deploy.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Smoke-test the deployment
+        run: python scripts/smoke_live.py "$SITE_URL"
+
+      - name: Report
+        if: failure()
+        run: |
+          echo "::error::Live verification failed for $SITE_URL. All four failures it checks for are silent in production: a canonical on the wrong host, a page serving the JavaScript stub, a missing network directory, and dead peer llms.txt links."

@@ -1,5 +1,5 @@
 import dash_mantine_components as dmc
-from dash import Output, Input, clientside_callback, html, get_asset_url
+from dash import Output, Input, State, clientside_callback, html, get_asset_url
 from dash_iconify import DashIconify
 
 from components.backend_badge import create_backend_badge
@@ -171,9 +171,27 @@ clientside_callback(
     Input("select-component", "value"),
 )
 
+# Mobile drawer search → navigate (the header Select is hidden below `sm`).
 clientside_callback(
-    """function(n_clicks) { return true }""",
+    """
+    function(value) {
+        if (value) {
+            return value
+        }
+        return window.dash_clientside.no_update
+    }
+    """,
+    Output("url", "href", allow_duplicate=True),
+    Input("mobile-select-component", "value"),
+    prevent_initial_call=True,
+)
+
+# The overlay no longer covers the header, so the hamburger stays reachable
+# while the drawer is open — make a second tap close it.
+clientside_callback(
+    """function(n_clicks, opened) { return !opened }""",
     Output("components-navbar-drawer", "opened"),
     Input("drawer-hamburger-button", "n_clicks"),
+    State("components-navbar-drawer", "opened"),
     prevent_initial_call=True,
 )

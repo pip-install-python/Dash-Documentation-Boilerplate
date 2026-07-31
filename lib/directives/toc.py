@@ -4,8 +4,33 @@ from dash.development.base_component import Component
 
 from markdown2dash import TableOfContents
 
+from lib.directives.headings import slugify
+
 
 class TOC(TableOfContents):
+    def hook(self, md, state):
+        """Build the entries, then re-slug them the way headings are slugged.
+
+        markdown2dash slugs the *raw* markdown of each heading, so
+        ``## The `peers` tier`` yields the anchor ``#the-`peers`-tier`` while
+        the rendered ``dmc.Title`` carries a different id — the link lands
+        nowhere and does it silently. `slugify` is the same function
+        lib/directives/headings.py gives the renderer, so the two agree.
+
+        The link label keeps its markdown markers stripped too; a sidebar
+        entry reading "The `peers` tier" with literal backticks is noise.
+        """
+        super().hook(md, state)
+
+        for token in state.tokens:
+            if token["type"] != "block_toc":
+                continue
+            attrs = token.get("attrs", {})
+            attrs["table_of_contents"] = [
+                (level, _label(text), slugify(text))
+                for level, text, _ in attrs.get("table_of_contents", [])
+            ]
+
     def render(self, renderer, title: str, content: str, **options) -> Component:
         table_of_contents = options.pop("table_of_contents")
         paddings = {3: 0, 4: 20, 5: 40}
@@ -32,3 +57,10 @@ class TOC(TableOfContents):
         return dmc.AppShellAside(
             children=dmc.ScrollArea(content, type="never"), withBorder=False
         )
+
+
+def _label(text: str) -> str:
+    """The heading, minus inline markdown markers, for display in the aside."""
+    from lib.directives.headings import _INLINE_MARKERS, _MD_LINK
+
+    return _INLINE_MARKERS.sub("", _MD_LINK.sub(r"\1", text)).strip()

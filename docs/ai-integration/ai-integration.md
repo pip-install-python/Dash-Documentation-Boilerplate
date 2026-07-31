@@ -274,7 +274,7 @@ The result is ~4,400 → ~1,900 lines of public surface, fewer endpoints to reme
 
 ### Where to read more
 
-- [`SKILLS.md`](https://github.com/pip-install-python/dash-improve-my-llms/blob/main/SKILLS.md) — the practical guide bundled with the package.
+- [`SKILLS.md`](https://github.com/pip-install-python/dash-improve-my-llms/blob/main/docs/SKILLS.md) — the practical guide bundled with the package.
 - [`CHANGELOG.md`](https://github.com/pip-install-python/dash-improve-my-llms/blob/main/CHANGELOG.md) — full 2.0 breaking-changes list.
 - [PyPI: dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) — install + latest version.
 - [llms.txt spec](https://llmstxt.org/) — the convention the package implements.
