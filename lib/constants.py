@@ -62,7 +62,7 @@ SITE_SHORT_NAME = "Dash Documentation Boilerplate"
 PAGE_TITLE_PREFIX = f"{SITE_SHORT_NAME} | "
 
 PRIMARY_COLOR = "teal"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 
 # ---------------------------------------------------------------------------
 # The network's internal-traffic contract
@@ -141,9 +141,33 @@ BASE_URL = os.environ.get("APP_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
 # Passing an explicit absolute `image_url` at register_page time resolves both:
 # it overrides the inference, and it lets index.html stop declaring the URL
 # itself and keep only the auxiliary width/height/alt tags Dash never emits.
-OG_IMAGE_URL = f"{BASE_URL}/assets/ddb.png"
-OG_IMAGE_WIDTH = 784
-OG_IMAGE_HEIGHT = 741
+#
+# THE CARD LIVES ON THE CDN, NOT IN assets/. Network rule, and it is about
+# cold starts rather than tidiness: a card served by the app is fetched by the
+# scraper at unfurl time, and on a cold free-tier container that request lands
+# mid-wake and times out. The preview renders blank ONCE and the platform
+# caches the miss — so the first person to share the link poisons it for
+# everyone. The CDN has no cold start.
+#
+# Rendered by `scripts/make_social_card.py` (1200x630 = 1.91:1, the Open Graph
+# ideal, which also degrades cleanly into Twitter's 2:1 slot) and uploaded by
+# hand to the Cloudflare bucket. There is no automated path to that bucket.
+#
+# Until 1.2.3 this was `{BASE_URL}/assets/ddb.png` — the app-served 784x741
+# logo. Honest dimensions, but near-square: `summary_large_image` letterboxed
+# it into a wide slot with bars either side.
+#
+# The width and height MUST match the file. A declared size that disagrees is
+# worse than declaring none, because the platform reserves that box and crops
+# into it. `tests/test_social_card.py` pins these against
+# `templates/index.html`, and `scripts/smoke_live.py` fetches the real file
+# after every deploy and checks its actual pixels against them — the only
+# check that can catch the CDN object being replaced with something a
+# different shape.
+OG_IMAGE_URL = "https://cdn.2plot.ai/github_assets/boilerplate.2plot.dev.png"
+OG_IMAGE_WIDTH = 1200
+OG_IMAGE_HEIGHT = 630
+OG_IMAGE_TYPE = "image/png"
 OG_IMAGE_ALT = SITE_BRAND
 
 

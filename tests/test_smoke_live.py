@@ -15,7 +15,21 @@ import sys
 import pytest
 
 from conftest import REPO_ROOT, backend
-from lib.constants import BASE_URL
+from lib.constants import BASE_URL, OG_IMAGE_HEIGHT, OG_IMAGE_URL, OG_IMAGE_WIDTH
+
+
+def _png_bytes(width: int, height: int) -> str:
+    """A minimal PNG whose IHDR declares `width` x `height`.
+
+    Returned as a `surrogateescape`-decoded str because that is the shape
+    `smoke_live.fetch` hands back — the script re-encodes it the same way to
+    recover the bytes. Only the 8-byte signature and the IHDR matter here; the
+    card check reads nothing else.
+    """
+    header = b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\rIHDR"
+    body = width.to_bytes(4, "big") + height.to_bytes(4, "big") + b"\x08\x06\x00\x00\x00"
+    return (header + body).decode("utf-8", "surrogateescape")
+
 
 # The app's real origin, because the script checks that canonical tags and
 # sitemap URLs match the host being requested. Pointing it at a made-up
@@ -47,6 +61,15 @@ def wired(smoke, client, monkeypatch):
             path = url[len(BASE):] or "/"
             response = client.get(path, user_agent=user_agent, accept=accept)
             return response.status, response.text, response.headers
+        if url == OG_IMAGE_URL:
+            # The social card lives on the CDN, so it is off-host like the
+            # peers — but answering it with "# peer\n" would make the card
+            # checks fail for the wrong reason and, worse, would mean the
+            # dimension check never ran against anything. A real PNG header
+            # at the declared size exercises it properly.
+            return 200, _png_bytes(OG_IMAGE_WIDTH, OG_IMAGE_HEIGHT), {
+                "Content-Type": "image/png"
+            }
         return 200, "# peer\n", {"Content-Type": "text/markdown"}
 
     monkeypatch.setattr(smoke, "fetch", fetch)
@@ -162,7 +185,10 @@ def test_smoke_script_rejects_a_peer_serving_its_spa_shell(
     original = smoke.fetch
 
     def spa_shell(url, user_agent=smoke.BROWSER_UA, accept=None):
-        if not url.startswith(BASE):
+        # The CDN-hosted card is off-host too, but it is not a peer. Leaving it
+        # to the stub would fail the (correctly fatal) card checks and this
+        # test would pass or fail for a reason unrelated to its name.
+        if not url.startswith(BASE) and url != OG_IMAGE_URL:
             return 200, "<!DOCTYPE html><html><body>app</body></html>", {
                 "Content-Type": "text/html; charset=utf-8"
             }
@@ -192,7 +218,9 @@ def test_a_dead_peer_is_reported_but_does_not_fail_the_deploy(
     original = smoke.fetch
 
     def dead_peers(url, user_agent=smoke.BROWSER_UA, accept=None):
-        if not url.startswith(BASE):
+        # Peers only — the card is off-host but is this deployment's own
+        # responsibility, and its checks are fatal on purpose.
+        if not url.startswith(BASE) and url != OG_IMAGE_URL:
             return 404, "", {}
         return original(url, user_agent, accept)
 
@@ -201,6 +229,52 @@ def test_a_dead_peer_is_reported_but_does_not_fail_the_deploy(
     output = capsys.readouterr().out
     assert "warn  peer reachable" in output
     assert "warnings (peers — not this deployment)" in output
+
+
+def test_a_reshaped_card_on_the_cdn_fails_the_deploy(wired, smoke, monkeypatch, capsys):
+    """The failure only this check can see.
+
+    The card's dimensions are declared in three places — lib/constants.py,
+    templates/index.html, and the CDN object itself. The first two are pinned
+    against each other by tests/test_social_card.py, but nothing offline can
+    look at the third. Replace the uploaded file with a differently-shaped one
+    and every test stays green while the platform reserves the wrong box and
+    crops into it.
+    """
+    original = smoke.fetch
+
+    def reshaped(url, user_agent=smoke.BROWSER_UA, accept=None):
+        if url == OG_IMAGE_URL:
+            return 200, _png_bytes(600, 600), {"Content-Type": "image/png"}
+        return original(url, user_agent, accept)
+
+    monkeypatch.setattr(smoke, "fetch", reshaped)
+    assert wired.main(BASE) > 0
+    output = capsys.readouterr().out
+    assert "dimensions match the declared" in output
+    assert "file is 600x600" in output
+
+
+def test_an_empty_og_image_fails_the_deploy(wired, smoke, monkeypatch, capsys):
+    """An empty og:image renders a BLANK card, and platforms cache the miss.
+
+    This is 2plot.dev's live state as of 2026-08-01: Dash emits
+    `image_url or ""` when no image_url is passed, and its tag comes last in
+    document order, so the empty one wins. Worse than declaring none, because
+    with none most platforms fall back to an in-page image.
+    """
+    original = smoke.fetch
+
+    def blanked(url, user_agent=smoke.BROWSER_UA, accept=None):
+        status, body, headers = original(url, user_agent, accept)
+        if url.rstrip("/") == BASE.rstrip("/"):
+            body = body.replace(f'property="og:image" content="{OG_IMAGE_URL}"',
+                                'property="og:image" content=""')
+        return status, body, headers
+
+    monkeypatch.setattr(smoke, "fetch", blanked)
+    assert wired.main(BASE) > 0
+    assert "og:image is not empty" in capsys.readouterr().out
 
 
 def test_a_broken_local_surface_still_fails_the_deploy(

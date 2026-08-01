@@ -5,6 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-08-01
+
+**The social card, finished.** 1.2.2 closed three of four defects and left
+this one open because the artwork did not exist. It does now.
+
+### Added — `scripts/make_social_card.py`
+
+Renders the 1200×630 card: the artwork composited onto a frame carrying the
+brand, tagline and domain, using the manifest's own `background_color` and
+`theme_color` so the card, the browser chrome and the install splash cannot
+disagree. Output lands in `build/social-cards/<domain>.png`, which is
+gitignored.
+
+A TEMPLATE FILE, and that is the point — pass `--brand/--tagline/--domain`
+and every satellite is framed identically, instead of each card being made by
+hand once and drifting. Three details that are not incidental: the artwork's
+alpha bounding box is cropped before fitting (`assets/ddb.png` carries ~66px
+of transparent margin that would otherwise be centred as if it were image); a
+brand too long for two lines shrinks once rather than colliding with the
+domain strip; and fonts resolve from a candidate list (macOS, then
+Debian/Ubuntu) rather than being bundled, because shipping a licensed TTF in
+a template every satellite forks is a question best not answered.
+
+Pillow stays out of `requirements.txt`. Nothing at runtime renders images,
+and a docs site should not carry an image library into production for a
+script run by hand every few months.
+
+**1200×630 = 1.91:1**, the Open Graph documented ideal, which also degrades
+cleanly into Twitter's 2:1 `summary_large_image` slot. Deliberately not
+leaflet's 1280×515 (2.49:1), which is wider than both and gets cropped on
+each — and what sits at that URL today is the 2plot wordmark rather than a
+per-site card at all. This is the shape for the network to converge on.
+
+### Changed — `og:image` moved to the CDN
+
+```
+was:  https://boilerplate.2plot.dev/assets/ddb.png   784×741  (1.06:1)
+now:  https://cdn.2plot.ai/github_assets/boilerplate.2plot.dev.png  1200×630
+```
+
+The old image's declared dimensions were honest, so nothing was broken — it
+was simply near-square, and `summary_large_image` letterboxed it into a wide
+slot with bars either side.
+
+Moving it off the app is the network rule and it is about cold starts, not
+tidiness: a card the app serves is fetched by the scraper at unfurl time, and
+on a cold free-tier container that request lands mid-wake and times out. The
+preview renders blank **once**, and the platform caches the miss — so the
+first person to share the link poisons it for everyone. The CDN has no cold
+start.
+
+`og:image:secure_url` and `og:image:type` join the auxiliaries in
+`templates/index.html`, matching what leaflet carries. Both are tags Dash does
+not emit, which is the only reason they belong in the template.
+
+### Added — the live card check that no offline test can make
+
+The card's dimensions are now declared in **three** places: `lib/constants.py`,
+`templates/index.html`, and the CDN object itself. `test_social_card.py` pins
+the first two against each other, but nothing offline can look at the third —
+so replacing the uploaded file with a differently-shaped one would leave every
+test green while the platform reserves the wrong box and crops into it.
+
+`scripts/smoke_live.py` now fetches the real file after every deploy and reads
+its actual pixel dimensions out of the PNG's IHDR chunk, checking them against
+the declared tags, plus the ratio, plus that `og:image` is neither empty nor
+app-served. Two tests prove the check fires rather than merely existing:
+`test_a_reshaped_card_on_the_cdn_fails_the_deploy` and
+`test_an_empty_og_image_fails_the_deploy`.
+
+That second case is not hypothetical — it is 2plot.dev's live state today, and
+the reason `kickoff/` now holds a handoff for it.
+
+`fetch()` in that script changed from `errors="replace"` to
+`errors="surrogateescape"` to make this possible. `"replace"` substitutes
+U+FFFD for every invalid byte and is one-way, so the PNG header was gone
+before it could be read; surrogateescape round-trips exactly and behaves
+identically for text.
+
+### Changed — the two peer tests narrowed to peers
+
+`test_smoke_script_rejects_a_peer_serving_its_spa_shell` and
+`test_a_dead_peer_is_reported_but_does_not_fail_the_deploy` stubbed *every*
+off-host URL, which now included the CDN-hosted card and failed the
+(correctly fatal) card checks. The card is off-host but it is this
+deployment's own responsibility, not a peer's — the distinction 1.2.2 drew
+between "this host is fatal, somebody else's host is a warning" holds, the
+stubs just needed to respect it.
+
+### Changed — `build/` and `kickoff/` are gitignored
+
+`build/` because the card is published to the CDN and never committed or
+served. `kickoff/` because handoff notes start a session in *another* repo: a
+task list for 2plot.dev has no business in the template's checkout, and every
+satellite forking this repo would inherit a to-do that was never theirs.
+
 ## [1.2.2] - 2026-08-01
 
 **Finishing 1.2.1, and the three things it exposed.** 1.2.1 shipped the right

@@ -88,6 +88,14 @@ def fetch(
     Headers are part of the contract from 2.2.0 on: `/<page>/llms.txt`
     content-negotiates, so which *type* came back is the thing being checked,
     and `Vary` is what stops a CDN handing cached HTML to the next agent.
+
+    `errors="surrogateescape"`, not `"replace"`: this function also fetches
+    the social card, and the card check reads the PNG's IHDR chunk for the
+    real pixel dimensions. `"replace"` substitutes U+FFFD for every invalid
+    byte and is one-way, so the header would be gone before it could be read.
+    surrogateescape round-trips exactly through
+    `body.encode("utf-8", "surrogateescape")`, and behaves identically to a
+    plain decode for text.
     """
     headers = {"User-Agent": user_agent}
     if accept is not None:
@@ -97,10 +105,11 @@ def fetch(
         with urllib.request.urlopen(
             request, timeout=TIMEOUT, context=SSL_CONTEXT
         ) as response:
-            body = response.read().decode("utf-8", "replace")
+            body = response.read().decode("utf-8", "surrogateescape")
             return response.status, body, dict(response.headers)
     except urllib.error.HTTPError as exc:
-        return exc.code, exc.read().decode("utf-8", "replace"), dict(exc.headers or {})
+        return (exc.code, exc.read().decode("utf-8", "surrogateescape"),
+                dict(exc.headers or {}))
     except Exception as exc:  # noqa: BLE001 - DNS, TLS, timeouts all land here
         return 0, f"{type(exc).__name__}: {exc}", {}
 
@@ -221,6 +230,53 @@ def main(base: str) -> int:
             STUB_MARKER not in html,
             "served the JavaScript stub",
         )
+
+    # --- 3b. The social card actually exists, and is the shape we claim ----
+    # This is the ONLY check that can see either failure. The card is on the
+    # CDN, so no offline test can fetch it; and its dimensions are hard-coded
+    # in three places (lib/constants.py, index.html, the CDN object), so
+    # replacing the uploaded file with a different shape leaves every test
+    # green while the platform reserves the wrong box and crops into it.
+    #
+    # A blank preview is also self-inflicting: platforms cache a failed scrape,
+    # so the first share after a bad upload poisons the link for everyone.
+    print("\nSocial card")
+    card_urls = re.findall(r'<meta[^>]+property="og:image"[^>]+content="([^"]*)"', home)
+    check("og:image is declared exactly once", len(card_urls) == 1, f"got {card_urls}")
+    if card_urls and card_urls[0]:
+        card_url = card_urls[0]
+        check("og:image is not served by the app", "/assets/" not in card_url,
+              f"{card_url} — a cold container blanks the preview, cached")
+        status, body, headers = fetch(card_url)
+        check("og:image resolves", status == 200, f"got {status}")
+        ctype = header(headers, "Content-Type")
+        check("og:image is a real image", ctype.startswith("image/"), ctype or "none")
+
+        declared = {
+            prop: re.findall(
+                rf'<meta[^>]+property="{prop}"[^>]+content="([^"]*)"', home)
+            for prop in ("og:image:width", "og:image:height")
+        }
+        # PNG stores its dimensions in the IHDR chunk: bytes 16..24 of the
+        # file. Read from the RESPONSE, so what is checked is what a scraper
+        # would actually receive rather than what the repo believes.
+        raw = body.encode("utf-8", "surrogateescape")
+        if raw[1:4] == b"PNG" and len(raw) > 24:
+            actual_w = int.from_bytes(raw[16:20], "big")
+            actual_h = int.from_bytes(raw[20:24], "big")
+            check(
+                "og:image dimensions match the declared width/height",
+                declared["og:image:width"] == [str(actual_w)]
+                and declared["og:image:height"] == [str(actual_h)],
+                f"file is {actual_w}x{actual_h}, tags say "
+                f"{declared['og:image:width']}x{declared['og:image:height']}",
+            )
+            ratio = actual_w / actual_h if actual_h else 0
+            check("og:image suits summary_large_image (~1.91:1)",
+                  1.7 <= ratio <= 2.05, f"{actual_w}x{actual_h} is {ratio:.2f}:1")
+    else:
+        check("og:image is not empty", False,
+              "an EMPTY og:image renders a blank card — worse than none")
 
     # --- 4. Content negotiation on llms.txt -------------------------------
     # Production is where this can break in ways development cannot show: a

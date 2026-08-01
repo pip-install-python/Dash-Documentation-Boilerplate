@@ -42,6 +42,7 @@ from conftest import REPO_ROOT
 from lib.constants import (
     OG_IMAGE_ALT,
     OG_IMAGE_HEIGHT,
+    OG_IMAGE_TYPE,
     OG_IMAGE_URL,
     OG_IMAGE_WIDTH,
     SITE_BRAND,
@@ -121,10 +122,26 @@ def test_the_image_is_absolute_and_matches_the_constant(client):
             assert src == OG_IMAGE_URL
 
 
-def test_the_image_actually_resolves(client):
-    """A card pointing at a 404 is the same as no card."""
-    path = OG_IMAGE_URL.split("/assets/", 1)[-1]
-    assert client.get(f"/assets/{path}").ok, f"{OG_IMAGE_URL} does not resolve"
+def test_the_image_is_hosted_off_the_app(client):
+    """The card must be on the CDN, not served by this app.
+
+    Not a style rule. A card the app serves is fetched by the scraper at
+    unfurl time; on a cold free-tier container that request lands mid-wake and
+    times out, the preview renders blank ONCE, and the platform caches the
+    miss — so the first person to share the link poisons it for everyone.
+
+    That the URL RESOLVES is deliberately not checked here. It is off-host
+    now, and reaching a third party would make this suite depend on
+    Cloudflare being up (the same reason conftest disables the geo lookup).
+    `scripts/smoke_live.py` fetches the real file after every deploy and
+    checks its actual pixels against the constants below — which also catches
+    the CDN object being replaced with something a different shape, something
+    no offline test can see.
+    """
+    assert OG_IMAGE_URL.startswith("https://cdn.2plot.ai/github_assets/"), (
+        f"{OG_IMAGE_URL} is not on the network CDN"
+    )
+    assert "/assets/" not in OG_IMAGE_URL, "the app is serving its own card again"
 
 
 def test_the_auxiliary_image_tags_match_the_constants(client):
@@ -137,6 +154,20 @@ def test_the_auxiliary_image_tags_match_the_constants(client):
     assert _meta(html, "og:image:width") == [str(OG_IMAGE_WIDTH)]
     assert _meta(html, "og:image:height") == [str(OG_IMAGE_HEIGHT)]
     assert _meta(html, "og:image:alt") == [OG_IMAGE_ALT]
+    assert _meta(html, "og:image:type") == [OG_IMAGE_TYPE]
+    assert _meta(html, "og:image:secure_url") == [OG_IMAGE_URL], (
+        "secure_url must be the same file as og:image, not a stale copy"
+    )
+
+
+def test_the_declared_ratio_suits_a_large_image_card():
+    """`summary_large_image` wants roughly 1.91:1.
+
+    784x741 (the app-served logo this replaced) is 1.06:1 — letterboxed into a
+    wide slot with bars either side. Anything past 2:1 gets cropped instead.
+    """
+    ratio = OG_IMAGE_WIDTH / OG_IMAGE_HEIGHT
+    assert 1.7 <= ratio <= 2.05, f"{OG_IMAGE_WIDTH}x{OG_IMAGE_HEIGHT} is {ratio:.2f}:1"
 
 
 def test_the_twitter_card_is_a_large_image(client):
@@ -162,7 +193,9 @@ def test_no_meta_tag_dash_emits_is_also_declared_statically(client):
 def test_the_tags_dash_omits_are_declared_here(client):
     """The other half of the rule — do not delete these thinking Dash covers them."""
     html = client.get("/").text
-    for tag in ("og:site_name", "og:url", "og:image:alt", "twitter:image:alt"):
+    for tag in ("og:site_name", "og:url", "og:image:alt", "twitter:image:alt",
+                "og:image:secure_url", "og:image:type",
+                "og:image:width", "og:image:height"):
         assert _meta(html, tag), f"{tag} is missing and Dash does not emit it"
 
 

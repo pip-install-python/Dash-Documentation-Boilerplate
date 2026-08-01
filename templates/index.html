@@ -118,12 +118,18 @@
          reject SVG, and the inferred tag came last, so the card that had been
          carefully described here lost to an image nothing could render.
 
-         What stays are the auxiliaries Dash never emits. Keep the dimensions
-         in step with lib/constants.OG_IMAGE_* — a width/height that disagrees
-         with the file is worse than declaring none. For a purpose-built
-         1200x630 card, replace the asset and update those constants. -->
-    <meta property="og:image:width" content="784">
-    <meta property="og:image:height" content="741">
+         What stays are the auxiliaries Dash never emits. Keep them in step
+         with lib/constants.OG_IMAGE_* — a width/height that disagrees with
+         the file is worse than declaring none, because the platform reserves
+         that box and crops into it.
+
+         secure_url is the https duplicate Facebook still reads; type saves
+         the scraper a HEAD request to learn the format. Both are things Dash
+         does not emit, which is the only reason they belong here. -->
+    <meta property="og:image:secure_url" content="https://cdn.2plot.ai/github_assets/boilerplate.2plot.dev.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="Dash Documentation Boilerplate — the 2plot network's template">
 
     <!-- OG Site Name - Your site/brand name -->
@@ -324,7 +330,7 @@
             "name": "Pip Install Python LLC",
             "url": "https://2plot.ai"
         },
-        "softwareVersion": "1.2.2",
+        "softwareVersion": "1.2.3",
         "programmingLanguage": "Python"
     }
     </script>
