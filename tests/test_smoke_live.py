@@ -51,6 +51,7 @@ def wired(smoke, client, monkeypatch):
 
     monkeypatch.setattr(smoke, "fetch", fetch)
     monkeypatch.setattr(smoke, "failures", [])
+    monkeypatch.setattr(smoke, "warnings", [])
     monkeypatch.setattr(smoke, "checks_run", 0)
     return smoke
 
@@ -168,12 +169,26 @@ def test_smoke_script_rejects_a_peer_serving_its_spa_shell(
         return original(url, user_agent, accept)
 
     monkeypatch.setattr(smoke, "fetch", spa_shell)
-    assert wired.main(BASE) > 0
-    assert "that host's catch-all" in capsys.readouterr().out
+    # Reported, but NOT fatal: this is somebody else's host. See `check()`.
+    assert wired.main(BASE) == 0
+    output = capsys.readouterr().out
+    assert "that host's catch-all" in output
+    assert "warn  peer serves a document" in output
+    assert wired.warnings, "the peer problem was detected but not recorded"
 
 
 @pytest.mark.skipif(backend() != "flask", reason="one backend is enough for this")
-def test_smoke_script_reports_a_dead_peer(wired, smoke, monkeypatch, capsys):
+def test_a_dead_peer_is_reported_but_does_not_fail_the_deploy(
+    wired, smoke, monkeypatch, capsys
+):
+    """Every peer in the network down at once, and this deploy still ships.
+
+    The policy this pins: a check about THIS host is fatal, a check about
+    somebody else's host is a warning. Gating on peers is shared fate — one
+    expired certificate anywhere in the network would stop every satellite
+    from deploying, which is both wrong and the fastest way to teach people
+    that a red CD means nothing.
+    """
     original = smoke.fetch
 
     def dead_peers(url, user_agent=smoke.BROWSER_UA, accept=None):
@@ -182,5 +197,28 @@ def test_smoke_script_reports_a_dead_peer(wired, smoke, monkeypatch, capsys):
         return original(url, user_agent, accept)
 
     monkeypatch.setattr(smoke, "fetch", dead_peers)
+    assert wired.main(BASE) == 0
+    output = capsys.readouterr().out
+    assert "warn  peer reachable" in output
+    assert "warnings (peers — not this deployment)" in output
+
+
+def test_a_broken_local_surface_still_fails_the_deploy(
+    wired, smoke, monkeypatch, capsys
+):
+    """The other half of the policy, and the one worth guarding.
+
+    Demoting peers to warnings is only safe if everything about this host
+    stayed fatal. Break a local surface while every peer is healthy and the
+    exit code must still be non-zero.
+    """
+    original = smoke.fetch
+
+    def no_sitemap(url, user_agent=smoke.BROWSER_UA, accept=None):
+        if url.startswith(BASE) and url.endswith("/sitemap.xml"):
+            return 500, "", {}
+        return original(url, user_agent, accept)
+
+    monkeypatch.setattr(smoke, "fetch", no_sitemap)
     assert wired.main(BASE) > 0
-    assert "peer reachable" in capsys.readouterr().out
+    assert "FAIL  /sitemap.xml responds 200" in capsys.readouterr().out

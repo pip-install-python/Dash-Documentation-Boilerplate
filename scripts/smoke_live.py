@@ -76,6 +76,7 @@ def _ssl_context() -> ssl.SSLContext:
 SSL_CONTEXT = _ssl_context()
 
 failures: List[str] = []
+warnings: List[str] = []
 checks_run = 0
 
 
@@ -112,14 +113,32 @@ def header(headers: Dict[str, str], name: str) -> str:
     return ""
 
 
-def check(name: str, passed: bool, detail: str = "") -> None:
+def check(name: str, passed: bool, detail: str = "", fatal: bool = True) -> None:
+    """Record one check. ``fatal=False`` warns instead of failing the deploy.
+
+    The distinction is a policy, not a convenience: **a check about THIS host
+    is fatal; a check about somebody else's host is a warning.**
+
+    Peer reachability is the only thing in this script that fails on someone
+    else's infrastructure, and gating a deploy on it is shared fate — one peer
+    with an expired certificate turns every satellite in the network red, none
+    of them can ship, and the people who see it learn that red CD means
+    nothing. The information is still worth having (a directory of dead links
+    degrades silently and nothing else reports it), so it is surfaced as a
+    warning and, under Actions, as an annotation on the run summary.
+    """
     global checks_run
     checks_run += 1
     if passed:
         print(f"  ok    {name}")
-    else:
+    elif fatal:
         print(f"  FAIL  {name}" + (f" — {detail}" if detail else ""))
         failures.append(name)
+    else:
+        print(f"  warn  {name}" + (f" — {detail}" if detail else ""))
+        warnings.append(f"{name}" + (f" — {detail}" if detail else ""))
+        if os.getenv("GITHUB_ACTIONS"):
+            print(f"::warning title=peer unreachable::{name} — {detail}")
 
 
 def main(base: str) -> int:
@@ -263,7 +282,10 @@ def main(base: str) -> int:
 
     # --- 5. Every peer in the directory resolves --------------------------
     # A directory of dead links degrades quietly, and nothing else will tell
-    # you. This is the check most worth having in CD.
+    # you — so this is still worth checking on every deploy. But it is the ONE
+    # section that tests hosts this deployment does not control, so it warns
+    # rather than fails. See `check()` for why. That the directory is
+    # *published at all* is this host's job, so that check stays fatal.
     print("\nNetwork directory")
     # `[` `]` `(` are excluded, not just whitespace: the 2.2.0 nav block writes
     # links as `[https://host/llms.txt](https://host/llms.txt)`, and a class
@@ -284,15 +306,26 @@ def main(base: str) -> int:
             body.lstrip()[:15].lower().startswith("<!doctype html")
         )
         if status != 200:
-            check(f"peer reachable: {url}", False, f"got {status}")
+            check(f"peer reachable: {url}", False, f"got {status}", fatal=False)
         else:
             check(
                 f"peer serves a document: {url}",
                 not is_html,
                 "200, but HTML — that host's catch-all, not an llms.txt",
+                fatal=False,
             )
 
-    print(f"\n{checks_run - len(failures)}/{checks_run} checks passed")
+    passed = checks_run - len(failures) - len(warnings)
+    summary = f"\n{passed}/{checks_run} checks passed"
+    if warnings:
+        summary += f", {len(warnings)} warnings (peers — not this deployment)"
+    print(summary)
+
+    if warnings:
+        print("\nWarned:")
+        for name in warnings:
+            print(f"  - {name}")
+
     if failures:
         print("\nFailed:")
         for name in failures:

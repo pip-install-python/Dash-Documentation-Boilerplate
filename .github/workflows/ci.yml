@@ -23,9 +23,16 @@
 
 name: CI
 
+# Deliberately NOT `push: branches: [main]`. cd.yml runs on that push and its
+# first job `uses:` this workflow, so a push to main used to start two runs of
+# it — which then contended for the `ci-${{ github.ref }}` concurrency group
+# below and cancelled each other. The work still got done (whichever run
+# survived did all of it), but every push left a `cancelled` CI run sitting
+# next to the green CD one, which reads as a failure at a glance.
+#
+# So: pull requests get their own CI, and `main` is owned by CD. There is no
+# coverage gap — CD cannot deploy without this workflow passing first.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
   # Called by cd.yml so a deploy can never ship something the matrix rejected.
