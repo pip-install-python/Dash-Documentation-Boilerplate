@@ -178,7 +178,15 @@ class Client:
         if self._kind == "quart":
             async def fetch():
                 r = await self._raw.get(path, headers=headers)
-                return r.status_code, await r.get_data(as_text=True), dict(r.headers)
+                # Same lenient decode as the werkzeug branch above, and for the
+                # same reason — this branch was simply missed when that one was
+                # fixed. Quart's `get_data(as_text=True)` decodes strictly, so
+                # any test that merely checks a PNG RESOLVES died on the file's
+                # first non-UTF-8 byte. It went unnoticed because the tests that
+                # fetch binary assets live in tests/test_social_card.py, which
+                # was untracked and therefore never ran in CI.
+                body = (await r.get_data()).decode("utf-8", "replace")
+                return r.status_code, body, dict(r.headers)
 
             return Response(*self._loop.run_until_complete(fetch()))
 
