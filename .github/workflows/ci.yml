@@ -1,3 +1,26 @@
+# CI for boilerplate.2plot.dev — and the TEMPLATE every 2plot satellite copies.
+#
+# This repo is the one the other documentation sites are forked from, so the
+# shape of this file is part of the deliverable. It implements the network's
+# CI baseline (2plot.ai and 2plot.dev run the same one):
+#
+#   * least-privilege `permissions` and a cancel-in-progress `concurrency`
+#     group, so a workflow cannot write more than it reads and a rapid second
+#     push does not race the first;
+#   * an explicit `timeout-minutes` on every job — the default is six hours,
+#     which is how a hung `curl` burns a day of runner minutes unnoticed;
+#   * the real Docker image, built with a buildx GHA cache, then BOOTED, then
+#     probed by the same battery that runs against production;
+#   * version fingerprints asserted INSIDE the image, because pip metadata is
+#     invisible from the outside and a stale artifact serves quietly;
+#   * a secretless in-process pytest suite — no CLERK_*, no
+#     CROSS_APP_WEBHOOK_SECRET — because the fail-closed behaviour is only
+#     provable when nothing is configured;
+#   * an advisory pip-audit.
+#
+# A fork changes the matrix and the image name. Everything else is the
+# standard; see docs/network-standard.
+
 name: CI
 
 on:
@@ -7,6 +30,11 @@ on:
   workflow_dispatch:
   # Called by cd.yml so a deploy can never ship something the matrix rejected.
   workflow_call:
+
+# Read-only. Nothing in this workflow publishes, comments or tags; the deploy
+# lives in cd.yml behind a `production` environment.
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -24,6 +52,7 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,11 +61,12 @@ jobs:
           cache: pip
       - run: pip install flake8
       - name: flake8
-        run: flake8 lib components pages tests run.py
+        run: flake8 lib components pages tests scripts run.py
 
   test:
     name: py${{ matrix.python }} · ${{ matrix.backend }} · dash${{ matrix.dash && format(" {0}", matrix.dash) || " (pinned)" }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +92,7 @@ jobs:
             dash: "4.4.0"
           - python: "3.12"
             backend: flask
-            dash: "4.4.0" 
+            dash: "4.4.0"
     steps:
       - uses: actions/checkout@v4
 
@@ -74,14 +104,17 @@ jobs:
       - name: Install the app
         run: |
           pip install -r requirements.txt
+          # markdown2dash 0.1.2 declares gunicorn<22 against the CVE-driven
+          # gunicorn>=23 floor. Same two-command install as the Dockerfile,
+          # render.yaml and scripts/dev.sh.
+          pip install --no-deps markdown2dash==0.1.2
           # Dash's own extras are required for the ASGI backends: a bare
           # `fastapi` install is not enough for dash.backends._fastapi to
           # import. httpx backs starlette's TestClient.
           if [ "${{ matrix.backend }}" != "flask" ]; then
             pip install "dash[${{ matrix.backend }}]" httpx
             # The backend extra from PyPI, same floor as requirements.txt.
-            # (Until 2.3.2 published this installed a vendored sdist.)
-            pip install "dash-improve-my-llms[${{ matrix.backend }}]>=2.3.2"
+            pip install "dash-improve-my-llms[${{ matrix.backend }}]>=2.3.4"
           fi
           pip install pytest pytest-cov
           # An explicit matrix pin overrides requirements.txt, to prove the
@@ -94,18 +127,28 @@ jobs:
       - name: Confirm the pinned dependency versions
         run: |
           python - <<'PY'
-          import dash, dash_improve_my_llms as pkg
-          # Dash 4.3.0's FastAPI backend 500s on every non-root URL. The floor
-          # in requirements.txt is 4.4.0 for that reason; assert it held.
+          import dash, dash_improve_my_llms as pkg, gunicorn
+
           def parts(v):
               return tuple(int(x) for x in v.split(".")[:3] if x.isdigit())
+
           # 4.4 floor: 4.3.0's FastAPI backend 500s on every non-root URL.
           assert parts(dash.__version__)[:2] >= (4, 4), dash.__version__
-          assert parts(pkg.__version__) >= (2, 3, 0), pkg.__version__
-          print(f"dash {dash.__version__}, dash-improve-my-llms {pkg.__version__}")
+          # 2.3.4 is the network standard: below it `resolve_site_title` does
+          # not exist and this site's published identity degrades to app.title.
+          assert parts(pkg.__version__) >= (2, 3, 4), pkg.__version__
+          # 21.x carried two request-smuggling CVEs (CVE-2024-6827,
+          # CVE-2024-1135). markdown2dash's spurious <22 pin must not win.
+          assert parts(gunicorn.__version__)[:2] >= (23, 0), gunicorn.__version__
+          print(f"dash {dash.__version__}, dash-improve-my-llms "
+                f"{pkg.__version__}, gunicorn {gunicorn.__version__}")
           PY
 
-      - name: Test suite (${{ matrix.backend }})
+      # No CLERK_*, no CROSS_APP_WEBHOOK_SECRET, no SESSION_SECRET here ON
+      # PURPOSE. tests/conftest.py pins them empty and the fail-closed checks
+      # in tests/test_access.py depend on that posture; a secret injected here
+      # would make the suite pass for the wrong reason.
+      - name: Test suite (${{ matrix.backend }}, zero secrets)
         env:
           DASH_BACKEND: ${{ matrix.backend }}
         run: pytest tests -q
@@ -113,7 +156,6 @@ jobs:
       - name: Boot under a production server
         if: matrix.backend == 'flask'
         run: |
-          pip install gunicorn
           gunicorn run:server -b 127.0.0.1:8550 --daemon --access-logfile - --error-logfile -
           for _ in $(seq 1 30); do
             curl -sf http://127.0.0.1:8550/healthz && break
@@ -124,31 +166,107 @@ jobs:
           # directory, no test-client conveniences.
           curl -sf http://127.0.0.1:8550/ > /dev/null
           curl -sf http://127.0.0.1:8550/networks > /dev/null
-          curl -sf http://127.0.0.1:8550/llms.txt | grep -q "## Network"
-          if curl -sf -A "Googlebot/2.1" http://127.0.0.1:8550/ \
-               | grep -q "requires JavaScript"; then
-            echo "::error::the home page served the JavaScript stub to a crawler"
-            exit 1
-          fi
+          # The battery, against the same server a satellite deploys.
+          python3 scripts/network_smoke.py --base-url http://127.0.0.1:8550
 
   docker:
-    name: docker image
+    name: docker image · boot · battery
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: [test]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build
-        run: docker build -t dash-docs-boilerplate:ci .
+      # The same build Render runs. This is where a dependency-resolution
+      # failure surfaces — at CI time, not deploy time, where the only signal
+      # is a dashboard log while the old image keeps serving.
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          tags: dash-docs-boilerplate:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Boot the image and probe it
+      # pip metadata is invisible from outside a running host, so the versions
+      # are asserted here, inside the artifact that actually ships.
+      - name: Version fingerprints inside the image
+        run: |
+          docker run --rm dash-docs-boilerplate:ci python -c "
+          from importlib.metadata import version
+
+          def parts(v):
+              return tuple(int(x) for x in v.split('.')[:3] if x.isdigit())
+
+          v = version('dash')
+          print('dash', v)
+          assert parts(v)[:2] >= (4, 4), f'expected dash >=4.4, image has {v}'
+
+          v = version('dash-improve-my-llms')
+          print('dash-improve-my-llms', v)
+          assert parts(v) >= (2, 3, 4), f'expected >=2.3.4 (resolve_site_title), image has {v}'
+
+          # markdown2dash installs with --no-deps to dodge its gunicorn<22
+          # pin; this assert is what proves the dodge kept working. 21.x
+          # carried two request-smuggling CVEs (CVE-2024-6827, CVE-2024-1135).
+          v = version('gunicorn')
+          print('gunicorn', v)
+          assert parts(v)[:2] >= (23, 0), f'expected gunicorn>=23, image has {v}'
+
+          # ...and that skipping its dependency graph did not skip the package.
+          import markdown2dash  # noqa: F401
+          print('markdown2dash importable')
+          "
+
+      # Boot with no secrets: Clerk falls open (dev mode), the reporter stays
+      # dormant, the hub client reports itself disabled. What this catches is
+      # any import-time or preload crash — the class of failure where the
+      # platform loops the worker and the deploy never goes live.
+      - name: Boot the container and wait for /healthz
         run: |
           docker run -d --name docs -p 8550:8550 dash-docs-boilerplate:ci
-          for _ in $(seq 1 60); do
-            curl -sf http://127.0.0.1:8550/healthz && break
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8550/healthz > /dev/null; then
+              echo "healthy after ~$((i*2))s"
+              exit 0
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' docs)" != "true" ]; then
+              echo "container exited during boot:"
+              docker logs docs
+              exit 1
+            fi
             sleep 2
           done
-          curl -sf http://127.0.0.1:8550/getting-started > /dev/null
-          curl -sf http://127.0.0.1:8550/sitemap.xml | grep -q "<urlset"
-          docker logs docs
-          docker rm -f docs
+          echo "never became healthy; last logs:"
+          docker logs --tail 100 docs
+          exit 1
+
+      # The SAME script CD runs against https://boilerplate.2plot.dev, so a
+      # failure in CI and a failure in production read identically.
+      - name: Smoke battery against the booted container
+        run: python3 scripts/network_smoke.py --base-url http://127.0.0.1:8550
+
+      - name: Container logs (for the record)
+        if: always()
+        run: docker logs --tail 40 docs 2>/dev/null || true
+
+  pip-audit:
+    name: pip-audit (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Advisory on purpose. A CVE in a transitive dependency of a docs site is
+    # worth knowing about the day it lands, and worth nobody's broken build at
+    # 2am. The report is the value; flip this off once the baseline is quiet.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      # Skip local vendor/ paths — pip-audit can only assess PyPI dists.
+      - run: |
+          grep -v '^\./vendor/' requirements.txt > /tmp/req-pypi.txt
+          pip-audit -r /tmp/req-pypi.txt --skip-editable

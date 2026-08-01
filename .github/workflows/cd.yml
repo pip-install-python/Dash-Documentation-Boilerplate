@@ -17,6 +17,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 concurrency:
   group: cd-production
   cancel-in-progress: false
@@ -80,16 +83,26 @@ jobs:
     needs: [deploy]
     if: always() && needs.deploy.result != 'cancelled'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      # The network battery first: it is the same script, with the same check
+      # names, that CI ran against the container this deploy shipped. A name
+      # that passed in CI and fails here isolates the fault to the deploy.
+      - name: Network smoke battery
+        run: python scripts/network_smoke.py --base-url "$SITE_URL"
+
+      # Then the satellite-specific checks the battery does not make: every
+      # canonical, every crawler body, and every peer llms.txt in the
+      # directory actually resolving.
       - name: Smoke-test the deployment
         run: python scripts/smoke_live.py "$SITE_URL"
 
       - name: Report
         if: failure()
         run: |
-          echo "::error::Live verification failed for $SITE_URL. All four failures it checks for are silent in production: a canonical on the wrong host, a page serving the JavaScript stub, a missing network directory, and dead peer llms.txt links."
+          echo "::error::Live verification failed for $SITE_URL. Every failure these check for is silent in production: a site identity that fell back to a framework default, a stale dash-improve-my-llms artifact, a canonical on the wrong host, a page serving the JavaScript stub, a missing network directory, and dead peer llms.txt links."

@@ -9,6 +9,21 @@ tests the re-implementation.
 Backend selection follows `DASH_BACKEND`, so the same suite runs against
 Flask, FastAPI and Quart in CI. `client` normalises the three test clients
 behind `.get(path, user_agent=...) -> (status, text)`.
+
+SECRETLESS, AND ORDER MATTERS. The suite runs against the app exactly as CI's
+zero-secret container does: no Clerk keys (auth falls open, non-public tiers
+still deny), no `CROSS_APP_WEBHOOK_SECRET` (the hub client reports itself
+disabled and the traffic reporter never starts a thread), and the analytics
+ledger in a temp dir. The zero-secret boot is itself the first invariant —
+every fail-closed assertion in tests/test_access.py depends on it.
+
+The env block below therefore has to run BEFORE anything imports `run.py`,
+because `lib/backend.py` calls `load_dotenv()` during that import and a
+developer's local `.env` would otherwise flip the app into a configured
+posture. `load_dotenv()` never overrides an existing key, so pinning each
+secret to `""` here (falsy to every `os.getenv(...) or None` reader in `lib/`)
+neutralises the file without deleting it. In CI there is no `.env` at all and
+this is belt-and-braces. Same pattern as 2plotai and pip-docs+.
 """
 
 from __future__ import annotations
@@ -16,12 +31,36 @@ from __future__ import annotations
 import importlib.util
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+
+# --- 1. Neutralise every secret (must precede any import of run.py) ---------
+SECRET_ENV_KEYS = (
+    "CLERK_SECRET_KEY", "CLERK_PUBLISHABLE_KEY", "CLERK_SIGN_IN_URL",
+    "CLERK_SIGN_UP_URL", "CLERK_FRONTEND_API", "CLERK_WEBHOOK_SECRET",
+    "CLERK_IS_SATELLITE", "CLERK_SATELLITE_DOMAIN", "SESSION_SECRET",
+    "FLASK_SECRET_KEY", "CROSS_APP_WEBHOOK_SECRET", "NETWORK_BULLETIN_URL",
+    "DATABASE_URL", "AD_DATABASE_URL",
+)
+for _key in SECRET_ENV_KEYS:
+    os.environ[_key] = ""
+
+# --- 2. Keep app state out of the repo --------------------------------------
+# Without this the suite appends its own hits to the checked-out
+# visitor_analytics.json, which then shows up in `git status` and, worse, in
+# the next hourly rollup a developer's local run happens to send.
+_TMP_STATE = tempfile.mkdtemp(prefix="boilerplate-tests-")
+os.environ["TRAFFIC_ANALYTICS_FILE"] = os.path.join(_TMP_STATE, "visitor_analytics.json")
+# Behind Cloudflare in production; in tests an outbound ip-api.com lookup per
+# hit would make the suite depend on a third party being up.
+os.environ["ANALYTICS_GEO_LOOKUP"] = "0"
+# The base-URL guard and the reporter both key off these; keep them inert.
+os.environ.setdefault("APP_ENV", "test")
 
 BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -168,6 +207,12 @@ def client(app):
             yield Client(raw, "httpx")
     else:  # pragma: no cover - resolve_backend() rejects anything else
         raise RuntimeError(f"unsupported DASH_BACKEND={kind!r}")
+
+
+@pytest.fixture(scope="session")
+def tmp_state_dir():
+    """Where the app's ledger and lease files live for this run."""
+    return _TMP_STATE
 
 
 @pytest.fixture(scope="session")

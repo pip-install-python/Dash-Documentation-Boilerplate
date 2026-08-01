@@ -18,7 +18,11 @@ python="$here/.venv/bin/python"
 if [ ! -x "$python" ]; then
     echo "No virtualenv at $python" >&2
     echo "Create it with:" >&2
-    echo "    python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
+    echo "    python3 -m venv .venv" >&2
+    echo "    .venv/bin/pip install -r requirements.txt" >&2
+    # Second line, not an afterthought: markdown2dash pins gunicorn<22 against
+    # the CVE-driven gunicorn>=23 floor, so it installs without its deps.
+    echo "    .venv/bin/pip install --no-deps markdown2dash==0.1.2" >&2
     exit 1
 fi
 

@@ -1,6 +1,10 @@
-# Dash Documentation Boilerplate
+# Dash Documentation Boilerplate — the 2plot network's template
 
-> A modern, responsive documentation system for Dash applications built with Dash Mantine Components
+<p align="center">
+  <img src="https://cdn.2plot.ai/github_assets/dark_mode_2plot.png" alt="2plot" width="640">
+</p>
+
+> `dash-documentation-boilerplate` — the markdown-driven documentation template every `*.2plot.dev` component site is forked from. By [Pip Install Python](https://2plot.dev).
 
 [![CI](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/ci.yml/badge.svg)](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/ci.yml)
 [![CD](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/cd.yml/badge.svg)](https://github.com/pip-install-python/Dash-Documentation-Boilerplate/actions/workflows/cd.yml)
@@ -51,7 +55,7 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **Privacy controls** — `mark_hidden()` to exclude pages from sitemap, robots, MCP, and crawler prerender
 - **Share with AI** — paste the app URL into ChatGPT/Claude/etc.; they fetch the prose docs directly
 - **Cross-host network directory** — `lib/network_directory.py` publishes the sibling sites so an agent landing on one satellite can find the rest ([docs](https://boilerplate.2plot.dev/networks))
-- Powered by [dash-improve-my-llms 2.2](https://pypi.org/project/dash-improve-my-llms/)
+- Powered by [dash-improve-my-llms 2.3.4](https://pypi.org/project/dash-improve-my-llms/)
 
 ### 🔌 Pluggable Backends (Dash 4.x)
 - Run the **same app** on **Flask**, **FastAPI**, or **Quart** — switch with a single `DASH_BACKEND` environment variable
@@ -85,14 +89,14 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - dash `~=4.4.1` — see the support matrix below; **not 4.3.0**
 - dash-mantine-components >= 2.7.0
 - dash-ag-grid
-- dash-improve-my-llms >= 2.2.0 (installed from `vendor/` until 2.2.0 is on PyPI — see below)
+- dash-improve-my-llms >= 2.3.4 (the 2plot network standard — see below)
 - flask >= 3.0.0 (default backend)
 - plotly >= 5.0.0
 - pandas >= 1.2.3
 - pydantic >= 2.3.0
 - python-frontmatter >= 1.0.0
-- markdown2dash
-- gunicorn >= 21.2.0 (WSGI production server)
+- markdown2dash (installed `--no-deps` — see below)
+- gunicorn >= 23.0.0 (WSGI production server; 21.x carried two request-smuggling CVEs)
 
 **Optional backends** (install the matching extra to switch off Flask):
 ```bash
@@ -135,14 +139,26 @@ most constrained backend **network-wide, including Flask-only apps** —
 so a Flask deployment becomes a FastAPI deployment with one env change and no
 code change.
 
-> **Note on `dash-improve-my-llms`.** The pinned version is 2.2.0, which is not
-> published to PyPI yet, so `requirements.txt` installs it from the sdist in
-> [`vendor/`](vendor/). The network is being validated on the tarball first —
-> this app, then the other three, then all four in production. Only once that
-> is clean does 2.2.0 go to PyPI, `vendor/` get deleted, and the commented
-> PyPI lines already in `requirements.txt` take over. (2.1.0 was assigned
-> during development and never published, so 2.0.0 upgrades straight to
-> 2.2.0.)
+> **Note on `dash-improve-my-llms`.** The floor is **2.3.4**, the version
+> 2plot.ai and 2plot.dev both run. It is what resolves this site's published
+> identity: `resolve_site_title` takes the `/llms.txt` H1 and the llms viewer's
+> brand chip from the home page's registered `name`, and *skips* generic
+> candidates (`Home`, `Index`, and Dash's default title `Dash`) instead of
+> publishing them. On a pre-2.3.4 build this host's viewer chip read a bare
+> "Dash". There is no vendored copy of the package any more; `vendor/` holds
+> `dash_clerk_auth` alone. See [Network Standard](docs/network-standard/network-standard.md).
+
+> **Note on `markdown2dash`.** Version 0.1.2 declares `gunicorn>=21.2.0,<22.0.0`
+> — a markdown parser pinning a WSGI server, and directly against the
+> CVE-driven `gunicorn>=23` floor. pip cannot resolve both, so it is installed
+> without its dependency graph. Its real dependencies (`docutils`, `jsonpath`,
+> `mistune`) are listed in `requirements.txt` instead. Every install path does
+> the same two commands:
+>
+> ```bash
+> pip install -r requirements.txt
+> pip install --no-deps markdown2dash==0.1.2
+> ```
 
 ---
 
@@ -160,6 +176,7 @@ cd Dash-Documentation-Boilerplate
 **Python packages:**
 ```bash
 pip install -r requirements.txt
+pip install --no-deps markdown2dash==0.1.2   # see the note above
 ```
 
 **Node packages** (for DMC frontend components):
@@ -253,16 +270,21 @@ dash-documentation-boilerplate/
 │   ├── test_network_directory.py
 │   ├── test_docs_content.py    # Frontmatter, directives, heading anchors
 │   ├── test_config.py          # BASE_URL guard, index.html metadata
+│   ├── test_internal_traffic.py # The analytics contract, both directions
+│   ├── test_network_smoke.py   # The battery, run against this app
+│   ├── test_site_identity.py   # One brand, every surface
 │   └── test_smoke_live.py      # The CD script, run against this app
 │
 ├── templates/
 │   └── index.html              # SEO-optimized HTML template
 │
-├── vendor/                      # dash-improve-my-llms 2.2.0 sdist (temporary)
+├── vendor/                      # dash-clerk-auth sdist (not on PyPI)
 │
-├── .github/workflows/
-│   ├── ci.yml                  # Lint, test matrix, Docker build
-│   └── cd.yml                  # Render deploy + live verification
+├── .github/
+│   ├── dependabot.yml          # dash-network update group
+│   └── workflows/
+│       ├── ci.yml              # Lint, matrix, image build + boot + battery
+│       └── cd.yml              # Render deploy + live verification
 │
 ├── .flake8
 ├── .gitignore
@@ -506,6 +528,7 @@ hides the to-do list rather than shortening it. The full guide is at
 2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
+   pip install --no-deps markdown2dash==0.1.2
    npm install
    ```
 
@@ -655,8 +678,14 @@ Contributions are welcome! Here's how you can help:
 **Issue**: `RuntimeError: APP_BASE_URL is not set` on Render
 - **Solution**: Working as intended. Set `APP_BASE_URL` to this deployment's real origin. Without it the app would serve the boilerplate's canonical host on every page.
 
-**Issue**: `pip install -r requirements.txt` fails on `./vendor/dash_improve_my_llms-2.2.0.tar.gz`
-- **Solution**: Run pip from the repo root — the path is relative. In Docker, `vendor/` must be copied before the pip layer.
+**Issue**: `pip install -r requirements.txt` fails with a `gunicorn` resolution conflict
+- **Solution**: `markdown2dash` 0.1.2 pins `gunicorn<22` against this project's `gunicorn>=23` floor. Install it separately: `pip install --no-deps markdown2dash==0.1.2`.
+
+**Issue**: the llms.txt viewer's brand chip says "Dash", or `/llms.txt` opens with the wrong `# ` line
+- **Solution**: You are on a pre-2.3.4 `dash-improve-my-llms`, or `SITE_BRAND` is unset. `pip install -U "dash-improve-my-llms[flask]>=2.3.4"` and see [Network Standard](docs/network-standard/network-standard.md).
+
+**Issue**: the Docker container exits at boot with `Could not import dash.backends._fastapi`
+- **Solution**: A local `.env` was copied into the image. `.dockerignore` excludes it; make sure you have not removed that line.
 
 **Issue**: Every non-root URL 500s with `No active request in context`
 - **Solution**: You're on Dash 4.3.0 with the FastAPI backend. Upgrade to 4.4.0+; `requirements.txt` already floors it there.
@@ -667,7 +696,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 
 ## 📊 Version Information
 
-**Current Version**: 1.1.0
+**Current Version**: 1.2.0
 
 | Component | Version |
 |-----------|---------|
@@ -677,9 +706,20 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 | Python | 3.11+ |
 | React | 18.2.0 |
 | Flask / FastAPI / Quart | pluggable backends |
-| dash-improve-my-llms | 2.2.0 |
+| dash-improve-my-llms | 2.3.4+ |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+### What's New in 1.2.0
+
+The 2plot network standard, landed on this template so every satellite can copy it. See [Network Standard](https://boilerplate.2plot.dev/network-standard).
+
+- 🪪 **Explicit site identity** (`lib/constants.SITE_BRAND`) on `Dash(title=)`, `register_page_metadata(path="/")`, `pages/home.md` and `templates/index.html`. Before this, `/llms.txt`'s viewer chip published Dash's default title — a bare **"Dash"** — as the name of this site.
+- 📈 **The internal-traffic contract**: network machinery is counted nowhere. Token-carrying requests are dropped at write time *before* bot classification, `/healthz` is no longer stored, and every outbound call to another network host now sends `INTERNAL_UA`. The ad client had been fetching a campaign from 2plot.dev on every page view as `python-requests` — this satellite's readers were being charted as bots on the hub.
+- 🧪 **CI on the network baseline**: least-privilege `permissions`, per-job `timeout-minutes`, a buildx GHA cache, version fingerprints asserted *inside* the image, a secretless pytest suite, `scripts/network_smoke.py` run in three seats (container, production, in-process), Dependabot with a `dash-network` group, and an advisory `pip-audit`.
+- 🔒 **gunicorn >= 23.0.0** (was 21.2.0, which carried CVE-2024-6827 and CVE-2024-1135). `markdown2dash`'s spurious `gunicorn<22` pin is dodged with a `--no-deps` install.
+- 📦 **dash-improve-my-llms >= 2.3.4**.
+- 🐋 **`.dockerignore`** — a local `.env` was being copied into the production image, which killed the container at boot on the first local run of the new battery. Secrets and dev config no longer reach an image layer.
 
 ### What's New in 1.1.0
 

@@ -54,19 +54,38 @@ flask>=3.0.0
 
 # Documentation & Utilities
 python-frontmatter>=1.0.0
-markdown2dash
+# markdown2dash 0.1.2 declares `gunicorn>=21.2.0,<22.0.0` — a markdown parser
+# pinning a WSGI server, and directly against the CVE-driven gunicorn>=23
+# floor below. pip cannot resolve both, so markdown2dash is installed on its
+# own line WITHOUT its dependency graph:
+#
+#     pip install -r requirements.txt
+#     pip install --no-deps markdown2dash==0.1.2
+#
+# scripts/dev.sh, the Dockerfile, render.yaml and CI all do exactly that pair.
+# Its real runtime dependencies are listed here instead (dash, dash-iconify
+# and dash-mantine-components are already pinned above):
+docutils!=0.21
+jsonpath
+mistune
 pydantic>=2.3.0
 python-dotenv>=1.0.0
 
 # AI/LLM Integration & SEO
 #
-# 2.3.2 is on PyPI as of 2026-07-30, published only after the network
-# validated the identical vendored tarball across all four production apps.
-# The vendor/ copy of this package is no longer referenced and can be
-# deleted. (2.1.0 and 2.3.1 were assigned during development and never
-# published.)
+# Installed from PyPI. There is no vendored copy of this package in this repo
+# any more — `vendor/` holds `dash_clerk_auth` alone. (2.1.0 and 2.3.1 were
+# assigned during that package's development and never published.)
 #
-# What it changes, on this app specifically: `register_page_metadata` merges
+# 2.3.4 is the network standard: 2plot.ai and 2plot.dev both run it, and it
+# is what makes the site-identity work below actually reach the surfaces. Its
+# `resolve_site_title` picks the /llms.txt H1 and the llms-viewer brand chip
+# from the home page's registered `name`, falling through generic nav labels
+# ("Home", "Index", and Dash's default title "Dash") instead of publishing
+# them as the site's identity. On a pre-2.3.4 artifact the viewer chip on this
+# host reads a bare "Dash" — that is the fingerprint of a stale build.
+#
+# What the 2.3.x line changes, on this app specifically: `register_page_metadata` merges
 # instead of assigning (no prose can be erased by a later bookkeeping call),
 # the prerender reaches every visitor rather than only recognised crawlers,
 # the Markdown renderer emits real anchors / code fences / tables / rules
@@ -81,15 +100,23 @@ python-dotenv>=1.0.0
 # search's crawler); 2.3.3 moves ClaudeBot (the actual *training* crawler) to
 # Disallow while allowing the user-triggered and search fetchers Claude-User
 # and Claude-SearchBot, and strips unexpanded directive lines from prose.
-# The >= floor lets 2.3.3+ flow; tests/test_llms_routes.py asserts the
-# fingerprint so a regressed resolve fails CI rather than production.
-dash-improve-my-llms[flask]>=2.3.2
-# dash-improve-my-llms[fastapi]>=2.3.2   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.3.2     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.3.2       # all three
+# tests/test_llms_routes.py asserts that split, and scripts/network_smoke.py
+# asserts it against a live host, so a stale artifact fails a battery by name
+# rather than serving quietly.
+dash-improve-my-llms[flask]>=2.3.4
+# dash-improve-my-llms[fastapi]>=2.3.4   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.3.4     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.3.4       # all three
 
 # Production Servers
 # - gunicorn   -> WSGI (Flask)
 # - uvicorn    -> ASGI (FastAPI / Quart)
-gunicorn>=21.2.0
+#
+# gunicorn fronts every Flask deployment in this network, so the floor is the
+# network's security baseline, not a convenience: 21.x carried two HTTP
+# request-smuggling CVEs (CVE-2024-6827, CVE-2024-1135), both fixed by 23.0.
+# CI asserts the installed version inside the built image — a transitive pin
+# (markdown2dash asks for gunicorn<22) must never be allowed to drag the
+# production server back under the floor without failing the build.
+gunicorn>=23.0.0
 # uvicorn[standard]>=0.27.0

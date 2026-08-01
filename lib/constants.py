@@ -1,15 +1,85 @@
 import os
 
-# The site's own title. Resolves {%title%} in templates/index.html, which is
-# what the served HTML carries when dash-improve-my-llms is not rewriting the
-# title per page (LLMSConfig(prerender=False), the documented rollback).
-# Without it Dash's default — the bare string "Dash" — would ship on every
-# page. Per-page titles still come from PAGE_TITLE_PREFIX below.
-APP_TITLE = "Dash Documentation Boilerplate"
+# ---------------------------------------------------------------------------
+# Site identity — one string, every surface
+# ---------------------------------------------------------------------------
+# The network standard (2plot.ai and 2plot.dev both ship it): a site states
+# what it is, in the same words, on every surface an agent or a reader can
+# reach. The surfaces this brand has to reach, and what serves each:
+#
+#   Dash(title=SITE_BRAND)              -> <title>, and the fallback identity
+#   register_page_metadata(path="/",    -> the /llms.txt H1 and the llms
+#       name=SITE_BRAND)                   viewer's brand chip, both via
+#                                          dash-improve-my-llms 2.3.4's
+#                                          `resolve_site_title`
+#   pages/home.md's opening `# ` line   -> the home page's own prose
+#
+# tests/test_site_identity.py pins all four to this constant, because the
+# failure is silent: `resolve_site_title` skips generic candidates ("Home",
+# "Index", Dash's default "Dash"), so a site that never states its identity
+# publishes a nav label or a framework default and nothing looks broken. That
+# is exactly what this host did before — the viewer chip read a bare "Dash".
+#
+# Naming rules, from the network standard:
+#   - the PACKAGE NAME belongs in the description, not in the brand;
+#   - "Pip Install Python" is the byline (who made it), never the site name.
+SITE_BRAND = "Dash Documentation Boilerplate — the 2plot network's template"
+
+SITE_DESCRIPTION = (
+    "dash-documentation-boilerplate — the markdown-driven documentation "
+    "template every *.2plot.dev component site is forked from. Interactive "
+    "examples, Dash Mantine Components theming, and first-class AI/LLM and "
+    "SEO surfaces via dash-improve-my-llms. By Pip Install Python."
+)
+
+# Resolves {%title%} in templates/index.html, which is what the served HTML
+# carries when dash-improve-my-llms is not rewriting the title per page
+# (LLMSConfig(prerender=False), the documented rollback). Per-page titles still
+# come from PAGE_TITLE_PREFIX below.
+APP_TITLE = SITE_BRAND
 
 PAGE_TITLE_PREFIX = "Dash Pip Components | "
 PRIMARY_COLOR = "teal"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
+
+# ---------------------------------------------------------------------------
+# The network's internal-traffic contract
+# ---------------------------------------------------------------------------
+# The analytics point of truth is https://2plot.ai/docs/satellite-analytics
+# ("Internal traffic"): any request whose User-Agent contains
+# INTERNAL_UA_TOKEN is 2plot network machinery talking to itself — the hub's
+# hourly health sweep, CI smoke batteries, the 4x-daily heartbeat, this app's
+# own server-to-server calls to the hub. It is counted NOWHERE.
+#
+# Two halves, and both are required for the contract to hold:
+#
+#   inbound  — every tracker drops a token-carrying request at WRITE time,
+#              before device detection and before bot classification, so it
+#              never reaches the ledger the hourly rollup is built from;
+#   outbound — every call this host makes to another network host sends
+#              INTERNAL_UA, so the far side can apply the same rule.
+#
+# The outbound half is the one that was missing here. lib/ad_client.py fetched
+# campaigns from 2plot.dev as bare `python-requests`, which the hub's own
+# tracker classifies as a bot — every page view on this satellite was inflating
+# 2plot.dev's bot_hits. lib/satellite_reporter.py and lib/hub_client.py had the
+# same shape.
+#
+# The token string must stay byte-identical across the network; it mirrors
+# 2plotai/lib/constants.py and pip-docs+/lib/constants.py.
+INTERNAL_UA_TOKEN = "2plot-internal"
+INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
+
+
+def internal_ua(caller: str = "") -> str:
+    """``INTERNAL_UA`` with a caller suffix, e.g. ``"ad-client"``.
+
+    The suffix is for reading logs on the far side; only the token matters to
+    the contract, and it stays intact whatever the suffix says.
+    """
+    caller = (caller or "").strip()
+    return f"{INTERNAL_UA} {caller}" if caller else INTERNAL_UA
+
 
 # ---------------------------------------------------------------------------
 # Public origin

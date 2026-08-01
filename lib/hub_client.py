@@ -129,6 +129,8 @@ def _post(route: str, payload: dict, timeout: float) -> Optional[dict]:
 
     import requests
 
+    from lib.constants import internal_ua
+
     # Sign the exact bytes sent — serialise once, sign that.
     body = json.dumps(payload).encode()
     ts = str(int(time.time()))
@@ -146,6 +148,10 @@ def _post(route: str, payload: dict, timeout: float) -> Optional[dict]:
                 "X-AI-Canvas-Timestamp": ts,
                 "X-AI-Canvas-Signature": signature,
                 "X-Satellite-App": app_id(),
+                # Internal-traffic contract (lib/constants.INTERNAL_UA): these
+                # are satellite→hub machine calls, and a key verification is
+                # not a reader of 2plot.dev's documentation.
+                "User-Agent": internal_ua("hub-client"),
             },
         )
     except Exception as exc:  # noqa: BLE001 — DNS, TLS, timeouts all land here

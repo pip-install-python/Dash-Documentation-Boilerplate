@@ -91,13 +91,24 @@ def _ssl_context() -> ssl.SSLContext:
 
 SSL_CONTEXT = _ssl_context()
 
+# Every UA this script sends carries the network's internal-traffic token: a
+# link audit sweeps every peer in the directory, and a sweep must not register
+# as a visitor (or as a "bot") in another satellite's ledger. See
+# lib/constants.INTERNAL_UA. Third-party hosts simply ignore it.
+try:
+    from lib.constants import INTERNAL_UA as _INTERNAL_UA
+except Exception:  # pragma: no cover — running outside a checkout
+    _INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
+
+AUDIT_UA = f"Mozilla/5.0 (compatible; link-audit/1.0) {_INTERNAL_UA}"
+
 
 def check_external(url: str, cache: Dict[str, int], _retrying: bool = False) -> int:
     if url in cache:
         return cache[url]
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; link-audit/1.0)"},
+        headers={"User-Agent": AUDIT_UA},
         method="HEAD",
     )
     try:
@@ -107,9 +118,7 @@ def check_external(url: str, cache: Dict[str, int], _retrying: bool = False) -> 
         # Plenty of hosts refuse HEAD but serve GET.
         if exc.code in (403, 405, 501):
             try:
-                get = urllib.request.Request(
-                    url, headers={"User-Agent": "Mozilla/5.0 (compatible; link-audit/1.0)"}
-                )
+                get = urllib.request.Request(url, headers={"User-Agent": AUDIT_UA})
                 with urllib.request.urlopen(get, timeout=15, context=SSL_CONTEXT) as response:
                     status = response.status
             except Exception:

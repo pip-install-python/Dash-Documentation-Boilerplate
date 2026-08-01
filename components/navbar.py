@@ -60,6 +60,7 @@ def create_content(data):
         "Custom Directives",
         "AI/LLM Integration",
         "Multi-Site Networks",
+        "Network Standard",
         "Authentication",
         "Interactive .md",
         "Data Visualization",
@@ -107,6 +108,23 @@ def create_content(data):
                     page_links
                 ),
 
+                # Pip Components Section — sits between the docs and the
+                # general Resources list because it is not a third-party
+                # reference: it is this network's own package index, and the
+                # catalogue a reader of these docs is most likely to want next.
+                dmc.Divider(mt="md", mb="sm"),
+                create_nav_section(
+                    "Pip Components",
+                    [
+                        create_nav_link(
+                            "solar:box-bold-duotone",
+                            "Browse components",
+                            "https://2plot.dev/pip",
+                            external=True
+                        ),
+                    ]
+                ),
+
                 # External Resources Section
                 dmc.Divider(mt="md", mb="sm"),
                 create_nav_section(
@@ -124,10 +142,13 @@ def create_content(data):
                             "https://www.dash-mantine-components.com/",
                             external=True
                         ),
+                        # 2plot.dev, NOT pip-install-python.com — the package
+                        # index is the network host, and that domain is not a
+                        # link this app publishes.
                         create_nav_link(
-                            "solar:box-bold-duotone",
-                            "Pip Components",
-                            "https://pip-install-python.com/",
+                            "mdi:package-variant-closed",
+                            "2plot.dev",
+                            "https://2plot.dev",
                             external=True
                         ),
                     ]

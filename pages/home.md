@@ -1,8 +1,8 @@
-# Welcome to:
+# Dash Documentation Boilerplate — the 2plot network's template
 
 ![logo](assets/intro_img.jpg)
 
-> **A modern, responsive documentation system for Dash applications built with Dash Mantine Components**
+> **`dash-documentation-boilerplate` — the markdown-driven documentation template every `*.2plot.dev` component site is forked from.** By [Pip Install Python](https://2plot.dev).
 
 Create beautiful, interactive documentation for your Dash components, data science workflows, and applications with markdown-driven content, live code examples, and automatic theme persistence.
 
@@ -11,6 +11,8 @@ Create beautiful, interactive documentation for your Dash components, data scien
 ## What is This?
 
 The Dash Documentation Boilerplate is a **production-ready framework** for creating professional documentation sites for your Dash projects. Whether you're documenting a component library, showcasing data visualizations, or building a comprehensive application guide, this boilerplate provides everything you need.
+
+It is also the reference implementation of the **2plot network standard**: the site-identity rules, the internal-traffic analytics contract, and the CI baseline that every satellite copies verbatim. Those files are listed on the [Network Standard](/network-standard) page.
 
 ### Built With Modern Technologies
 
@@ -50,7 +52,7 @@ Powerful directives to enhance your documentation:
 - `.. kwargs::ComponentName` - Auto-generate component props documentation
 
 ### 🤖 AI/LLM Integration
-Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.0**:
+Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.3.4**:
 
 - **`LLMS_DOC` pattern** — write a module-level prose string per page; the package serves it verbatim at `/<page>/llms.txt`
 - **Multi-backend** — same surface under Flask, FastAPI, and Quart (auto-detected)
@@ -79,6 +81,9 @@ cd Dash-Documentation-Boilerplate
 
 # Install Python dependencies
 pip install -r requirements.txt
+# markdown2dash pins gunicorn<22 against this project's CVE-driven
+# gunicorn>=23 floor, so it installs without its dependency graph.
+pip install --no-deps markdown2dash==0.1.2
 
 # Install Node dependencies (for Mantine components)
 npm install

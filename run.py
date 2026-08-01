@@ -54,13 +54,24 @@ from dash_improve_my_llms import (
 
 # The version requirements.txt pins. Checked at startup — see the floors block
 # below for why this is worth a line of output on every boot.
-LLMS_PKG_FLOOR = (2, 3, 0)
+#
+# 2.3.4 is the network standard (2plot.ai and 2plot.dev both run it). Below it,
+# `resolve_site_title` does not exist: the /llms.txt H1 and the llms-viewer
+# brand chip fall back to `app.title` unconditionally, and a nav label or
+# Dash's default "Dash" becomes this site's published identity.
+LLMS_PKG_FLOOR = (2, 3, 4)
 
 # Analytics tracking
 from lib.analytics_tracker import tracker
 
-# Public origin + the cross-host network directory
-from lib.constants import APP_TITLE, BASE_URL, require_owned_base_url
+# Site identity, public origin, and the cross-host network directory
+from lib.constants import (
+    APP_TITLE,
+    BASE_URL,
+    SITE_BRAND,
+    SITE_DESCRIPTION,
+    require_owned_base_url,
+)
 from lib import network_directory
 
 # Backend selection (flask | fastapi | quart) — see lib/backend.py
@@ -123,9 +134,9 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
-        "/<page>/llms.txt would serve plain Markdown to everyone — no rendered "
-        "viewer, no wordmark, no navigation block — because those surfaces do "
-        "not exist in this release.",
+        "Below 2.3.0 the rendered llms.txt viewer, wordmark and navigation "
+        "block do not exist at all; below 2.3.4 this site's published identity "
+        "silently degrades to whatever `app.title` happens to be.",
         fatal=True,
     )
 
@@ -249,14 +260,15 @@ app._robots_config = RobotsConfig(
 # (the expanded markdown body becomes the literal /llms.txt response).
 # ============================================================================
 
+# `name` here is not a nav label — dash-improve-my-llms 2.3.4 resolves it into
+# the /llms.txt H1 and the llms viewer's brand chip (`resolve_site_title`,
+# home-page name first, `app.title` second, generic values skipped). It is the
+# site's published identity, so it is SITE_BRAND and nothing else; the package
+# name lives in the description. See lib/constants.py.
 register_page_metadata(
     path="/",
-    name="Dash Documentation Boilerplate",
-    description=(
-        "A modern, markdown-driven documentation system for Dash applications "
-        "built on Dash Mantine Components, with first-class AI/LLM and SEO "
-        "integration via dash-improve-my-llms 2.0."
-    ),
+    name=SITE_BRAND,
+    description=SITE_DESCRIPTION,
 )
 
 # Internal pages — excluded from /sitemap.xml, blocked in /robots.txt,

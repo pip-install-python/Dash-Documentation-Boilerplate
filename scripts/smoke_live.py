@@ -16,6 +16,7 @@ Only the standard library, so it runs anywhere without an install step.
 
 from __future__ import annotations
 
+import os
 import re
 import sys
 import ssl
@@ -24,10 +25,27 @@ import urllib.request
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-CRAWLER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Every UA below carries the network's internal-traffic token (the analytics
+# point of truth — https://2plot.ai/docs/satellite-analytics, "Internal
+# traffic"). A post-deploy battery runs on every push and sweeps every peer in
+# the directory; without the token it registers as a burst of visitors, and
+# the crawler-shaped probes register as crawler interest. The Googlebot and
+# Chrome tokens are still there, so the target exercises exactly the path
+# being tested — it just knows the caller is machinery.
+try:
+    from lib.constants import INTERNAL_UA as _INTERNAL_UA
+except Exception:  # pragma: no cover — running outside a repo checkout
+    _INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
+
+CRAWLER_UA = (
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html) "
+    + _INTERNAL_UA
+)
 BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 " + _INTERNAL_UA
 )
 # `/<page>/llms.txt` negotiates on Accept, not on the User-Agent.
 BROWSER_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"

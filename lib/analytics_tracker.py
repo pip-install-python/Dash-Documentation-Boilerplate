@@ -14,6 +14,11 @@ bot_type?, ip_address?, location?}``.
 
 Accuracy notes (these are the things that quietly wreck the numbers):
 
+- **Network machinery is never a visitor.** Any request whose User-Agent
+  carries ``lib.constants.INTERNAL_UA_TOKEN`` is dropped in ``track_visit``
+  before device detection — the network's internal-traffic contract
+  (https://2plot.ai/docs/satellite-analytics). ``/healthz`` is dropped there
+  too. Both are write-time rules on purpose; see the comment in ``track_visit``.
 - **Client IP** comes from the proxy headers first (``CF-Connecting-IP``,
   ``X-Forwarded-For``, ...). Behind Cloudflare/Render, ``remote_addr`` is the
   *proxy*, so every visitor would collapse into one and geolocation would point
@@ -282,12 +287,38 @@ class AnalyticsTracker:
         ``headers`` is optional but strongly recommended — it's what makes the
         client IP and country correct behind a proxy. See ``client_ip``.
         """
-        # Skip internal Dash paths and static assets
+        # --- The network's internal-traffic contract, applied at WRITE time --
+        #
+        # https://2plot.ai/docs/satellite-analytics, "Internal traffic": a
+        # request carrying INTERNAL_UA_TOKEN is 2plot machinery talking to
+        # itself and is counted nowhere. This has to happen HERE, before
+        # `detect_device_type`, and not in lib/traffic_rollup's read-time
+        # filter, for two reasons:
+        #
+        #   1. classification would run first, and the health sweep and smoke
+        #      batteries look like bots — they would land in `bot_hits` and be
+        #      reported to the hub as crawler interest in these docs;
+        #   2. the ledger is what a person reads on a local analytics view. A
+        #      row that exists but is filtered on the way out is still a row
+        #      somebody has to know to discount.
+        #
+        # The token is matched case-insensitively so a caller may capitalise
+        # its suffix however it likes.
+        from lib.constants import INTERNAL_UA_TOKEN
+
+        if INTERNAL_UA_TOKEN in (user_agent or "").lower():
+            return
+
+        # Skip internal Dash paths and static assets. `/healthz` and `/health`
+        # are here too: the hub sweeps /healthz hourly and Render's own probe
+        # hits it far more often than that, so storing it turns the ledger into
+        # a record of monitoring. lib/traffic_rollup also drops it at read time
+        # — that stays, for ledgers written before this rule existed.
         skip_paths = [
             '.css', '.js', '.png', '.jpg', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot',
             '_dash', '_reload-hash', 'favicon', '/_dash-update-component',
             '/_dash-layout', '/_dash-dependencies', '/_dash-component-suites',
-            '/assets/', '[]'  # Also skip malformed paths
+            '/assets/', '/healthz', '/health', '[]'  # Also skip malformed paths
         ]
         if any(skip in path for skip in skip_paths):
             return

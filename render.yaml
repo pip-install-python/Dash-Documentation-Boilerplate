@@ -10,10 +10,10 @@ services:
     plan: starter
     region: oregon
     branch: main
-    # requirements.txt installs dash-improve-my-llms from ./vendor while 2.3.2
-    # is unpublished, so the checkout has to happen before pip runs — which it
-    # does here, unlike in the Dockerfile where the COPY order matters.
-    buildCommand: pip install -r requirements.txt
+    # Two commands, not one: markdown2dash 0.1.2 declares gunicorn<22 against
+    # the CVE-driven gunicorn>=23 floor in requirements.txt, so it is installed
+    # without its dependency graph. Same pair as the Dockerfile and CI.
+    buildCommand: pip install -r requirements.txt && pip install --no-deps markdown2dash==0.1.2
     startCommand: gunicorn run:server -b 0.0.0.0:$PORT --workers 2 --timeout 60
     healthCheckPath: /healthz
     domains:

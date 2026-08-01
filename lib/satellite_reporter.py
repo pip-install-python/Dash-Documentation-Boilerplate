@@ -104,6 +104,8 @@ def post_rollup(payload: dict, secret: str | None = None, timeout: float = 10.0)
     if not secret:
         return False, "no CROSS_APP_WEBHOOK_SECRET"
 
+    from lib.constants import internal_ua
+
     # The signature covers the EXACT bytes sent — serialise once, sign that.
     body = json.dumps(payload).encode()
     ts = str(int(time.time()))
@@ -114,7 +116,13 @@ def post_rollup(payload: dict, secret: str | None = None, timeout: float = 10.0)
             endpoint(), data=body, timeout=timeout,
             headers={"Content-Type": "application/json",
                      "X-AI-Canvas-Timestamp": ts,
-                     "X-AI-Canvas-Signature": sig},
+                     "X-AI-Canvas-Signature": sig,
+                     # The internal-traffic contract's outbound half: without
+                     # this the hourly rollup arrives at 2plot.ai as
+                     # `python-requests/2.x` and the hub counts its own
+                     # analytics pipeline as a bot visit, once per satellite
+                     # per hour, forever.
+                     "User-Agent": internal_ua("traffic-reporter")},
         )
     except Exception as e:
         return False, f"request failed: {e!r}"

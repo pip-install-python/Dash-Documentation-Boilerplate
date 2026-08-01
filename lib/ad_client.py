@@ -25,6 +25,12 @@ Env:
 Failure behaviour: if the ad server is unreachable the slot simply stays
 hidden, and a 60s circuit breaker stops retrying so an outage never adds
 the HTTP timeout to every page view.
+
+Analytics: the server-to-server fetch sends the network's internal-traffic
+User-Agent (``lib/constants.INTERNAL_UA``) so 2plot.dev does not count this
+app's ad requests as visits to itself. The click beacon deliberately does
+not — it is fired by the reader's own browser, which cannot set a
+User-Agent anyway, and a click IS a real person.
 """
 from __future__ import annotations
 
@@ -62,11 +68,20 @@ def fetch_ad(page: str) -> dict | None:
     with _breaker_lock:
         if time.time() - _last_failure < _COOLDOWN:
             return None
+    from lib.constants import internal_ua
+
     try:
         resp = _session.get(
             f"{AD_SERVER_URL}/api/ad-network/serve",
             params={"app": APP_ID, "page": page},
             timeout=_TIMEOUT,
+            # The highest-volume outbound call this app makes — one per docs
+            # page view, server-to-server. Without the internal-traffic token
+            # every one of them reached 2plot.dev as `python-requests/2.x`,
+            # which its tracker classifies as a bot: this satellite's readers
+            # were being counted as crawler traffic on the hub. See
+            # lib/constants.INTERNAL_UA.
+            headers={"User-Agent": internal_ua("ad-client")},
         )
         if resp.status_code == 200 and resp.content:
             return resp.json()

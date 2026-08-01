@@ -5,10 +5,169 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-07-31
 
-Three threads of work, all still unreleased: the CI/CD system, network
-analytics reporting, and the upgrade to `dash-improve-my-llms` 2.2.0.
+**The 2plot network standard, landed on the template.**
+
+`2plot.ai` (the network root) and `2plot.dev` (the section hub) shipped this
+first; satellites are next, and this repo is the one they fork. So the point
+of this release is not that `boilerplate.2plot.dev` complies — it is that the
+files a satellite copies verbatim now carry the standard with them. The new
+[Network Standard](https://boilerplate.2plot.dev/network-standard) page is the
+per-site checklist.
+
+The three obligations below share a shape, and it is worth naming: **every
+failure they prevent is silent.** Nothing errors, no dashboard turns red, and
+the damage accumulates for months. That is why each one is now pinned by a
+test rather than by a convention.
+
+### Added — explicit site identity (`lib/constants.SITE_BRAND`)
+
+One constant, `"Dash Documentation Boilerplate — the 2plot network's
+template"`, now reaches every surface that states what this site is:
+`Dash(title=)`, `register_page_metadata(path="/", name=…)`, the first line of
+`pages/home.md`, and `templates/index.html` (`og:site_name`, `og:title`,
+`twitter:title`, the schema.org `SoftwareApplication.name`, the `<noscript>`
+heading).
+
+What this fixes is not cosmetic. `dash-improve-my-llms` resolves the
+`/llms.txt` H1 and the llms viewer's brand chip through
+`resolve_site_title(home_page_name, app.title)`, and given nothing useful it
+publishes what it finds. On this host that was the `Dash()` constructor's
+default title: every agent that fetched `boilerplate.2plot.dev/llms.txt` cold
+was told the site is called **"Dash"**. The page rendered perfectly the whole
+time. 2.3.4 fixed half of it — generic candidates (`Home`, `Index`, `Dash`)
+are now skipped rather than served — but a package cannot invent a name; the
+other half is stating one.
+
+Naming rules, from the standard: the brand says what the site *is*; the
+package name (`dash-documentation-boilerplate`) belongs in the description;
+"Pip Install Python" is the byline and never the site name.
+
+`tests/test_site_identity.py` pins all of it, including the direction that is
+easy to lose — that `SITE_BRAND` is not itself one of the generic values the
+package skips.
+
+### Added — the internal-traffic contract, both halves
+
+The point of truth is [2plot.ai's satellite-analytics
+document](https://2plot.ai/docs/satellite-analytics), "Internal traffic": any
+request whose User-Agent contains `2plot-internal` is network machinery
+talking to itself and is counted **nowhere**.
+
+*Inbound.* `lib/analytics_tracker.track_visit` drops token-carrying requests
+at write time, **before** `detect_device_type`. The ordering is the whole
+point: a health sweep and a CI battery both look like bots, so classified
+first they land in `bot_hits` and get reported to the hub as crawler interest
+in these docs. `/healthz` and `/health` stopped being stored at all —
+`lib/traffic_rollup` already filtered them on the way out, but a row that
+exists and must be discounted is still a row somebody has to know about.
+
+*Outbound — the half that was missing here.* Every call this host makes to
+another network host now sends `INTERNAL_UA`:
+
+- `lib/ad_client.py` → `2plot.dev`, **once per docs page view**;
+- `lib/satellite_reporter.py` → `2plot.ai`, hourly;
+- `lib/hub_client.py` → `2plot.dev`, per agent-key verify and tier fetch;
+- `scripts/network_smoke.py`, `scripts/smoke_live.py`, `scripts/audit_links.py`.
+
+The ad client is the one that mattered. All of these were arriving as
+`python-requests/2.x`, which matches the hub's own bot patterns — so this
+satellite's readers were inflating 2plot.dev's `bot_hits`, once per page view,
+and had been for as long as the ad slot has existed. The battery scripts keep
+their Googlebot and Chrome tokens *and* append the internal one: the target
+still exercises exactly the path under test, it just knows the caller is
+machinery. The click beacon is the deliberate exception — a browser cannot set
+a User-Agent, and a click is a real person.
+
+`tests/test_internal_traffic.py` proves the exclusion reaches the numbers the
+hub actually charts (`human_hits` / `bot_hits` in `daily_rollup`), proves the
+positive case still counts (a rule that drops everything would satisfy the
+negative assertions), and asserts the outbound header on all three clients and
+all three scripts.
+
+### Added — `scripts/network_smoke.py`, run in three seats
+
+The same named checks against the CI container, against production after a
+deploy, and in-process from `tests/test_network_smoke.py`, so a failure reads
+identically wherever it happens. It proves identity (the `/llms.txt` H1 is the
+brand, verbatim), the deployed artifact (the robots.txt crawler split, which
+is the only fingerprint visible from outside — pip metadata is not), that no
+owner-only surface leaks, that a crawler gets prose and not the JavaScript
+stub, and that agents and browsers get different content types under a
+`Vary: Accept`.
+
+The in-process seat is not redundant: a script that only ever runs in CI and
+after a deploy is exactly the code that rots, where a typo turns a check into
+a silent pass. That test also breaks a check on purpose and requires the
+battery to report it.
+
+### Changed — CI on the network baseline
+
+`.github/workflows/ci.yml` is now a template file in its own right:
+least-privilege `permissions: contents: read`, `timeout-minutes` on every job
+(the default is six hours, which is how one hung `curl` burns a day of runner
+minutes), `docker/setup-buildx-action` with a `type=gha` cache, and version
+fingerprints asserted **inside the built image** rather than in the runner.
+The container is booted and probed by the battery before anything is allowed
+to merge. `cd.yml` runs the battery against the live host before
+`smoke_live.py`.
+
+`tests/conftest.py` now boots the app secretless, the way CI's container does:
+every `CLERK_*`, `CROSS_APP_WEBHOOK_SECRET` and `SESSION_SECRET` is pinned to
+`""` **before** `run.py` is imported, because `load_dotenv()` runs during that
+import and a developer's local `.env` would otherwise flip the app into a
+configured posture and quietly invalidate every fail-closed assertion in
+`tests/test_access.py`. The analytics ledger moves to a temp dir in the same
+block — the suite had been appending its own hits to the repo's checked-out
+`visitor_analytics.json`.
+
+Added `.github/dependabot.yml` with a `dash-network` group (a package release
+lands as one reviewable PR per repo, not five) and an advisory `pip-audit`
+job.
+
+### Changed — dependency floors
+
+- **`dash-improve-my-llms` >= 2.3.4** (from 2.3.2). The network standard;
+  `run.py`'s startup floor and CI's in-image fingerprint both assert it.
+  There is no vendored copy of this package anywhere in the repo — the stale
+  comments in `Dockerfile`, `render.yaml` and `README.md` that still described
+  one are gone. `vendor/` holds `dash_clerk_auth` alone.
+- **`gunicorn` >= 23.0.0** (from 21.2.0). 21.x carried two HTTP
+  request-smuggling CVEs (CVE-2024-6827, CVE-2024-1135), both fixed in 23.0.
+  `markdown2dash` 0.1.2 declares `gunicorn>=21.2.0,<22.0.0` — a markdown
+  parser pinning a WSGI server — which pip cannot reconcile with that floor,
+  so markdown2dash is installed with `--no-deps` and its real dependencies
+  (`docutils`, `jsonpath`, `mistune`) are listed in `requirements.txt`
+  instead. Every install path does the same two commands: `requirements.txt`,
+  `scripts/dev.sh`, the `Dockerfile`, `render.yaml`'s `buildCommand`, CI, and
+  the README. CI's in-image assert is what keeps the dodge honest.
+
+### Added — `.dockerignore`
+
+Found by booting the image locally as part of verifying this release: the
+Dockerfile ends in `COPY . .`, so a developer's `.env` was being baked into
+the production image. The container died at boot with `Could not import
+dash.backends._fastapi` — the local file said `DASH_BACKEND=fastapi` and the
+image has no FastAPI extra. It never appeared in CI, where the checkout has no
+`.env`, which is precisely what made it worth a file rather than a lesson: the
+same `COPY` would carry real Clerk keys and the webhook secret into an image
+layer on any machine that has them. The ledger, session store, virtualenv and
+`node_modules` are excluded too. `docs/**/*.md` deliberately is **not** —
+those files *are* the app.
+
+### Note on versioning
+
+1.1.0 was declared in `README.md` and `lib/constants.APP_VERSION` but never
+cut here; everything previously sitting under `[Unreleased]` ships as part of
+1.2.0. `templates/index.html`'s `softwareVersion` and `APP_VERSION` now agree,
+which `tests/test_config.py` asserts.
+
+---
+
+Previously unreleased, now shipping as part of 1.2.0 — three threads of work:
+the CI/CD system, network analytics reporting, and the upgrade to
+`dash-improve-my-llms` 2.2.0.
 
 2.1.0 was assigned during that package's development and never published, so
 there is no 2.1.0 anywhere and 2.0.0 upgrades straight to 2.2.0. Work
