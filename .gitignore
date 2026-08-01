@@ -146,6 +146,20 @@ visitor_analytics.json.tmp
 
 # Node
 node_modules/
+
+# Build output. scripts/make_social_card.py renders the 1200x630 card here.
+# Deliberately NOT committed and NOT served by the app: the card is published
+# to https://cdn.2plot.ai/github_assets/<domain>.png, because a card served by
+# the app is fetched at unfurl time and a cold free-tier container times out —
+# the preview renders blank once and platforms cache the miss. Regenerate with
+# the script; do not treat this directory as the source of truth.
+build/
+
+# Handoff notes for work that belongs in ANOTHER repo — the kickoff docs that
+# start a session elsewhere. Local scratch by design: a task list for
+# 2plot.dev has no business in the checkout of the template, and every
+# satellite forking this repo would inherit a to-do list that was never theirs.
+kickoff/
 # Local Claude Code workspace: session notes, design scratch, and the vendored
 # package copy used while iterating. Useful locally, noise in a template other
 # people fork.
