@@ -37,6 +37,11 @@ jobs:
     name: deploy to render
     needs: [test]
     runs-on: ubuntu-latest
+    # Long enough for the wait loop below (a 120s settle plus up to 40 × 15s)
+    # and no longer. Without it the job inherits GitHub's six-hour default,
+    # which is how a platform that never comes back healthy holds the
+    # `cd-production` concurrency group all day.
+    timeout-minutes: 20
     environment:
       name: production
       url: https://boilerplate.2plot.dev
