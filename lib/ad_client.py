@@ -19,8 +19,9 @@ Wiring (custom apps without the markdown TOC aside):
 
 Env:
     AD_SERVER_URL  — ad server origin (default https://2plot.dev)
-    AD_APP_ID      — this app's identity in the network (default from
-                     the APP_ID fallback below; override per deployment)
+    AD_APP_ID      — this app's identity in the network (default
+                     "boilerplate"; a fork MUST override it or its
+                     impressions and clicks land on the template's rows)
 
 Failure behaviour: if the ad server is unreachable the slot simply stays
 hidden, and a 60s circuit breaker stops retrying so an outage never adds
@@ -47,7 +48,26 @@ from dash_iconify import DashIconify
 logger = logging.getLogger(__name__)
 
 AD_SERVER_URL = os.environ.get("AD_SERVER_URL", "https://2plot.dev").rstrip("/")
-APP_ID = os.environ.get("AD_APP_ID", "dash-documentation-boilerplate")
+
+# "boilerplate", NOT "dash-documentation-boilerplate". This is the app's own
+# key in the hub's network directory — the same string `SATELLITE_APP_KEY`
+# carries for traffic rollups, `lib/bulletin.py` sends as `?app=`, and
+# `lib/hub_client.py` presents as `X-Satellite-App`. One identifier for this
+# app on every hub surface, so /admin/ad-board and /traffic name the same
+# thing and a column of them stays readable.
+#
+# It also removes a real hazard: `lib/hub_client.app_id()` falls back to
+# `AD_APP_ID` when `SATELLITE_APP_KEY` is unset, so while the ad identifier
+# was a long name that was NOT a directory key, a deployment that set it for
+# ads alone silently re-keyed its hub calls off the directory.
+# `lib/satellite_reporter.app_key()` still refuses to chain to it — see the
+# note there; a fork is free to use a long ad identifier (leaflet.2plot.dev
+# uses "dash-leaflet2" against directory key "leaflet") and that must not
+# re-key its analytics.
+#
+# CHANGING THIS SPLITS HISTORY. The ad server keys impressions and clicks by
+# `app`, so anything logged under the old identifier stays under it.
+APP_ID = os.environ.get("AD_APP_ID", "boilerplate")
 
 _TIMEOUT = 2          # seconds per fetch — never stall a page view longer
 _COOLDOWN = 60        # seconds to skip fetches after a failure

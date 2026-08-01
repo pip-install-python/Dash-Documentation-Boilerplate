@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-08-01
+
+### Fixed — the network bulletin was never wired up
+
+`NETWORK_BULLETIN_URL` has been set in production, pointing at a hub endpoint
+that works, against code that never read it. The wiring sat **commented out**
+in `run.py` under a note saying "2plot.dev does not serve
+/api/network/bulletin yet". The hub started serving it; the comment did not
+change.
+
+Nothing failed. `configure_bulletin` is opt-in, so an unwired app makes no
+request at all and the viewer header renders perfectly well on the package's
+built-in tips and an "No announcements." empty state. The only symptom was an
+announcement that never appeared — which nobody goes looking for.
+
+Now `lib/bulletin.py`, shaped like `lib/proxy.py` and `lib/access.py`: a
+`configure()` that returns whether it wired, and a boot line that says which
+of the two states the process is in. No commented-out code to go stale, and
+`tests/test_bulletin.py::test_run_py_wires_it_rather_than_leaving_it_commented_out`
+fails the moment someone comments it out again — commented wiring cannot
+define the name it asserts on.
+
+Two details worth keeping:
+
+- **`app_id` comes from `SATELLITE_APP_KEY`**, reused from
+  `lib.satellite_reporter.app_key()` rather than hard-coded. The hub scopes
+  announcements by `?app=` and uses it to see which satellites actually render
+  the bulletin, so a fork left announcing itself as `boilerplate` would
+  receive this template's news *and* be miscounted. One notion of "which
+  satellite am I", not two that can disagree.
+- **The TTL is floored at 60s.** It is configurable via
+  `NETWORK_BULLETIN_TTL_S`, and a small value would refetch on nearly every
+  llms.txt view; junk falls back to the default rather than raising at boot.
+
+Verified end to end against the live hub: the rendered header carries the
+hub's own tip wording ("Append /llms.txt to any URL") rather than the
+package's default ("Append /llms.txt to any page URL"), and the current
+announcement.
+
+One thing that cost time and is worth recording: on macOS the package's
+bulletin client fails with `CERTIFICATE_VERIFY_FAILED`, because it uses a bare
+`urlopen` with no CA bundle and the system Python has no OS trust-store
+integration. That is a local-development artifact only — Linux containers have
+a working store — but locally it looks exactly like a broken fetch. Run with
+`SSL_CERT_FILE=$(python -c "import certifi;print(certifi.where())")` to tell
+the two apart. `scripts/smoke_live.py` and `scripts/audit_links.py` already
+carry their own certifi context for the same reason.
+
+### Changed — one identifier for this app on every hub surface
+
+`AD_APP_ID` now defaults to **`boilerplate`**, not
+`dash-documentation-boilerplate`. Four modules present an identity to the hub
+— `lib/ad_client.py`, `lib/satellite_reporter.py`, `lib/hub_client.py` and
+`lib/bulletin.py` — each with its own fallback, and the ad client was the odd
+one out. The visible cost was a column on `/admin/ad-board` that did not line
+up with `/traffic`; the invisible one is that `hub_client.app_id()` falls back
+to `AD_APP_ID` when `SATELLITE_APP_KEY` is unset, so a deployment that set the
+long name for ads alone was silently presenting it as its hub identity too.
+
+`lib/satellite_reporter.app_key()` still refuses to chain to `AD_APP_ID`. The
+two agreeing here is a convenience, not a contract — leaflet.2plot.dev runs
+`AD_APP_ID=dash-leaflet2` against directory key `leaflet`, and setting one for
+ads must never re-key a satellite's analytics series.
+
+`render.yaml` now sets `AD_APP_ID` explicitly rather than leaning on the code
+default, so the deployed value is visible in the blueprint.
+
+**This splits ad history.** The ad server keys impressions and clicks by
+`app`, so anything already logged under `dash-documentation-boilerplate` stays
+there — worth a look at `/admin/ad-board` on 2plot.dev before assuming the
+numbers reset.
+
+### Added — `.env.example`
+
+The repo had none, so every configurable was discoverable only by reading
+`lib/`. Each block states what turns ON when set and what the app does when
+it is not — because almost every one of these fails silently rather than
+loudly: no `APP_BASE_URL` deindexes a fork, no `CROSS_APP_WEBHOOK_SECRET`
+means the hub simply never charts this app, no `NETWORK_BULLETIN_URL` renders
+a header that looks complete.
+
+Not gitignored (the pattern is `.env`, exactly), and `.dockerignore` already
+whitelists it against the `.env*` exclusion added in 1.2.2.
+
+`render.yaml` gains `NETWORK_BULLETIN_URL` so the deployment documents itself
+rather than depending on someone remembering to set it in the dashboard.
+
 ## [1.2.3] - 2026-08-01
 
 **The social card, finished.** 1.2.2 closed three of four defects and left

@@ -62,7 +62,7 @@ SITE_SHORT_NAME = "Dash Documentation Boilerplate"
 PAGE_TITLE_PREFIX = f"{SITE_SHORT_NAME} | "
 
 PRIMARY_COLOR = "teal"
-APP_VERSION = "1.2.3"
+APP_VERSION = "1.2.4"
 
 # ---------------------------------------------------------------------------
 # The network's internal-traffic contract

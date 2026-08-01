@@ -70,10 +70,12 @@ def endpoint() -> str:
 def app_key() -> str:
     """This app's key in the hub's network directory.
 
-    Deliberately NOT chained to ``AD_APP_ID``: the ad network uses long
-    identifiers (e.g. "dash-documentation-boilerplate") that are not hub
-    directory keys — a deployment that set AD_APP_ID for ads would have
-    silently re-keyed its analytics series off the directory.
+    Deliberately NOT chained to ``AD_APP_ID``, even though on THIS app the two
+    now agree ("boilerplate" in both). A fork is free to use a long ad
+    identifier against a short directory key — leaflet.2plot.dev runs
+    ``AD_APP_ID=dash-leaflet2`` with directory key "leaflet" — and setting one
+    for ads must never silently re-key its analytics series off the directory.
+    The convergence here is a convenience, not a contract to lean on.
 
     Default is "boilerplate" (this template's own directory key). The
     "dev" key belongs to 2plot.dev (the pip-docs+ deployment) — apps

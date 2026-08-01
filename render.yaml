@@ -44,8 +44,25 @@ services:
       # Without the secret, reporting is off and the app says so at startup.
       - key: CROSS_APP_WEBHOOK_SECRET
         sync: false
+      # Also the bulletin's identity to the hub (lib/bulletin.py), so a fork
+      # that changes this stops receiving the boilerplate's announcements.
       - key: SATELLITE_APP_KEY
         value: boilerplate
+
+      # This app's identity to the 2plot.dev ad network (lib/ad_client.py).
+      # Set explicitly rather than left to the code default so the value is
+      # visible here — and deliberately the SAME short key as
+      # SATELLITE_APP_KEY above, so /admin/ad-board, /traffic and the bulletin
+      # all name this app identically.
+      - key: AD_APP_ID
+        value: boilerplate
+
+      # Hub-published tips and announcements in the llms.txt viewer header.
+      # Unset, the header still renders on the package's defaults with an
+      # "No announcements." empty state — no error either way, so the boot log
+      # line "network bulletin: ..." is how you tell which state you are in.
+      - key: NETWORK_BULLETIN_URL
+        value: https://2plot.dev/api/network/bulletin
 
       # Behind Cloudflare the country header is already present, so the
       # ip-api.com lookup is redundant latency.

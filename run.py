@@ -377,18 +377,25 @@ elif BACKEND == "quart":
 # header of the llms.txt view, so a twenty-site network says "here is what
 # changed" once instead of in twenty repositories.
 #
-# Deliberately off. 2plot.dev does not serve /api/network/bulletin yet, and
-# pointing at a dead endpoint gains nothing: the client degrades silently and
-# the header renders fine without it. Enable by uncommenting once the hub is
-# live — the contract is in docs/BULLETIN.md in the dash-improve-my-llms repo.
+# This was commented out, with a note saying 2plot.dev did not serve
+# /api/network/bulletin yet. The hub started serving it; the comment did not
+# change; and NETWORK_BULLETIN_URL sat set in production against code that
+# never read it. Nothing failed — the feature is opt-in, so an unwired app
+# makes no request and the viewer header renders fine on the package's
+# defaults. The only symptom was an announcement that never appeared.
 #
-# from dash_improve_my_llms import configure_bulletin
-#
-# if os.environ.get("NETWORK_BULLETIN_URL"):
-#     configure_bulletin(
-#         url=os.environ["NETWORK_BULLETIN_URL"],
-#         app_id="boilerplate",
-#     )
+# Hence lib/bulletin.py, and the boot line below: no commented-out wiring, and
+# the log says which of the two states this process is in.
+from lib import bulletin as _bulletin  # noqa: E402
+
+BULLETIN_ENABLED = _bulletin.configure()
+print(
+    f"[boilerplate] network bulletin: {_bulletin.url()} "
+    f"(app='{_bulletin.app_id()}')"
+    if BULLETIN_ENABLED else
+    "[boilerplate] network bulletin: off — set NETWORK_BULLETIN_URL="
+    f"{_bulletin.HUB_BULLETIN_URL} to render the hub's announcements"
+)
 
 # ============================================================================
 # Access control (dash-improve-my-llms 2.3). Reads the tiers the pages just

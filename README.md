@@ -696,7 +696,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 
 ## 📊 Version Information
 
-**Current Version**: 1.2.3
+**Current Version**: 1.2.4
 
 | Component | Version |
 |-----------|---------|
