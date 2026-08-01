@@ -167,7 +167,13 @@ class Client:
 
         if self._kind == "werkzeug":
             r = self._raw.get(path, headers=headers)
-            return Response(r.status_code, r.get_data(as_text=True), dict(r.headers))
+            # errors="replace", not `as_text=True`: the latter decodes strictly
+            # and raises UnicodeDecodeError on any binary response, so a test
+            # that merely checks a favicon or a manifest icon RESOLVES would
+            # blow up on the PNG's first byte. httpx (the FastAPI branch) is
+            # already lenient; this matches it.
+            return Response(r.status_code, r.get_data().decode("utf-8", "replace"),
+                            dict(r.headers))
 
         if self._kind == "quart":
             async def fetch():

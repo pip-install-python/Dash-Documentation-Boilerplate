@@ -71,9 +71,6 @@
     <!-- Main title for SEO - should match or complement the title element -->
     <meta name="title" content="Dash Documentation Boilerplate — the 2plot network's template">
 
-    <!-- Description - Shows in search results (150-160 chars optimal) -->
-    <meta name="description" content="A modern, responsive documentation system for Dash applications with Mantine Components, LLM integration, and interactive examples. Build beautiful docs fast.">
-
     <!-- Keywords - Helps search engines understand your content (optional in 2024) -->
     <meta name="keywords" content="Python Dash, documentation, Dash Mantine Components, interactive docs, Python documentation, Plotly Dash, markdown docs, technical documentation, developer tools">
 
@@ -90,28 +87,41 @@
          OPEN GRAPH / FACEBOOK META TAGS
          These control how your site appears when shared on Facebook, LinkedIn, etc.
          Learn more: https://ogp.me/
-         ======================================================================== -->
+         ========================================================================
+         ONE RULE, and it is the whole reason this block is short: declare only
+         what Dash does NOT emit itself.
 
-    <meta property="og:type" content="website">
+         `dash.register_page()` makes Dash generate `description`, `og:type`,
+         `og:title`, `og:description`, `og:image` and the full `twitter:*` set
+         on EVERY request, per page (see `_page_meta_tags` in dash/_pages.py).
+         Declaring them here as well produces two of each — and the static copy
+         describes the SITE while Dash's describes the PAGE, so the duplicate is
+         both redundant and less accurate. Which one a scraper honours is not
+         defined; in practice the later tag wins, which is Dash's.
+
+         `og:site_name` and `og:url` are genuinely absent from Dash's set, so
+         they belong here. tests/test_social_card.py asserts the count.
+         ======================================================================== -->
 
     <!-- OG URL - The canonical URL of your site -->
     <meta property="og:url" content="https://boilerplate.2plot.dev/">
 
-    <!-- OG Title - Title shown in social media shares (max 60 chars) -->
-    <meta property="og:title" content="Dash Documentation Boilerplate — the 2plot network's template">
-
-    <!-- OG Description - Description shown in social shares (max 200 chars) -->
-    <meta property="og:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
-
-    <!-- OG Image - Preview image for social shares.
+    <!-- OG Image — the URL itself is NOT declared here. Deliberately.
          Ideal is 1200x630px, JPG/PNG/GIF, < 8MB.
 
-         This pointed at assets/og-image.png, which never existed in the repo,
-         so every share rendered a blank card. It now points at a real asset
-         and declares that file's ACTUAL dimensions — a width/height that
-         disagrees with the image is worse than declaring none at all. Make a
-         purpose-built 1200x630 card and replace all three lines. -->
-    <meta property="og:image" content="https://boilerplate.2plot.dev/assets/ddb.png">
+         Dash emits og:image and twitter:image for every page from
+         register_page(image_url=...), which lib/constants.OG_IMAGE_URL now
+         supplies. A static copy here would make TWO of each tag and let the
+         scraper choose — which is exactly what went wrong before: with no
+         image_url passed, Dash INFERRED one from the assets folder, found
+         assets/logo.svg, and emitted it alongside this block. Social scrapers
+         reject SVG, and the inferred tag came last, so the card that had been
+         carefully described here lost to an image nothing could render.
+
+         What stays are the auxiliaries Dash never emits. Keep the dimensions
+         in step with lib/constants.OG_IMAGE_* — a width/height that disagrees
+         with the file is worse than declaring none. For a purpose-built
+         1200x630 card, replace the asset and update those constants. -->
     <meta property="og:image:width" content="784">
     <meta property="og:image:height" content="741">
     <meta property="og:image:alt" content="Dash Documentation Boilerplate — the 2plot network's template">
@@ -123,22 +133,14 @@
          TWITTER CARD META TAGS
          Control how your site appears when shared on Twitter/X
          Learn more: https://developer.twitter.com/en/docs/twitter-for-websites/cards
-         ======================================================================== -->
+         ========================================================================
+         Same rule as the Open Graph block above: Dash emits `twitter:card`,
+         `twitter:url`, `twitter:title`, `twitter:description` and
+         `twitter:image` per page. All five used to be declared here as well,
+         which is why every page shipped two of each.
 
-    <!-- Card type - summary_large_image shows large preview, summary shows small -->
-    <meta property="twitter:card" content="summary_large_image">
-
-    <!-- Twitter URL - Same as your canonical URL -->
-    <meta property="twitter:url" content="https://boilerplate.2plot.dev/">
-
-    <!-- Twitter Title - Title for Twitter shares -->
-    <meta property="twitter:title" content="Dash Documentation Boilerplate — the 2plot network's template">
-
-    <!-- Twitter Description - Description for Twitter shares -->
-    <meta property="twitter:description" content="Build beautiful, interactive documentation for your Dash applications with markdown, custom directives, and LLM integration.">
-
-    <!-- Twitter Image - Same as OG image (1200x630px recommended) -->
-    <meta property="twitter:image" content="https://boilerplate.2plot.dev/assets/ddb.png">
+         Only the alt text is left, because Dash omits it. -->
+    <meta name="twitter:image:alt" content="Dash Documentation Boilerplate — the 2plot network's template">
 
     <!-- Optional: Twitter Creator - Your Twitter handle -->
     <!-- <meta property="twitter:creator" content="@yourtwitterhandle"> -->
@@ -152,19 +154,29 @@
     <!-- Standard favicon (32x32 or 16x16) -->
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 
-    <!-- PNG favicons for modern browsers -->
-    <!-- <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png"> -->
-    <!-- <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png"> -->
+    <!-- The full icon set ships in assets/favicon/. These were commented out
+         while it did not, with a note saying the files were missing — that
+         note outlived the files' arrival, so the icons sat in the repo unused
+         and the install prompt stayed impossible. Note the /assets/favicon/
+         prefix: the commented-out originals pointed at /assets/, one level up,
+         where none of these are served.
 
-    <!-- Apple Touch Icon (180x180) and web app manifest. Commented out
-         because neither file ships in assets/ — a live <link> to a missing
-         one is a 404 on every page load, requested by iOS and by Chrome's
-         install prompt. Generate them (https://realfavicongenerator.net/),
-         drop them in assets/, then uncomment. -->
-    <!-- <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png"> -->
-    <!-- <link rel="manifest" href="/assets/site.webmanifest"> -->
+         The manifest is what turns this into an installable app rather than a
+         bookmarkable page. A fork edits assets/favicon/site.webmanifest — its
+         name, short_name and theme_color are per-site, and a browser silently
+         declines to offer installation if `name` is empty. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
+    <link rel="manifest" href="/assets/favicon/site.webmanifest">
+    <meta name="apple-mobile-web-app-title" content="Dash Docs Boilerplate">
+    <meta name="msapplication-TileColor" content="#12B886">
+    <meta name="msapplication-TileImage" content="/assets/favicon/android-chrome-192x192.png">
 
-    <!-- Theme color - Sets the browser UI color on mobile (matches your brand) -->
+    <!-- Theme color - Sets the browser UI color on mobile (matches your brand).
+         Keep this in step with `theme_color` in assets/favicon/site.webmanifest;
+         a mismatch shows one colour in the browser chrome and another on the
+         installed app's splash screen. -->
     <meta name="theme-color" content="#12B886">
 
     <!-- ========================================================================
@@ -244,7 +256,7 @@
             "name": "Pip Install Python LLC",
             "url": "https://2plot.ai"
         },
-        "softwareVersion": "1.2.0",
+        "softwareVersion": "1.2.1",
         "programmingLanguage": "Python"
     }
     </script>

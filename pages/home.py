@@ -4,12 +4,19 @@ import frontmatter
 import dash_mantine_components as dmc
 from dash import dcc, register_page
 
-from lib.constants import PAGE_TITLE_PREFIX
+from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, SITE_DESCRIPTION
 
 register_page(
     __name__,
     "/",
     title=PAGE_TITLE_PREFIX + "Home",
+    # Dash emits `description`, `og:description` and `twitter:description` for
+    # every page from this argument, and emits them EMPTY when it is missing —
+    # which is what the home page, the most-linked page on the site, was doing.
+    description=SITE_DESCRIPTION,
+    # The most-shared page on the site. See lib.constants.OG_IMAGE_URL for why
+    # this is explicit rather than inferred from assets/.
+    image_url=OG_IMAGE_URL,
 )
 
 directory = "docs"

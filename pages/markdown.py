@@ -12,7 +12,7 @@ from markdown2dash import Admonition, BlockExec, Divider, Image, create_parser
 from pydantic import BaseModel
 
 from lib.ad_client import inject_ad_into_aside
-from lib.constants import PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
+from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
 from lib import page_tiers
 from lib.directives.headings import patch_renderer
 from lib.directives.kwargs import Kwargs
@@ -149,6 +149,10 @@ for file in files:
         layout=layout,
         category=metadata.category,
         icon=metadata.icon,
+        # Without this Dash infers an image from assets/ and finds `logo.svg` —
+        # an SVG, which every social scraper rejects — then emits it ALONGSIDE
+        # the og:image in templates/index.html. See lib.constants.OG_IMAGE_URL.
+        image_url=OG_IMAGE_URL,
     )
 
     # Feed the expanded markdown into dash-improve-my-llms so /<page>/llms.txt

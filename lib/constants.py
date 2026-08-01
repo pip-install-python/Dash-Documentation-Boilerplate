@@ -40,7 +40,7 @@ APP_TITLE = SITE_BRAND
 
 PAGE_TITLE_PREFIX = "Dash Pip Components | "
 PRIMARY_COLOR = "teal"
-APP_VERSION = "1.2.0"
+APP_VERSION = "1.2.1"
 
 # ---------------------------------------------------------------------------
 # The network's internal-traffic contract
@@ -99,6 +99,30 @@ def internal_ua(caller: str = "") -> str:
 # refuses to boot in production if you didn't.
 DEFAULT_BASE_URL = "https://boilerplate.2plot.dev"
 BASE_URL = os.environ.get("APP_BASE_URL", DEFAULT_BASE_URL).rstrip("/")
+
+# ---------------------------------------------------------------------------
+# The social card
+# ---------------------------------------------------------------------------
+# TEMPLATE VALUE: a fork points this at its own image and changes nothing else.
+#
+# Dash builds `og:image` and `twitter:image` for every page (dash/_pages.py).
+# When no `image_url=` is passed it INFERS one from the assets folder, looking
+# for `<page>.<ext>`, then `app.<ext>`, then `logo.<ext>` — and this repo ships
+# `assets/logo.svg`, so it inferred that. Two separate failures followed, both
+# invisible from inside the app:
+#
+#   1. SVG is not a valid social image. Facebook, Twitter/X, LinkedIn and
+#      Slack all reject it, so the card fell back to no image at all;
+#   2. it DUPLICATED the og:image already declared in templates/index.html.
+#      Two tags, and the scraper picks — usually the last, which was the SVG.
+#
+# Passing an explicit absolute `image_url` at register_page time resolves both:
+# it overrides the inference, and it lets index.html stop declaring the URL
+# itself and keep only the auxiliary width/height/alt tags Dash never emits.
+OG_IMAGE_URL = f"{BASE_URL}/assets/ddb.png"
+OG_IMAGE_WIDTH = 784
+OG_IMAGE_HEIGHT = 741
+OG_IMAGE_ALT = SITE_BRAND
 
 
 def require_owned_base_url(base_url: str = BASE_URL) -> None:

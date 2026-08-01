@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-07-31
+
+**The social card and the installable app** — the two surfaces that live
+entirely outside the app, and so fail where nobody is looking. Found while
+rolling the standard onto `leaflet.2plot.dev`, which inherited the same shapes
+from this template. Satellites copy `tests/test_social_card.py` verbatim.
+
+### Fixed
+
+- **Two `og:image` tags per page, and the wrong one won.** `templates/index.html`
+  declared `og:image` / `twitter:image` statically while Dash also emits both
+  per page. With no `image_url=` passed, Dash *inferred* an image from the
+  assets folder, found `assets/logo.svg`, and emitted it alongside the static
+  tag. Every major scraper rejects SVG, and the inferred tag came last — so the
+  card described so carefully in the template lost to an image nothing can
+  render. `lib/constants.OG_IMAGE_URL` is now passed to `register_page`, and
+  the template keeps only the auxiliaries Dash omits.
+- **The same duplication across nine other tags** — `description`, `og:type`,
+  `og:title`, `og:description`, `twitter:card`, `twitter:url`, `twitter:title`,
+  `twitter:description`, `twitter:image` were all declared statically *and*
+  emitted by Dash. The static copies described the site where Dash's describe
+  the page, so the duplicate was both redundant and the less accurate of the
+  two. `test_no_meta_tag_dash_emits_is_also_declared_statically` pins the rule.
+- **The home page published an empty `description`.** `pages/home.py` never
+  passed one, so Dash emitted `description`, `og:description` and
+  `twitter:description` as `content=""` on the most-linked page on the site.
+- **The web app manifest was inert, and named the wrong product.** Its link and
+  the `apple-touch-icon` were commented out behind a note saying the files were
+  missing — a note that outlived their arrival in `assets/favicon/` — and the
+  commented hrefs pointed at `/assets/`, one level above where they live. The
+  manifest itself still read *"Dash Email — Email components for Plotly Dash"*,
+  copied in from another repo; that string is what an installed app would have
+  shown on the home screen. Fixed, linked, and its `theme_color` reconciled
+  with the `theme-color` meta tag.
+
+### Added
+
+- `tests/test_social_card.py` — a template file. Asserts the image is declared
+  exactly once, is absolute, is not an SVG and resolves; that the manifest is
+  linked, served, correctly named and has resolving icons; and that
+  `templates/index.html` is still wired in, since it looks removable (
+  dash-improve-my-llms appears to cover OpenGraph) and is not — its injection
+  runs only on the prerender path, which social scrapers do not take.
+- `lib/constants.OG_IMAGE_URL` / `_WIDTH` / `_HEIGHT` / `_ALT` — the per-site
+  values a fork changes.
+
 ## [1.2.0] - 2026-07-31
 
 **The 2plot network standard, landed on the template.**
