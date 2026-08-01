@@ -218,6 +218,27 @@ if MCP_KWARGS:
 # /api/auth/* routes and per-request identity are wired here. No-op when off.
 _auth.configure_app(app)
 
+# ----------------------------------------------------------------------------
+# Trust the proxy's forwarded scheme. Immediately after the server object
+# exists and before anything can serve a request.
+#
+# Dash builds `twitter:url` from `request.url` for every page, and behind
+# Cloudflare -> Render the last hop is plain HTTP, so production advertised
+# `http://boilerplate.2plot.dev/` to every social scraper while `og:url` (which
+# templates/index.html hard-codes) looked correct. Scrapers do not run
+# JavaScript, so the client-side canonical sync in the template cannot reach
+# this. See lib/proxy.py for why gunicorn's own forwarded-header handling does
+# not cover it, and for the trust boundary.
+# ----------------------------------------------------------------------------
+from lib import proxy as _proxy  # noqa: E402
+
+PROXY_FIX_APPLIED = _proxy.apply(app, BACKEND)
+print(
+    "[boilerplate] forwarded-scheme trust: "
+    + ("on" if PROXY_FIX_APPLIED else "OFF — request.url will report the "
+       "scheme of the last proxy hop, and social cards will advertise it")
+)
+
 # Expose backend info so layout components can render a badge without
 # re-reading the env var (which could drift between processes/workers).
 app._backend_info = BACKEND_INFO

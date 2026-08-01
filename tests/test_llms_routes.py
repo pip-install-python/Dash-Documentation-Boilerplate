@@ -115,11 +115,17 @@ def test_exactly_one_canonical_tag_for_browsers(client):
     """A hard-coded canonical in index.html doesn't replace the injected one.
 
     It joins it, and two conflicting canonicals are read as no signal at all.
+
+    Counts ELEMENTS, not the bare substring `rel="canonical"`. The template
+    both explains itself in comments and now ships a script whose selector
+    names the attribute (`link[rel="canonical"]`, the SPA URL sync) — neither
+    is a canonical tag, and a substring count read both as one. Same lesson as
+    the `dv-banner` chrome check below: match the markup, not the words, so a
+    file may legitimately discuss what it is being checked for.
     """
-    # The template explains, in a comment, why it does not set a canonical.
-    # That comment ships to the browser, so strip comments before counting.
     html = re.sub(r"<!--.*?-->", "", client.get("/backends").text, flags=re.S)
-    assert len(re.findall(r'rel="canonical"', html)) == 1
+    tags = re.findall(r'<link[^>]+rel="canonical"[^>]*>', html)
+    assert len(tags) == 1, f"expected exactly one canonical element, got {tags}"
 
 
 def test_healthz(client):

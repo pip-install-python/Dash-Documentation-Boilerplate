@@ -17,10 +17,16 @@ controls, and the H1 it produces.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from conftest import REPO_ROOT
-from lib.constants import SITE_BRAND, SITE_DESCRIPTION
+from lib.constants import (
+    PAGE_TITLE_PREFIX,
+    SITE_BRAND,
+    SITE_DESCRIPTION,
+    SITE_SHORT_NAME,
+)
 
 # Spelled out rather than imported, so that renaming the constant cannot
 # silently rename the site. Changing the brand should require changing this
@@ -114,6 +120,60 @@ def test_llms_package_floor_is_the_network_standard():
         f"dash-improve-my-llms {pkg.__version__} predates resolve_site_title; "
         "the viewer chip and the /llms.txt H1 would fall back to app.title"
     )
+
+
+# ---------------------------------------------------------------------------
+# The per-page title — a share-card surface, not just a browser tab
+#
+# Dash passes each page's `title` straight into `og:title` and `twitter:title`
+# (dash/_pages.py `_page_meta_tags`). PAGE_TITLE_PREFIX therefore sets the
+# headline of every unfurl this site produces, and it read the FORK SOURCE's
+# brand ("Dash Pip Components | ") in production until 1.2.2 — while every
+# other surface correctly said this site's name. Nobody sees their own share
+# cards, so only a test catches it.
+# ---------------------------------------------------------------------------
+
+
+def test_the_page_title_prefix_is_this_site():
+    assert PAGE_TITLE_PREFIX == f"{SITE_SHORT_NAME} | "
+    assert "Dash Pip Components" not in PAGE_TITLE_PREFIX, (
+        "the fork source's brand is back in every share card"
+    )
+
+
+def test_the_short_name_cannot_drift_from_the_brand():
+    """Two constants, one identity. Derived, so this should be automatic."""
+    assert SITE_BRAND.startswith(SITE_SHORT_NAME)
+
+
+def test_the_share_card_headline_names_this_site(client):
+    """og:title and twitter:title, as a scraper reads them."""
+    html = client.get("/").text
+    for tag in ("og:title", "twitter:title"):
+        found = re.findall(
+            rf'<meta[^>]*property="{tag}"[^>]*content="([^"]*)"', html
+        )
+        assert found, f"no {tag} on the home page"
+        for value in found:
+            assert "Dash Pip Components" not in value, (
+                f"{tag}={value!r} advertises the fork source"
+            )
+            assert SITE_SHORT_NAME in value, f"{tag}={value!r} does not name this site"
+
+
+def test_no_surface_still_carries_the_fork_source_brand():
+    """A sweep, because the prefix was not the only place it could hide."""
+    offenders = []
+    for path in ("lib/constants.py", "templates/index.html", "pages/home.md",
+                 "assets/favicon/site.webmanifest"):
+        text = (REPO_ROOT / path).read_text()
+        # The constants file documents the old value in a comment explaining
+        # the fix; that is the one legitimate mention.
+        stripped = re.sub(r"#.*", "", text) if path.endswith(".py") else text
+        stripped = re.sub(r"<!--.*?-->", "", stripped, flags=re.S)
+        if "Dash Pip Components" in stripped:
+            offenders.append(path)
+    assert offenders == [], f"the fork source's brand survives in {offenders}"
 
 
 def test_home_markdown_is_not_a_stale_copy_of_the_old_opening():

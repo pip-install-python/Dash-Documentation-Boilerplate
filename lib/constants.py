@@ -38,9 +38,31 @@ SITE_DESCRIPTION = (
 # come from PAGE_TITLE_PREFIX below.
 APP_TITLE = SITE_BRAND
 
-PAGE_TITLE_PREFIX = "Dash Pip Components | "
+# The brand without its tagline. SITE_BRAND is right for a page that has room
+# for it; this is for the places that prefix something else and would otherwise
+# run past every platform's truncation point.
+SITE_SHORT_NAME = "Dash Documentation Boilerplate"
+
+# Prefixed to every per-page title (`pages/markdown.py`, `pages/home.py`), and
+# therefore NOT only a browser-tab string: Dash passes the page title straight
+# into `og:title` and `twitter:title` (dash/_pages.py `_page_meta_tags`), so
+# this is the headline on every share card the site produces.
+#
+# It read "Dash Pip Components | " until 1.2.2 — the fork source's brand,
+# inherited and never changed, so every unfurl of boilerplate.2plot.dev
+# advertised a different site while `<title>`, `og:site_name` and the
+# /llms.txt H1 all correctly said this one. That is exactly the drift the
+# network's identity rule exists to stop, and it is invisible from inside the
+# app because nobody sees their own share cards.
+#
+# Network convention, matching the other satellites (`dash-leaflet2 | `,
+# `Dash Email | `): the SHORT site name, then a pipe. Derived rather than
+# retyped so the two cannot drift apart; tests/test_site_identity.py pins the
+# relationship.
+PAGE_TITLE_PREFIX = f"{SITE_SHORT_NAME} | "
+
 PRIMARY_COLOR = "teal"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.2"
 
 # ---------------------------------------------------------------------------
 # The network's internal-traffic contract

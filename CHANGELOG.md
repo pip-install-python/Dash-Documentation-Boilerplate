@@ -5,6 +5,134 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-08-01
+
+**Finishing 1.2.1, and the three things it exposed.** 1.2.1 shipped the right
+template and half the change. Everything below was measured against the live
+site rather than a local boot, because the local/deployed gap is precisely
+what hid the first defect for a day.
+
+### Fixed — the 1.2.1 files were never committed
+
+`assets/favicon/` (the whole icon set plus `site.webmanifest`) and
+`tests/test_social_card.py` were sitting UNTRACKED. The committed template
+pointed at `/assets/favicon/…`, the deploy builds from git, so production
+404'd the manifest, the apple-touch-icon and every PNG icon link — the entire
+installable-app surface — while every local boot looked perfect because the
+files were on disk. Nothing in the app reported it; `git status` was the only
+place it appeared. Measured on the live site:
+
+```
+/assets/favicon/site.webmanifest      404
+/assets/favicon/apple-touch-icon.png  404
+/assets/favicon/favicon-32x32.png     404
+```
+
+The guard test was untracked too, so the one thing that would have caught this
+had never run in CI either. Both are now tracked, and
+`test_every_asset_the_template_references_resolves` widens the check from
+"the manifest icons resolve" to "**every** `/assets/…` the template
+references resolves" — because the failure was never about icons, it was
+about a template referencing a file the repository does not have. A checkout
+is what CI tests, so it fails there the moment something is not committed.
+
+The manifest's contents needed no change; they were already correct.
+
+### Fixed — the fork source's brand on every share card
+
+`PAGE_TITLE_PREFIX` still read `"Dash Pip Components | "`, inherited from the
+upstream this template was forked from and never changed. That is not only a
+browser-tab string: Dash passes each page's title straight into `og:title` and
+`twitter:title` (`dash/_pages.py:_page_meta_tags`), so every unfurl of
+`boilerplate.2plot.dev` advertised **a different site**, while `<title>`,
+`og:site_name` and the `/llms.txt` H1 all correctly said this one.
+
+Now `f"{SITE_SHORT_NAME} | "`, matching the network convention the other
+satellites already use (`dash-leaflet2 | `, `Dash Email | `) and derived from
+the brand rather than retyped, so the two cannot drift.
+`tests/test_site_identity.py` pins the prefix, the derivation, the rendered
+`og:title`/`twitter:title`, and sweeps the identity surfaces for any surviving
+mention of the old brand.
+
+Nobody sees their own share cards, which is the whole reason this needed a
+test rather than a look at the page.
+
+### Fixed — `twitter:url` advertised `http://` (`lib/proxy.py`)
+
+Dash builds that tag from `request.url`, and on Flask `request.url` comes from
+`wsgi.url_scheme`. Requests arrive over Cloudflare → Render → gunicorn and the
+last hop is plaintext, so production told every social scraper
+`http://boilerplate.2plot.dev/`. `og:url` looked fine throughout because the
+template hard-codes it.
+
+gunicorn does try to fix this — it rewrites the scheme from
+`X-Forwarded-Proto`, but only when the immediate peer is in
+`forwarded_allow_ips`, which defaults to `127.0.0.1`. Reading the header
+ourselves one layer above gunicorn sidesteps the question entirely:
+`HTTP_X_FORWARDED_PROTO` is in the environ either way.
+
+Notes on the implementation, all of them load-bearing:
+
+- **Only the scheme is taken.** Host is not rewritten from
+  `X-Forwarded-Host`; `BASE_URL` is already this project's single source of
+  truth for the public origin, and a second header-derived notion of "what
+  host am I" is how a fork ends up serving two.
+- **The FIRST entry of the header wins.** Proxies append, as with
+  `X-Forwarded-For`, so the last entry is the hop nearest the app — the
+  plaintext one being seen past. Reading from the wrong end reinstates the
+  bug and still passes a single-proxy test, so there is a test for it.
+- **`TRUST_PROXY_HEADERS=0`** turns it off. This trusts a header from whoever
+  connected, which is correct behind Render (it overwrites the header on every
+  inbound request) and wrong for an app exposed directly, where a client could
+  forge it.
+- **The server object is wrapped, never rebound** — `app.server` stays the
+  Flask/FastAPI/Quart instance that gunicorn imports as `run:server` and that
+  `run.py` hangs `before_request` off. All three backends are handled.
+
+The sibling `leaflet.2plot.dev` already serves `https` in the same tag from an
+identical Cloudflare/Render/gunicorn stack with no proxy configuration of its
+own; the difference we could observe is that it deploys as a Docker service
+rather than a native one, which would plausibly put the proxy on loopback and
+satisfy gunicorn's default. That is inference — Render's internal topology is
+not visible to us — and the fix deliberately does not depend on which
+explanation is true.
+
+### Added — client-side URL sync on SPA navigation
+
+Ported from `leaflet.2plot.dev` and adapted: that site hard-codes a static
+canonical and this one does not (dash-improve-my-llms injects a per-page one),
+so this version only ever *corrects* tags that exist and never creates one.
+
+Three tags go stale after the first client-side route change, each for a
+different reason: `og:url` is static in the template, `twitter:url` is
+server-rendered from the entry request, and the injected canonical is right on
+arrival and wrong thereafter. Dash routes through `history.pushState`, which
+fires no event, so the tags advertise the landing URL for the rest of the
+session. The origin is read from the existing `og:url` tag rather than
+hard-coded a second time.
+
+This helps Google, which runs JS. It cannot help social scrapers, which do
+not — which is why the scheme half had to be fixed server-side.
+
+### Changed — `test_exactly_one_canonical_tag_for_browsers` counts elements
+
+It counted the substring `rel="canonical"`, and the new sync script's selector
+(`link[rel="canonical"]`) is not a canonical tag. Same lesson as the
+`dv-banner` chrome check it sits beside: match the markup, not the words, so a
+file may legitimately discuss what it is being checked for.
+
+### Still open — the card image is not on the CDN
+
+`og:image` remains `/assets/ddb.png`, 784×741, served by the app. The declared
+dimensions match the file honestly, so nothing is broken, but it misses two
+network rules: cards belong on `cdn.2plot.ai` so a cold free-tier container
+cannot blank a preview, and `summary_large_image` wants roughly 1.91:1
+(leaflet's is 1280×515). `https://cdn.2plot.ai/github_assets/boilerplate.2plot.dev.png`
+does not exist yet, and pointing `og:image` at a 404 is strictly worse than
+the present state, so this waits on the asset. When it lands, the change is
+`OG_IMAGE_URL` plus the width/height constants, plus the `og:image:secure_url`
+and `og:image:type` tags leaflet carries.
+
 ## [1.2.1] - 2026-07-31
 
 **The social card and the installable app** — the two surfaces that live

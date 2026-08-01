@@ -193,6 +193,74 @@
          ======================================================================== -->
 
     <!-- ========================================================================
+         URL SYNC ON SPA NAVIGATION
+         ========================================================================
+         Ported from leaflet.2plot.dev, adapted: that site hard-codes a static
+         canonical and this one does not (see above), so this script CORRECTS
+         tags that exist and never creates one.
+
+         What goes stale, and why each is stale for a different reason:
+
+           og:url        static in this file, so it says "/" on every page;
+           twitter:url   Dash builds it from request.url — correct for the
+                         page the visitor LANDED on, then frozen there;
+           canonical     dash-improve-my-llms injects it per page server-side,
+                         which is right on arrival and wrong after one
+                         client-side route change.
+
+         This is a single-page app: Dash routes through history.pushState,
+         which fires no event, so the tags keep advertising the entry URL for
+         the rest of the session. Google runs JS and will see the corrected
+         values; social scrapers do NOT, which is why the scheme half of this
+         problem had to be fixed server-side in lib/proxy.py instead.
+
+         The origin is read from the og:url tag above rather than hard-coded
+         again — one value to change in a fork. It is deliberately not
+         location.origin: a hosting platform's generated hostname keeps
+         resolving after a custom domain is attached, and hits on it must
+         consolidate onto the custom domain rather than compete with it.
+         ======================================================================== -->
+    <script>
+        (function () {
+            var declared = document.querySelector('meta[property="og:url"]');
+            var ORIGIN;
+            try {
+                ORIGIN = new URL(declared.content).origin;
+            } catch (e) {
+                return;  // no og:url to learn from: leave every tag alone
+            }
+
+            function sync() {
+                var path = location.pathname.replace(/\/+$/, '') || '/';
+                var href = ORIGIN + (path === '/' ? '/' : path);
+
+                // querySelectorAll, not querySelector: og:url and twitter:url
+                // may each appear once from this template and once from the
+                // package's prerender block, and both copies must agree.
+                document.querySelectorAll(
+                    'meta[property="og:url"], meta[property="twitter:url"], ' +
+                    'link[rel="canonical"]'
+                ).forEach(function (el) {
+                    if (el.tagName === 'LINK') { el.href = href; }
+                    else { el.setAttribute('content', href); }
+                });
+            }
+
+            sync();
+
+            ['pushState', 'replaceState'].forEach(function (method) {
+                var original = history[method];
+                history[method] = function () {
+                    var result = original.apply(this, arguments);
+                    sync();
+                    return result;
+                };
+            });
+            window.addEventListener('popstate', sync);
+        })();
+    </script>
+
+    <!-- ========================================================================
          SEARCH ENGINE VERIFICATION
          Verify ownership of your site with Google, Bing, etc.
          ======================================================================== -->
@@ -256,7 +324,7 @@
             "name": "Pip Install Python LLC",
             "url": "https://2plot.ai"
         },
-        "softwareVersion": "1.2.1",
+        "softwareVersion": "1.2.2",
         "programmingLanguage": "Python"
     }
     </script>
