@@ -63,8 +63,29 @@ jobs:
       - name: flake8
         run: flake8 lib components pages tests scripts run.py
 
+      # The workflows lint themselves. This is not belt-and-braces: an invalid
+      # workflow file is the one defect CI structurally cannot report, because
+      # the run dies before a job exists to fail. A double-quoted string in a
+      # ${{ }} expression on line 67 of THIS file silently killed every CI and
+      # CD run on this repo for four days — nothing to click, nothing in the
+      # API but `conclusion: failure` with zero jobs. actionlint catches it in
+      # a second, and (this is the point) a pull request that reintroduces it
+      # gets a red check with the offending column underlined.
+      - name: actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color
+
   test:
-    name: py${{ matrix.python }} · ${{ matrix.backend }} · dash${{ matrix.dash && format(" {0}", matrix.dash) || " (pinned)" }}
+    # SINGLE quotes inside ${{ }}. GitHub Actions expressions accept no other
+    # string delimiter, and a double quote is a LEX error — which invalidates
+    # the whole workflow file, not just this line. An invalid file is not
+    # reported as a failing check: the run is created, dies in zero seconds
+    # with zero jobs scheduled, and shows only "Failure" with nothing to open.
+    # Every CI and CD run on this repo did that, unnoticed, for four days —
+    # CD included, because its first job `uses:` this file. The `actionlint`
+    # step in the lint job exists so this can never be silent again.
+    name: py${{ matrix.python }} · ${{ matrix.backend }} · dash${{ matrix.dash && format(' {0}', matrix.dash) || ' (pinned)' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
