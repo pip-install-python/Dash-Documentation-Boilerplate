@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-08-01
+
+### Fixed — `scripts/smoke_live.py` failed CD on healthy sites
+
+The post-deploy battery is the fleet's deploy gate: `cd.yml` runs it against
+the live host after every merge and its exit code decides whether the run
+goes green. Its `fetch` was a single `urlopen` — no retry, no wake-up — while
+most of the fleet sits on Render tiers where a cold start or a dropped
+connection is routine. Measured on dash-flows-upgraded: two runs minutes
+apart against the same host, `FAIL canonical on /interactions` then
+`ok canonical on /interactions`. A misdiagnosed failure is worse than a slow
+one; it sends you to look at canonical tags that were correct all along.
+
+Both fixes already existed in-fleet and never met (blueprint LESSONS §21
+states the rule outright):
+
+- **A wake-up loop before the first check.** `/healthz` is polled up to 24
+  times, 10s apart — deliberately wider than §21's "12×5s is plenty",
+  because a free-tier cold start routinely takes 60–90s and the window only
+  costs time when the host is actually down. Awake means `ok: true`, not any
+  200: Render's loading page and a CDN error page can both be 200s. A host
+  that never wakes is ONE failure ("nothing else was tested"), not a cascade
+  of forty per-check failures that all mean the same thing.
+- **A retry ladder inside `fetch`** — the shape `scripts/network_smoke.py`
+  already had, and that leaflet's copy of this very script grew without the
+  fix ever flowing back to the canonical here. Transport errors and 5xx
+  retry with backoff; 2xx/3xx/4xx return immediately, because a 404 is a
+  verdict and retrying it only slows the battery. Retries print to the CD
+  log — a green run that shows retries is a host worth watching.
+
+Proven live before shipping, twice over: on the first run after the change,
+flows' llms.txt dropped the connection mid-body (`IncompleteRead`) and passed
+on retry — the exact flake that triggered this fix — and a run against
+email.2plot.dev saw its OWN pages do the same on two *fatal* checks that
+would have turned that deploy red.
+
+Tunables (env, so satellites stretch them without editing the file):
+`SMOKE_WAKE_ATTEMPTS`, `SMOKE_WAKE_INTERVAL_S`, `SMOKE_FETCH_RETRIES`. Exit
+semantics unchanged; no check weakened, removed, or reordered. The file
+remains the canonical copy — satellites take it verbatim on their next touch.
+
 ## [1.2.4] - 2026-08-01
 
 ### Fixed — the network bulletin was never wired up
