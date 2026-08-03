@@ -1,6 +1,6 @@
 # Core scientific stack
 pandas>=1.2.3
-plotly>=5.0.0
+plotly>=6.9.0
 requests>=2.27.1
 retrying
 setuptools
@@ -40,7 +40,7 @@ importlib-metadata
 # a single deploy setting can invalidate.
 dash~=4.4.1
 dash-iconify>=0.1.2
-dash-mantine-components>=2.7.0
+dash-mantine-components>=2.8.0
 dash-ag-grid
 
 # Default backend (Flask is bundled but pinned here for clarity)
