@@ -68,7 +68,7 @@ python-frontmatter>=1.0.0
 docutils!=0.21
 jsonpath
 mistune
-pydantic>=2.3.0
+pydantic>=2.13.4
 python-dotenv>=1.0.0
 
 # AI/LLM Integration & SEO
