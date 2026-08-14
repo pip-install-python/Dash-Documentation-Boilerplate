@@ -35,7 +35,7 @@ When the badge in the header reads **FastAPI · async**, the surface described b
 | Liveness probe | `/healthz` | Returns active backend + Dash version |
 | Active backend | `/api/backend` | Backend name, label, async flag |
 | Page registry | `/api/pages` | All Dash pages, sortable list with metadata |
-| LLM markdown | `/<page>/llms.txt` | Mounted by `dash-improve-my-llms` 2.0 — backend-detected, identical body across Flask/FastAPI/Quart |
+| LLM markdown | `/<page>/llms.txt` | Mounted by `dash-improve-my-llms` — backend-detected, identical body across Flask/FastAPI/Quart |
 | Bot policy | `/robots.txt` | Same surface as the Flask build; same `RobotsConfig` |
 | Sitemap | `/sitemap.xml` | Same priority inference; respects `mark_hidden()` |
 
@@ -73,7 +73,7 @@ Open it in a new tab and you can `Try it out` against any of the routes without 
 
 ### How the routes are mounted
 
-`run.py` calls `add_llms_routes(app)` unconditionally — dash-improve-my-llms 2.0 detects the FastAPI backend and mounts its own router. The boilerplate's `lib/asgi_routes.py` only carries the **showcase** surfaces (`/healthz`, `/api/backend`, `/api/pages`) — the things that demonstrate first-class OpenAPI integration:
+`run.py` calls `add_llms_routes(app)` unconditionally — dash-improve-my-llms detects the FastAPI backend and mounts its own router. The boilerplate's `lib/asgi_routes.py` only carries the **showcase** surfaces (`/healthz`, `/api/backend`, `/api/pages`) — the things that demonstrate first-class OpenAPI integration:
 
 .. source::lib/asgi_routes.py
 

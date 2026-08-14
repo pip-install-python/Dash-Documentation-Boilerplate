@@ -27,8 +27,18 @@ md_file = Path("pages") / "home.md"
 post = frontmatter.loads(md_file.read_text())
 metadata, content = post.metadata, post.content
 
-# Module-level LLMS_DOC — dash-improve-my-llms 2.0 picks this up automatically
-# and serves it verbatim at /llms.txt. No layout walking, no extraction.
+# Same {{DIMLL_VERSION}} substitution pages/markdown.py applies to the docs:
+# home.md says "Powered by dash-improve-my-llms <version>" on the most-read
+# surface in the network (/llms.txt), so the number must come from the
+# installed package, never from prose — "Powered by 2.3.4" shipped for
+# months while a newer package was actually serving the site.
+from dash_improve_my_llms import __version__ as _DIMLL_VERSION
+
+content = content.replace("{{DIMLL_VERSION}}", _DIMLL_VERSION)
+
+# Module-level LLMS_DOC — dash-improve-my-llms picks this up automatically
+# and serves it as the opening prose of /llms.txt. No layout walking, no
+# extraction.
 LLMS_DOC = content
 
 layout = dmc.Container(

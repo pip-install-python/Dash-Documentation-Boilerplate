@@ -353,7 +353,7 @@ The source code for this example is shown below:
 
 When users paste your documentation URL into ChatGPT, Claude, or any
 MCP-aware client, the request hits `/<page>/llms.txt`. With
-**dash-improve-my-llms 2.0**, that endpoint serves a module-level string
+**dash-improve-my-llms**, that endpoint serves a module-level string
 called `LLMS_DOC` verbatim — no layout walking, no extraction, no surprises:
 
 ```python
@@ -400,7 +400,7 @@ register_page_metadata(
 )
 ```
 
-`dash-improve-my-llms 2.0` will emit a `UserWarning` at startup naming
+`dash-improve-my-llms` will emit a `UserWarning` at startup naming
 any page that's missing prose, so you'll know exactly where to fill in.
 See the **AI/LLM Integration** page for the full LLMS_DOC pattern and
 the rest of the 2.0 toolkit.

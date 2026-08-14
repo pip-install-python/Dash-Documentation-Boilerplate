@@ -1,6 +1,6 @@
 ---
 name: AI/LLM Integration
-description: Make your Dash app discoverable to MCP clients, web crawlers, and paste-into-chat users with dash-improve-my-llms 2.0
+description: Make your Dash app discoverable to MCP clients, web crawlers, and paste-into-chat users with the dash-improve-my-llms package this site runs.
 endpoint: /examples/ai-integration
 package: ai-integration
 icon: mdi:robot-outline
@@ -12,11 +12,11 @@ icon: mdi:robot-outline
 
 ### Introduction
 
-This boilerplate ships with [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.0**, a small companion package that fills the gaps Dash itself doesn't cover for AI-friendliness.
+This boilerplate ships with [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{DIMLL_VERSION}}** (this page reads the version from the installed package), a small companion package that fills the gaps Dash itself doesn't cover for AI-friendliness.
 
-2.0 narrows the scope from earlier releases to the three jobs that are genuinely not addressed by Dash 4.3's native MCP server:
+Since 2.0 the package narrows its scope to the three jobs that are genuinely not addressed by Dash 4.3's native MCP server:
 
-| Audience              | Protocol                        | What 2.0 serves                                |
+| Audience              | Protocol                        | What it serves                                 |
 |-----------------------|---------------------------------|------------------------------------------------|
 | MCP clients           | JSON-RPC over Streamable HTTP   | Bridges `LLMS_DOC` → `dash.mcp` resources       |
 | Web crawlers          | Plain HTTPS, often no JS        | `/robots.txt`, `/sitemap.xml`, prerender HTML  |
@@ -30,12 +30,19 @@ If you're on Dash 4.3+, MCP clients also get **live** component-tree introspecti
 
 | Route | Purpose |
 |---|---|
-| `/llms.txt` | Site-wide narrative documentation (the root page's `LLMS_DOC`) |
+| `/llms.txt` | The site index: the home prose, every page, and the network directory |
+| `/llms-small.txt` | Compact briefing of the whole site — fits a small context window (2.4.0+) |
+| `/llms-full.txt` | The full corpus: every page's prose in one document (2.4.0+) |
 | `/<page>/llms.txt` | Per-page narrative documentation (that page's `LLMS_DOC`) |
 | `/robots.txt` | Bot policy — generated from your `RobotsConfig` |
 | `/sitemap.xml` | SEO sitemap with priority inference, respects `mark_hidden()` |
+| `/favicon.ico` + apple-touch paths | 302 to a `configure_seo()` icon, instead of Dash's app shell (2.5.0+) |
 | Bot middleware | Training bots → 403, search bots → static HTML, browsers → React app |
 | MCP bridge | Each non-hidden page's `LLMS_DOC` registers as a `dash.mcp` resource on Dash 4.3+ |
+
+Every `llms` document content-negotiates: agents and crawlers get raw
+Markdown byte-for-byte, a browser gets the same Markdown rendered behind the
+network header (`?raw=1` forces the raw side).
 
 **Removed in 2.0** (the package no longer serves these — Dash MCP or your own `LLMS_DOC` covers them):
 
@@ -132,10 +139,12 @@ The home page uses the simpler pattern: `pages/home.py` exports `LLMS_DOC = cont
 ### Multi-backend support
 
 ```bash
-pip install "dash-improve-my-llms[flask]>=2.0.0"      # Dash 3.x classic
-pip install "dash-improve-my-llms[fastapi]>=2.0.0"    # Dash 4.1+ FastAPI
-pip install "dash-improve-my-llms[quart]>=2.0.0"      # Dash 4.1+ Quart
-pip install "dash-improve-my-llms[all]>=2.0.0"        # all three
+# 2.5.1 is the 2plot network floor — this repo's requirements.txt pins it.
+# The package itself requires dash>=4.1 (there is no Dash 3.x support).
+pip install "dash-improve-my-llms[flask]>=2.5.1"      # Dash's default backend
+pip install "dash-improve-my-llms[fastapi]>=2.5.1"    # Dash 4.1+ FastAPI
+pip install "dash-improve-my-llms[quart]>=2.5.1"      # Dash 4.1+ Quart
+pip install "dash-improve-my-llms[all]>=2.5.1"        # all three
 ```
 
 `add_llms_routes(app)` inspects `app.server` (via `dash.backends.get_server_type` on Dash 4.2+, falling back to `type(app.server).__name__`) and dispatches to the matching adapter. `GET /robots.txt` returns byte-identical content whether the app is Flask, FastAPI, or Quart.
@@ -218,7 +227,7 @@ On Dash 3.x or 4.1/4.2 the MCP bridge silently no-ops — the HTTP routes still 
 
 If you upgraded an existing app:
 
-1. **Install the right extra** — `pip install "dash-improve-my-llms[flask]>=2.0"` (or `[fastapi]`, `[quart]`).
+1. **Install the right extra** — `pip install "dash-improve-my-llms[flask]>=2.5.1"` (or `[fastapi]`, `[quart]`).
 2. **Add `LLMS_DOC` to each page module.** The startup `UserWarning` names every page that's missing prose.
 3. **Remove `mark_important()` and `mark_component_hidden()` calls.** They're deprecation no-ops in 2.0 and will be deleted in 2.1.
 4. **Remove links to dropped routes** — `/page.json`, `/architecture.txt`, `/architecture.toon`, `/llms.toon` (and per-page variants).

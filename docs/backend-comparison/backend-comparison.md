@@ -297,4 +297,4 @@ DASH_BACKEND=fastapi   # async + websockets + MCP
 DASH_BACKEND=quart     # async with Flask-style decorators
 ```
 
-The badge in the header reflects the resolved backend. `dash-improve-my-llms` 2.0 now serves `/llms.txt`, `/robots.txt`, and `/sitemap.xml` natively under Flask, FastAPI, and Quart — only the analytics `before_request` hook is still Flask-only (an ASGI middleware port is wired up automatically under FastAPI). See [Pluggable Backends](/backends) for the implementation details.
+The badge in the header reflects the resolved backend. `dash-improve-my-llms` serves `/llms.txt`, `/robots.txt`, and `/sitemap.xml` natively under Flask, FastAPI, and Quart — only the analytics `before_request` hook is still Flask-only (an ASGI middleware port is wired up automatically under FastAPI). See [Pluggable Backends](/backends) for the implementation details.

@@ -52,12 +52,13 @@ Powerful directives to enhance your documentation:
 - `.. kwargs::ComponentName` - Auto-generate component props documentation
 
 ### 🤖 AI/LLM Integration
-Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **2.3.4**:
+Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{DIMLL_VERSION}}** (the version is read from the installed package, never hardcoded):
 
 - **`LLMS_DOC` pattern** — write a module-level prose string per page; the package serves it verbatim at `/<page>/llms.txt`
+- **Tiered corpus** — `/llms.txt` (index), `/llms-small.txt` (compact briefing), `/llms-full.txt` (full corpus), each rendered for browsers and raw for agents
 - **Multi-backend** — same surface under Flask, FastAPI, and Quart (auto-detected)
 - **MCP bridge** — each page's prose registers as a `dash.mcp` resource on Dash 4.3+
-- **SEO** — `/sitemap.xml` with priority inference, `/robots.txt` with bot-class policies
+- **SEO** — `/sitemap.xml` with priority inference, `/robots.txt` with bot-class policies, and `configure_seo()` so crawlers receive the same icons, social card, and titles a browser gets
 - **Bot management** — training crawlers blocked, search citations allowed, browsers untouched
 - **Share with AI** — paste your URL into ChatGPT/Claude; they read the prose docs directly
 

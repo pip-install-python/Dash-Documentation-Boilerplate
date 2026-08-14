@@ -57,7 +57,7 @@ app = Dash(
 app._backend_info = BACKEND_INFO
 ```
 
-The only remaining Flask-only integration is the `before_request` analytics hook, which the boilerplate transparently swaps for a Starlette `BaseHTTPMiddleware` when the backend is FastAPI. `add_llms_routes(app)` from `dash-improve-my-llms` 2.0 auto-detects the backend and mounts its own router under all three — no `IS_FLASK` gate is needed for the AI/LLM surfaces anymore.
+The only remaining Flask-only integration is the `before_request` analytics hook, which the boilerplate transparently swaps for a Starlette `BaseHTTPMiddleware` when the backend is FastAPI. `add_llms_routes(app)` from `dash-improve-my-llms` auto-detects the backend and mounts its own router under all three — no `IS_FLASK` gate is needed for the AI/LLM surfaces anymore.
 
 ---
 
@@ -70,7 +70,7 @@ The only remaining Flask-only integration is the `before_request` analytics hook
 | Websocket callbacks (`ctx.websocket`) | no | yes (Dash 4.2+) | yes (Dash 4.2+) |
 | Persistent callbacks (Dash 4.2 rc) | no | yes | yes |
 | MCP server / `mcp_enabled` decorator (Dash 4.3) | partial | yes | yes |
-| `add_llms_routes` (dash-improve-my-llms 2.0) | yes | yes | yes |
+| `add_llms_routes` (dash-improve-my-llms) | yes | yes | yes |
 | `/llms.txt`, `/robots.txt`, `/sitemap.xml` | yes | yes | yes |
 | `gunicorn` deploy | yes | n/a | n/a |
 | `uvicorn` deploy | n/a | yes | yes |

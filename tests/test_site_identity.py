@@ -180,3 +180,54 @@ def test_home_markdown_is_not_a_stale_copy_of_the_old_opening():
     """`# Welcome to:` was the old H1 — an identity that named nothing."""
     body = Path(REPO_ROOT / "pages" / "home.md").read_text()
     assert "# Welcome to:" not in body
+
+
+# ---------------------------------------------------------------------------
+# Version claims are DERIVED, never written. "Powered by dash-improve-my-llms
+# 2.3.4" served on /llms.txt for months while a newer package was actually
+# running the site — the most-read surface in the network publishing a false
+# fact about itself. Prose writes {{DIMLL_VERSION}}; the loaders substitute
+# the installed package's __version__; these tests close the loop.
+# ---------------------------------------------------------------------------
+
+
+def test_served_prose_reports_the_installed_package_version(client):
+    from dash_improve_my_llms import __version__ as installed
+
+    body = client.get("/llms.txt").text
+    assert f"**{installed}**" in body, (
+        "the 'Powered by' line no longer carries the installed version"
+    )
+    # And no OTHER version is claimed for the package anywhere in the index:
+    # every "dash-improve-my-llms ... **X.Y.Z**" must be the installed one.
+    for match in re.finditer(
+        r"dash-improve-my-llms[^\n]*?\*\*(\d+\.\d+\.\d+)\*\*", body
+    ):
+        assert match.group(1) == installed, (
+            f"/llms.txt claims version {match.group(1)}; installed is {installed}"
+        )
+
+
+def test_no_source_markdown_hardcodes_a_package_version():
+    """The placeholder is the only way prose may state the package version.
+
+    Sweeps the SOURCE files, so a hardcoded number is caught even on pages
+    these tests never fetch. CHANGELOGs and history-narrating docs may name
+    versions in context ("until 2.3.4 landed"); what they may not do is
+    claim one as current — which in prose always takes the bold form the
+    'Powered by' lines use.
+    """
+    offenders = []
+    for md in [REPO_ROOT / "pages" / "home.md", *(REPO_ROOT / "docs").rglob("*.md")]:
+        for line in md.read_text().splitlines():
+            if re.search(r"dash-improve-my-llms[^\n]*?\*\*\d+\.\d+(\.\d+)?\*\*", line):
+                offenders.append(f"{md.relative_to(REPO_ROOT)}: {line.strip()[:80]}")
+    assert offenders == [], f"hardcoded package versions in prose: {offenders}"
+
+
+def test_version_placeholder_never_leaks_unsubstituted(client):
+    from lib.constants import BASE_URL  # noqa: F401 — client is same-host
+
+    for path in ("/llms.txt", "/", "/examples/ai-integration/llms.txt"):
+        body = client.get(path).text
+        assert "{{DIMLL_VERSION}}" not in body, f"unsubstituted placeholder on {path}"
