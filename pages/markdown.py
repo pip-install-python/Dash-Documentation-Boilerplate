@@ -40,6 +40,11 @@ class Meta(BaseModel):
     # public — see lib/page_tiers.py for the tier model and why the default
     # is open. Enforced only when access control is wired in run.py.
     tier: Optional[str] = None
+    # schema.org @type for the crawler document's JSON-LD. Absent means
+    # TechArticle — every page here documents software, and "WebPage" (the
+    # package default) tells Google nothing it did not already know. The
+    # home page declares SoftwareApplication in run.py.
+    schema_type: Optional[str] = None
 
 
 _SOURCE_DIRECTIVE = re.compile(r'^\.\. source::(.+?)$', re.MULTILINE)
@@ -163,9 +168,18 @@ for file in files:
     page_tiers.register(metadata.endpoint, metadata.tier)
 
     expanded = _expand_source_directives(content)
+    # The full record, matching the dash.register_page call above. These two
+    # calls must never describe the same page differently: the thinner record
+    # here is exactly how the fleet shipped "dash-leaflet2 | Attribution" to
+    # browsers and a bare "Attribution" to Google (the one bug behind every
+    # SEO defect measured across the network, 2026-08). title and image_url
+    # are read by dash-improve-my-llms 2.5.0+; older packages ignore them.
     register_page_metadata(
         path=metadata.endpoint,
         name=metadata.name,
         description=metadata.description,
+        title=PAGE_TITLE_PREFIX + metadata.name,
+        image_url=OG_IMAGE_URL,
+        schema_type=metadata.schema_type or "TechArticle",
         llms_doc=_build_llms_doc(metadata.name, metadata.description, expanded, metadata.endpoint),
     )

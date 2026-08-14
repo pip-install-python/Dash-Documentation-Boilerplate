@@ -170,6 +170,19 @@ OG_IMAGE_HEIGHT = 630
 OG_IMAGE_TYPE = "image/png"
 OG_IMAGE_ALT = SITE_BRAND
 
+# The package cross-link block — who publishes this site, and which other
+# URLs are the same entity. `SAME_AS` becomes JSON-LD `sameAs` on every
+# crawler page: for a docs satellite it should list the documented package's
+# GitHub repo and PyPI project — three properties pointing at each other is
+# the strongest statement of which URL is a package's canonical docs home.
+# A fork sets these once; the other half of the loop (PyPI project_urls and
+# the GitHub README pointing back at the docs subdomain) is a per-package
+# checklist item, not code.
+PUBLISHER = "Pip Install Python LLC"
+SAME_AS = [
+    "https://github.com/pip-install-python/dash-documentation-boilerplate",
+]
+
 
 def require_owned_base_url(base_url: str = BASE_URL) -> None:
     """Fail fast in production when BASE_URL isn't this app's real origin.

@@ -64,6 +64,18 @@ def wired(smoke, client, monkeypatch):
         if url.startswith(BASE):
             path = url[len(BASE):] or "/"
             response = client.get(path, user_agent=user_agent, accept=accept)
+            # urllib — what the real script fetches with — follows redirects;
+            # the test client does not. The root icon paths 302 to /assets
+            # from dash-improve-my-llms 2.5 on, so follow same-host hops here
+            # or the favicon checks would fail only under test.
+            hops = 0
+            while response.status in (301, 302, 307, 308) and hops < 3:
+                location = response.header("Location")
+                if location.startswith("http") and not location.startswith(BASE):
+                    break
+                path = location[len(BASE):] if location.startswith(BASE) else location
+                response = client.get(path, user_agent=user_agent, accept=accept)
+                hops += 1
             return response.status, response.text, response.headers
         if url == OG_IMAGE_URL:
             # The social card lives on the CDN, so it is off-host like the

@@ -55,11 +55,16 @@ from dash_improve_my_llms import (
 # The version requirements.txt pins. Checked at startup — see the floors block
 # below for why this is worth a line of output on every boot.
 #
-# 2.3.4 is the network standard (2plot.ai and 2plot.dev both run it). Below it,
-# `resolve_site_title` does not exist: the /llms.txt H1 and the llms-viewer
-# brand chip fall back to `app.title` unconditionally, and a nav label or
-# Dash's default "Dash" becomes this site's published identity.
-LLMS_PKG_FLOOR = (2, 3, 4)
+# 2.5.1 is the Tier-B SEO standard: `configure_seo` (icons, social card,
+# publisher/sameAs), the crawler <title> carrying the site name, per-page
+# `title`/`image_url`/`schema_type` actually reaching the crawler document,
+# /favicon.ico answered with a redirect instead of the app shell, and — the
+# .1 — a prerender that no longer clobbers the browser's per-page <title>
+# or duplicates og tags the app already declares.
+# `configure_seo` is deliberately imported AFTER this floor fires (see the
+# floors block) so a stale environment gets the floor's diagnosis instead of
+# a bare ImportError.
+LLMS_PKG_FLOOR = (2, 5, 1)
 
 # Analytics tracking
 from lib.analytics_tracker import tracker
@@ -68,6 +73,12 @@ from lib.analytics_tracker import tracker
 from lib.constants import (
     APP_TITLE,
     BASE_URL,
+    OG_IMAGE_ALT,
+    OG_IMAGE_HEIGHT,
+    OG_IMAGE_URL,
+    OG_IMAGE_WIDTH,
+    PUBLISHER,
+    SAME_AS,
     SITE_BRAND,
     SITE_DESCRIPTION,
     require_owned_base_url,
@@ -134,11 +145,28 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
-        "Below 2.3.0 the rendered llms.txt viewer, wordmark and navigation "
-        "block do not exist at all; below 2.3.4 this site's published identity "
-        "silently degrades to whatever `app.title` happens to be.",
+        "Below 2.5.1 the Tier-B SEO standard silently unwinds: `configure_seo` "
+        "does not exist, the crawler <title> drops back to the bare page name, "
+        "per-page title/image_url/schema_type never reach the crawler "
+        "document, and /favicon.ico serves the app shell instead of an icon — "
+        "the crawler/browser identity drift this site exists to demonstrate "
+        "the fix for. (2.3.x additionally loses resolve_site_title and the "
+        "tiered corpus documents.)",
         fatal=True,
     )
+
+# Imported after the floor on purpose: on a pre-2.5.0 package this name does
+# not exist, and the floor's diagnosis above beats a bare ImportError. The
+# fallback exists only for ALLOW_STALE_DEPS=1 — the floor is fatal otherwise.
+try:
+    from dash_improve_my_llms import configure_seo  # noqa: E402
+except ImportError:  # pragma: no cover — ALLOW_STALE_DEPS with a pre-2.5.0 package
+
+    def configure_seo(**_kwargs) -> None:
+        print(
+            "[boilerplate] WARNING: configure_seo unavailable (pre-2.5.0 "
+            "package) — crawler identity tags and root icons not emitted."
+        )
 
 if DASH_VERSION < (4, 4):
     # Fatal only on FastAPI, where it is not a degradation but an outage:
@@ -290,6 +318,41 @@ register_page_metadata(
     path="/",
     name=SITE_BRAND,
     description=SITE_DESCRIPTION,
+    # The home page of a software template is a SoftwareApplication, not a
+    # generic WebPage — the one structured-data type that exactly describes
+    # it. Docs pages default to TechArticle in pages/markdown.py.
+    schema_type="SoftwareApplication",
+)
+
+# ============================================================================
+# Site identity for the CRAWLER document (dash-improve-my-llms 2.5.0).
+# Until 2.5.0 the generated crawler HTML carried the page's content signals
+# and none of its identity: browsers got 4-7 icon links, og:image and a
+# twitter card from templates/index.html while Googlebot got zero of any of
+# them, on every host in the network — so search showed the generic globe.
+# One declaration covers every crawler surface, and it also claims
+# /favicon.ico (Google's fallback), which Dash's page catch-all was
+# answering with the app shell. Content may differ between the crawler
+# document and the browser document; identity may not.
+# ============================================================================
+configure_seo(
+    icons=[
+        # Same paths templates/index.html links, so the two heads agree.
+        "/assets/favicon.ico",
+        {"href": "/assets/favicon/favicon-32x32.png", "sizes": "32x32"},
+        {"href": "/assets/favicon/favicon-16x16.png", "sizes": "16x16"},
+        {"href": "/assets/favicon/favicon-96x96.png", "sizes": "96x96"},
+        {"href": "/assets/favicon/android-chrome-192x192.png", "sizes": "192x192"},
+        {"href": "/assets/favicon/android-chrome-512x512.png", "sizes": "512x512"},
+        {"href": "/assets/favicon/apple-touch-icon.png",
+         "rel": "apple-touch-icon", "sizes": "180x180"},
+    ],
+    social_image=OG_IMAGE_URL,
+    social_image_alt=OG_IMAGE_ALT,
+    social_image_width=OG_IMAGE_WIDTH,
+    social_image_height=OG_IMAGE_HEIGHT,
+    publisher=PUBLISHER,
+    same_as=SAME_AS,
 )
 
 # Internal pages — excluded from /sitemap.xml, blocked in /robots.txt,
@@ -405,6 +468,17 @@ print(
 # ============================================================================
 
 from lib import access as _access  # noqa: E402
+from lib import page_tiers as _page_tiers  # noqa: E402
+
+# Tiered corpus documents (dash-improve-my-llms >= 2.4.0). Pseudo-paths:
+# they never enter dash.page_registry, so they cannot leak into listings —
+# registering them here lets this satellite tier its compact briefing and
+# full corpus via env (LLMS_SMALL_TIER / LLMS_FULL_TIER; unset = the
+# default tier, i.e. public), and the hub can tighten either network-wide
+# through its page-tier ceilings with no redeploy here. Inert on older
+# package versions.
+_page_tiers.register("/llms-small.txt", os.environ.get("LLMS_SMALL_TIER"))
+_page_tiers.register("/llms-full.txt", os.environ.get("LLMS_FULL_TIER"))
 
 ACCESS_ENABLED = _access.configure()
 

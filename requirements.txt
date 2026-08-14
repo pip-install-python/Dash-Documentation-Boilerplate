@@ -103,10 +103,15 @@ python-dotenv>=1.0.0
 # tests/test_llms_routes.py asserts that split, and scripts/network_smoke.py
 # asserts it against a live host, so a stale artifact fails a battery by name
 # rather than serving quietly.
-dash-improve-my-llms[flask]>=2.3.4
-# dash-improve-my-llms[fastapi]>=2.3.4   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.3.4     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.3.4       # all three
+# 2.5.1 is the Tier-B SEO standard: configure_seo (icons, social card,
+# publisher/sameAs), crawler <title> carrying the site name, per-page
+# title/image_url/schema_type reaching the crawler document, /favicon.ico
+# answered with a redirect instead of the app shell, and a prerender that
+# no longer clobbers the browser's per-page <title>.
+dash-improve-my-llms[flask]>=2.5.1
+# dash-improve-my-llms[fastapi]>=2.5.1   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.5.1     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.5.1       # all three
 
 # Production Servers
 # - gunicorn   -> WSGI (Flask)

@@ -49,10 +49,16 @@ Your documentation content here...
 ##### Frontmatter Fields
 
 - **name** (required): Display name in the navigation
-- **description** (required): Short description for SEO and navigation
+- **description** (required): The page's SERP snippet, not a subtitle. Write a
+  complete sentence of 110–155 characters that names the package — Google
+  shows it under the result, so "explicit control over the attribution box."
+  wastes the one line of copy a searcher reads before deciding to click.
 - **endpoint** (required): URL path for the page (e.g., `/components/my-component`)
 - **package** (optional): Package name for organization
 - **icon** (optional): Material Design icon (from [Iconify](https://icon-sets.iconify.design/mdi/))
+- **schema_type** (optional): schema.org `@type` for the page's structured
+  data. Defaults to `TechArticle` — every page here documents software, and
+  the generic `WebPage` tells Google nothing it did not already know.
 
 #### Step 3: Write Your Content
 

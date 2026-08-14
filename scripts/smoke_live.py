@@ -25,6 +25,7 @@ Only the standard library, so it runs anywhere without an install step.
 
 from __future__ import annotations
 
+import html as html_lib
 import os
 import re
 import sys
@@ -372,6 +373,70 @@ def main(base: str) -> int:
     else:
         check("og:image is not empty", False,
               "an EMPTY og:image renders a blank card — worse than none")
+
+    # --- 3c. Crawler/browser identity parity (the 2.5.0 Tier-B standard) ---
+    # Every SEO defect measured across the fleet in 2026-08 was one bug in
+    # different clothes: the head a crawler received had drifted from the
+    # head a browser received — 4-7 icon links vs zero, "site | page" vs a
+    # bare page name, og:image vs nothing. Content may differ between the
+    # two documents (that is what the prerender is for); identity may not.
+    # This block is the single assertion that would have caught all of it.
+    print("\nCrawler/browser identity parity")
+
+    def identity(html: str) -> Dict[str, object]:
+        # Icons compare as the SET of declared sizes, not a raw link count:
+        # Dash auto-injects one extra favicon link (with a cache-busting
+        # query) into the browser head, so counts differ by one forever
+        # while the actual identity — which sizes a consumer can pick from
+        # — is what the two heads must agree on.
+        icon_links = re.findall(r'<link[^>]+rel="(?:icon|apple-touch-icon)"[^>]*>', html)
+        # Unescape before comparing: one side may write an apostrophe as
+        # &#x27; and the other verbatim — same identity, different escaping.
+        unescape = html_lib.unescape
+        return {
+            "icon sizes": sorted(
+                {s for link in icon_links for s in re.findall(r'sizes="([^"]+)"', link)}
+            ),
+            "title": unescape(
+                (re.findall(r"<title>(.*?)</title>", html, re.S) or [""])[0].strip()
+            ),
+            "og:image": sorted({
+                unescape(u)
+                for u in re.findall(r'property="og:image"[^>]+content="([^"]*)"', html)
+            }),
+            "twitter:card": sorted({
+                unescape(v)
+                for v in re.findall(r'name="twitter:card"[^>]+content="([^"]*)"', html)
+            }),
+        }
+
+    for url in [f"{base}/"] + page_urls[:3]:
+        path = urlparse(url).path or "/"
+        _status, crawler_html, _ = fetch(url, CRAWLER_UA)
+        _status, browser_html, _ = fetch(url, BROWSER_UA)
+        seen_c, seen_b = identity(crawler_html), identity(browser_html)
+        for field in ("icon sizes", "title", "og:image", "twitter:card"):
+            check(
+                f"{path}: crawler and browser agree on {field}",
+                seen_c[field] == seen_b[field] and seen_c[field] not in (0, "", []),
+                f"crawler={seen_c[field]!r} browser={seen_b[field]!r}",
+            )
+        check(
+            f"{path}: crawlers get an icon >=192px",
+            'sizes="192x192"' in crawler_html or 'sizes="512x512"' in crawler_html,
+            "no >=192px icon link in the crawler head — Google's preferred size",
+        )
+
+    # Google falls back to <origin>/favicon.ico when the page it crawled
+    # declares no icon. Dash's page catch-all used to answer it with the app
+    # shell — 200 text/html where an image belongs, a poisoned fallback.
+    status, favicon_body, _ = fetch(f"{base}/favicon.ico")
+    check("/favicon.ico resolves", status == 200, f"got {status}")
+    check(
+        "/favicon.ico is an image, not the app shell",
+        not favicon_body.lstrip().lower().startswith("<!doctype"),
+        "text/html where an image belongs — a poisoned fallback",
+    )
 
     # --- 4. Content negotiation on llms.txt -------------------------------
     # Production is where this can break in ways development cannot show: a
