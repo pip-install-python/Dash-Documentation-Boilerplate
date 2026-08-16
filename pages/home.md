@@ -52,7 +52,7 @@ Powerful directives to enhance your documentation:
 - `.. kwargs::ComponentName` - Auto-generate component props documentation
 
 ### 🤖 AI/LLM Integration
-Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{DIMLL_VERSION}}** (the version is read from the installed package, never hardcoded):
+Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{VERSION:dash-improve-my-llms}}** (the version is read from the installed package, never hardcoded):
 
 - **`LLMS_DOC` pattern** — write a module-level prose string per page; the package serves it verbatim at `/<page>/llms.txt`
 - **Tiered corpus** — `/llms.txt` (index), `/llms-small.txt` (compact briefing), `/llms-full.txt` (full corpus), each rendered for browsers and raw for agents

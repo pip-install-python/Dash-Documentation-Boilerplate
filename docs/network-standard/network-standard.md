@@ -88,13 +88,39 @@ register_page_metadata(                          # the /llms.txt H1 and the
 - **"Pip Install Python" is the byline** — who made it. It is never the site
   name; twenty satellites cannot all be called the same thing.
 
+#### Version claims are derived, never written
+
+The same principle covers the *numbers* a site publishes about itself. Prose
+that states a package version writes a placeholder — the distribution name
+exactly as it appears on PyPI — and the markdown loaders substitute the
+version of whatever is actually installed:
+
+```markdown
+Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{VERSION:dash-improve-my-llms}}**
+```
+
+The placeholder works for **any installed distribution**, so a satellite makes
+the same claim about the package it documents — `dash-mui-charts
+**{{VERSION:dash-mui-charts}}**` — and a `pip install --upgrade` plus redeploy
+updates the browser page, the copy button, `/llms.txt` and every
+`/<page>/llms.txt` together. No prose edit, no drift between the docs and the
+crawler surfaces. This host served "Powered by 2.3.4" on `/llms.txt` for
+months while 2.5.1 ran the site; that class of lie is what the placeholder
+retires.
+
+A placeholder naming a distribution that is not installed fails the boot (and
+therefore CI) rather than leaking into served prose. Version *floors* in
+install instructions (`pip install "pkg>=2.5.1"`) stay literal — they are
+requirements, not claims about what is running.
+
 #### What a fork changes
 
 `SITE_BRAND` and `SITE_DESCRIPTION` in `lib/constants.py`, the first line of
 `pages/home.md`, the meta tags in `templates/index.html`, and
 `EXPECTED_BRAND` in `tests/test_site_identity.py`. That last one is
 deliberate: renaming a site should require editing the test that says what it
-is called.
+is called. Anywhere the fork's docs state the documented package's current
+version, write `{{VERSION:<its-pypi-name>}}` instead of a number.
 
 ---
 

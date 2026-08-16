@@ -7,7 +7,7 @@ import dash
 import dash_mantine_components as dmc
 import frontmatter
 from dash import html
-from dash_improve_my_llms import __version__ as DIMLL_VERSION, register_page_metadata
+from dash_improve_my_llms import register_page_metadata
 from markdown2dash import Admonition, BlockExec, Divider, Image, create_parser
 from pydantic import BaseModel
 
@@ -19,6 +19,7 @@ from lib.directives.kwargs import Kwargs
 from lib.directives.llms_copy import LlmsCopy
 from lib.directives.source import SC
 from lib.directives.toc import TOC
+from lib.versions import substitute_versions
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -116,11 +117,10 @@ for file in files:
 
     # Substitute derived facts BEFORE any consumer sees the text, so the
     # browser page, the copy button, and /<page>/llms.txt all publish the
-    # same truth. A doc writes {{DIMLL_VERSION}} instead of a version
-    # number: the served documents are the network's point of truth, and a
-    # hardcoded number is a lie waiting for the next release ("Powered by
-    # 2.3.4" shipped for months while 2.5.1 was installed).
-    content = content.replace("{{DIMLL_VERSION}}", DIMLL_VERSION)
+    # same truth. A doc writes {{VERSION:<distribution>}} instead of a
+    # version number — any installed package, so a satellite documents its
+    # own component library the same way. See lib/versions.py for why.
+    content = substitute_versions(content, source=str(file))
 
     # Store raw markdown content in NAME_CONTENT_MAP for the LLM copy button.
     NAME_CONTENT_MAP[metadata.name] = content

@@ -12,7 +12,7 @@ icon: mdi:robot-outline
 
 ### Introduction
 
-This boilerplate ships with [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{DIMLL_VERSION}}** (this page reads the version from the installed package), a small companion package that fills the gaps Dash itself doesn't cover for AI-friendliness.
+This boilerplate ships with [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) **{{VERSION:dash-improve-my-llms}}** (this page reads the version from the installed package), a small companion package that fills the gaps Dash itself doesn't cover for AI-friendliness.
 
 Since 2.0 the package narrows its scope to the three jobs that are genuinely not addressed by Dash 4.3's native MCP server:
 
