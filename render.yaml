@@ -69,6 +69,16 @@ services:
       - key: ANALYTICS_GEO_LOOKUP
         value: "0"
 
+      # Access tiers for the tiered corpus documents (/llms-small.txt,
+      # /llms-full.txt — dash-improve-my-llms >= 2.4.0). Deliberately set to
+      # the default here so every fork SEES the knob: the 402 experiment
+      # tightens the full corpus by flipping this to `auth`, per satellite,
+      # with no code change. See .env.example for the tier values.
+      - key: LLMS_SMALL_TIER
+        value: public
+      - key: LLMS_FULL_TIER
+        value: public
+
       # The hub takes the LAST report for a given (app, date). On an ephemeral
       # filesystem a mid-day deploy wipes the ledger and the next hourly report
       # overwrites the day's real total with whatever accrued since the
