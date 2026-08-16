@@ -5,6 +5,7 @@ import dash_mantine_components as dmc
 from dash import dcc, register_page
 
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, SITE_DESCRIPTION
+from lib.versions import substitute_versions
 
 register_page(
     __name__,
@@ -32,8 +33,6 @@ metadata, content = post.metadata, post.content
 # most-read surface in the network (/llms.txt), so the number must come from
 # the installed package, never from prose — "Powered by 2.3.4" shipped for
 # months while a newer package was actually serving the site.
-from lib.versions import substitute_versions
-
 content = substitute_versions(content, source=str(md_file))
 
 # Module-level LLMS_DOC — dash-improve-my-llms picks this up automatically
