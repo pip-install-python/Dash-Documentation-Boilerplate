@@ -5,6 +5,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-15
+
+Instrument first: the 402 groundwork lands on the template. The network's
+metered lane is gated on ~30 days of crawl data (owner decision 2026-08-10);
+this release is what makes that data exist and stay true on every satellite
+forked from here — machine-surface demand reported per document, counted
+once, tested, and tierable per deployment. No payment code ships here.
+Rollout plan: `kickoff/KICKOFF-x402-instrumentation-rollout.md` (local).
+
+### Added
+- **The daily rollup now reports the machine surfaces** (the network's
+  v3 analytics fields): unique bot visitors per day (`bot_visitors`, a
+  daily distinct count), and llms.txt / robots / sitemap / page.json rows
+  in `pages` with a per-row bot split — mirroring the hub's own
+  self-report semantics exactly. These fetches were always recorded; they
+  were only hidden from the report. A day with only machine-surface
+  fetches is now reported instead of skipped — crawlers hammering
+  llms.txt with zero human visits is exactly the signal the hub's
+  day-pass board exists to see.
+- **The machine-surface rollup is tested** (`tests/test_traffic_rollup.py`)
+  — 15 hand-checkable cases pinning the partition (every path is a page
+  visit or a machine-surface hit, never both), the machine-only-day
+  report, the per-row bot split, and the distinct `bot_visitors` count.
+  This data is the evidence base for the network's 402 pricing decision;
+  untested measurement code deciding a revenue model was the wrong risk
+  to carry.
+- **Tier registrations for the corpus documents.** Every satellite built
+  from this template now declares access tiers for `/llms-small.txt` and
+  `/llms-full.txt` (served by dash-improve-my-llms ≥ 2.4.0; inert on older
+  versions): `LLMS_SMALL_TIER` / `LLMS_FULL_TIER` env vars set them
+  locally (unset = public; documented in `.env.example` and visible in
+  `render.yaml` so every fork sees the knob), and the hub's page-tier
+  ceilings can tighten either network-wide with no redeploy here. The
+  dependency-floor message notes the 2.4.0 requirement for the tier
+  documents.
+- **Generic version placeholder `{{VERSION:<distribution>}}`** (new
+  `lib/versions.py`, used by both markdown loaders). Prose may now state
+  the installed version of *any* package — not just dash-improve-my-llms —
+  so every satellite can write `{{VERSION:<its-pypi-name>}}` for the
+  library it documents and a package upgrade propagates to the browser
+  page, the copy button, `/llms.txt` and every `/<page>/llms.txt` on the
+  next deploy, with no prose edit. `{{DIMLL_VERSION}}` remains as a legacy
+  alias. Fenced code blocks and inline code spans are left verbatim (the
+  network-standard page shows the syntax in a fence), and a placeholder
+  naming an uninstalled distribution fails the boot instead of leaking.
+  The identity tests now also sweep for bold version claims next to any
+  PyPI link, not only dash-improve-my-llms's.
+
+### Fixed
+- **Machine-surface fetches were double-counted.** `_SKIP` excluded
+  `/llms.txt`, `/robots` and `/sitemap` from page visits by substring —
+  but `/llms.txt` does not substring-match `/llms-small.txt`, so the tier
+  documents and `page.json` twins landed in BOTH `load_visits` and
+  `load_agent_hits`, inflating `human_hits`/`bot_hits`/`pages` for
+  exactly the surfaces the 402 board prices. `_SKIP` now names all three.
+  The hub's `traffic_insights._SKIP` has the same gap (its comment claims
+  the exclusion; its tuple doesn't deliver it) — port this fix there
+  before the data window opens.
+- **Dash-built components rendered empty props tables.** The
+  numpy-docstring branch in `lib/directives/kwargs.py` (for
+  dash-mantine-components' hand-written docs) shadowed the base
+  markdown2dash parser for the `Keyword arguments:` format that
+  dash-generate-components emits — the format of every component a
+  library satellite documents — so their `.. kwargs::` tables rendered
+  silently empty. Found on muicharts' `/api`; pannellum's likely affected
+  too. The directive now falls back to the base parser for that shape.
+
 ## [1.2.5] - 2026-08-01
 
 ### Fixed — `scripts/smoke_live.py` failed CD on healthy sites
