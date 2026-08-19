@@ -4,6 +4,7 @@ description: Learn how to create documentation pages with markdown and Python
 endpoint: /getting-started
 package: example
 icon: mdi:rocket-launch-outline
+tier: public
 ---
 
 .. llms_copy::Getting Started

@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-19
+
+The interactive gate and the real-time half of the fleet's analytics land on
+the template. Humans meet a sign-in card on gated pages while agents keep
+reading the machine surfaces through the data window — the two lanes split
+onto separate axes, each flipped per host by one env var. The satellite
+reporter grows a presence beacon so the hub board can show "active right
+now" without waiting for a rollup. On THIS host the gate ships dark twice
+over: every tier is public, and dash-clerk-auth is deliberately not in
+requirements.txt (the vendored tarball exists for the docs' optional-auth
+install command) — the presence beacon is what this deploy turns on.
+
+### Added
+- **The interactive gate** (`lib/gate_layouts.py`): every markdown docs page
+  renders through a per-request verdict — sign-in card at HTTP 200 (with an
+  optional live teaser demo via `lib/auth_demos.py`, table empty in the
+  template), forbidden and 404 cards, the content on allow. The verdict is
+  the new `access.resolve_page_access()`: docs fall open without Clerk,
+  admin fails closed, and `?key=` never unlocks a browser layout. The gate
+  switch is `PAGE_DEFAULT_TIER=auth` per deployment; `/`,
+  `/getting-started` and the corpus pseudo-paths are pinned public so no
+  env flip can gate the funnel. Card buttons ride
+  `assets/auth_gate.js`/`.css` (satellite mode navigates to the primary
+  with `?returnTo=`; local dev opens the Clerk modal).
+- **The second tier axis, `llms_public`** (frontmatter, or
+  `LLMS_PUBLIC_DEFAULT`, default open): a gated page's machine twin —
+  `/<page>/llms.txt`, crawler HTML, the prerender — stays public while the
+  interactive page is gated. That split is the data-window posture, and the
+  later agent flip is `LLMS_PUBLIC_DEFAULT=0`, env only. The exemption
+  never applies to a hub-imposed tier: a satellite's env default cannot
+  loosen what the network restricted.
+- **`GET /api/agent-key`** (`lib/agent_key.py`, all three backends): turns
+  the browser's Clerk session into the hub-minted `?key=` that the "Copy
+  for LLM" button (`assets/llms_copy.js`) now appends, so a copied URL
+  keeps working inside an assistant that has no cookie. 204 for
+  anonymous / Clerk-off / hub-down; `Cache-Control: private, no-store`
+  always; the token is read from the `__session` cookie, never the query.
+- **The presence beacon** (`lib/satellite_reporter.py`): a second,
+  fail-silent daemon thread POSTs `{app, active}` to the hub's
+  `/api/satellite/active` every 60s (`SATELLITE_PRESENCE_INTERVAL_S`,
+  floor 30, `0` disables) — distinct human visitors inside the session
+  window, the same derivation as the hub's own count. Display-only and
+  ephemeral hub-side; the daily rollup stays the sole source of the daily
+  numbers. A hub that predates the endpoint 404s harmlessly.
+- Clerk avatar in the header (`components/header.py::create_clerk_avatar`),
+  rendered only when Clerk is configured.
+
+### Changed
+- `render.yaml`: rollup cadence `SATELLITE_REPORT_INTERVAL_S=900` (the
+  fleet is on paid instances and the hub board now reads near-real-time),
+  the full Clerk satellite env block, and the two gate knobs — remembering
+  that env/plan changes apply on Blueprint sync, not git push.
+- `lib/auth.py`: the hand-rolled 0.9.0/0.9.1 satellite fixups are retired —
+  both are upstream in the vendored dash-clerk-auth 1.0.2. What remains is
+  capture-phase *delegation* (`_install_satellite_signin_delegation`,
+  back-ported from the leaflet pilot 2026-08-19): late-rendered
+  `#clerk-login-button`s get exactly one handler, preferring
+  `buildSatelliteRedirect()` with `?returnTo=`, falling back to
+  `redirectToSignIn` on origin+pathname so stale `__clerk_*` params never
+  ride into the next sign-in.
+- The corpus pseudo-paths (`/llms-small.txt`, `/llms-full.txt`) register
+  `public` explicitly instead of falling through the tier default, so
+  `PAGE_DEFAULT_TIER` can never gate them; `/` likewise (it registers via
+  pages/home.py, which no frontmatter ever tiers).
+- Vendored `dash_clerk_auth` 0.9.1 → 1.0.2 (the clerk-backend-api `<8`
+  cap for the `cryptography>=50` floor, plus the avatar session fix).
+
+### Fixed
+- The peer-host key-leak test judges parsed origins, not substrings —
+  bare-host matching flags a site's own links whenever a peer host is a
+  substring of its own (`2plot.dev` ⊂ `leaflet.2plot.dev`; found by the
+  leaflet pilot, this repo was saved only by its hostname). The invariant
+  stated properly: any URL carrying a key must be same-origin.
+- `lib/agent_key.py` records why it must not use
+  `from __future__ import annotations`: PEP 563 turns the FastAPI
+  `Request` annotation into a string resolved against module globals,
+  where the locally imported class does not exist — the parameter silently
+  becomes a required query field and the route 422s.
+
 ## [1.3.0] - 2026-08-15
 
 Instrument first: the 402 groundwork lands on the template. The network's

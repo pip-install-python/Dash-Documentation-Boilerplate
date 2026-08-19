@@ -473,14 +473,30 @@ from lib import page_tiers as _page_tiers  # noqa: E402
 # Tiered corpus documents (dash-improve-my-llms >= 2.4.0). Pseudo-paths:
 # they never enter dash.page_registry, so they cannot leak into listings —
 # registering them here lets this satellite tier its compact briefing and
-# full corpus via env (LLMS_SMALL_TIER / LLMS_FULL_TIER; unset = the
-# default tier, i.e. public), and the hub can tighten either network-wide
-# through its page-tier ceilings with no redeploy here. Inert on older
-# package versions.
-_page_tiers.register("/llms-small.txt", os.environ.get("LLMS_SMALL_TIER"))
-_page_tiers.register("/llms-full.txt", os.environ.get("LLMS_FULL_TIER"))
+# full corpus via env (LLMS_SMALL_TIER / LLMS_FULL_TIER), and the hub can
+# tighten either network-wide through its page-tier ceilings with no
+# redeploy here. The explicit `or "public"` matters: these registered under
+# the PAGE_DEFAULT_TIER fallback before, which meant flipping that env to
+# gate the *interactive* site would silently gate the corpus documents too.
+# Their tier is now always a deliberate setting, never an ambient default.
+_page_tiers.register("/llms-small.txt",
+                     os.environ.get("LLMS_SMALL_TIER") or "public")
+_page_tiers.register("/llms-full.txt",
+                     os.environ.get("LLMS_FULL_TIER") or "public")
 
-ACCESS_ENABLED = _access.configure()
+# The home page registers via pages/home.py, not pages/markdown.py, so no
+# frontmatter ever declares its tier — under PAGE_DEFAULT_TIER=auth it would
+# silently inherit the gate. The funnel's front door stays public, always.
+_page_tiers.register("/", "public")
+
+# force= when either gate env is present: with every tier still public the
+# auto-detect would skip the wiring, but a host that flips by env needs the
+# verdict plumbing (and the prerender's use of it) live during the dark
+# launch, not on the flip.
+ACCESS_ENABLED = _access.configure(
+    force=bool(os.environ.get("PAGE_DEFAULT_TIER")
+               or os.environ.get("LLMS_PUBLIC_DEFAULT"))
+)
 
 # Wire up the package: /llms.txt, /<page>/llms.txt, /robots.txt, /sitemap.xml,
 # bot-detection middleware, and (on Dash 4.3+) MCP resource registration.
@@ -497,6 +513,26 @@ add_llms_routes(app, LLMSConfig(warn_missing_llms_doc=True))
 app.layout = create_appshell(dash.page_registry.values())
 
 server = app.server
+
+# ============================================================================
+# The person→agent handoff: /api/agent-key turns the browser's Clerk session
+# into a portable ?key= for copied llms.txt URLs (lib/agent_key.py). 204 for
+# everyone until Clerk and the hub are configured — safe to mount always.
+# ============================================================================
+
+from lib.agent_key import register_agent_key_route  # noqa: E402
+
+register_agent_key_route(app, BACKEND)
+
+_non_public = sum(1 for t in _page_tiers.registered().values() if t != "public")
+print(
+    f"[boilerplate] interactive gate: default tier "
+    f"'{os.environ.get('PAGE_DEFAULT_TIER') or 'public'}', "
+    f"{_non_public} non-public page(s), machine surfaces "
+    f"{'GATED' if not _page_tiers.get_llms_public('/__probe__') else 'open'} "
+    f"by default (LLMS_PUBLIC_DEFAULT), access wiring "
+    f"{'ON' if ACCESS_ENABLED else 'off'}."
+)
 
 # ============================================================================
 # Analytics Tracking (FastAPI) — added LAST on purpose.

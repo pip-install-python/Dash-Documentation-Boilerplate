@@ -40,10 +40,17 @@ services:
       - key: DASH_MCP_ENABLED
         value: "0"
 
-      # Network analytics — the hourly signed rollup POSTed to 2plot.ai.
+      # Network analytics — the signed rollup POSTed to 2plot.ai.
       # Without the secret, reporting is off and the app says so at startup.
       - key: CROSS_APP_WEBHOOK_SECRET
         sync: false
+      # 15 minutes, not the code default of hourly: the fleet is on paid
+      # instances now and the hub board reads near-real-time. The live
+      # "active now" number rides the separate presence beacon
+      # (SATELLITE_PRESENCE_INTERVAL_S, default 60s, 0 disables) — this knob
+      # only paces the daily rollup.
+      - key: SATELLITE_REPORT_INTERVAL_S
+        value: "900"
       # Also the bulletin's identity to the hub (lib/bulletin.py), so a fork
       # that changes this stops receiving the boilerplate's announcements.
       - key: SATELLITE_APP_KEY
@@ -78,6 +85,57 @@ services:
         value: public
       - key: LLMS_FULL_TIER
         value: public
+
+      # --- The interactive gate (lib/gate_layouts.py) ---------------------
+      # THE per-host gate switch: flip to `auth` and every docs page whose
+      # frontmatter doesn't pin a tier shows the sign-in card to anonymous
+      # browsers. Rollback is flipping it back — env only, no code revert.
+      # Funnel pages (/, /getting-started, the corpus pseudo-paths) are
+      # pinned public in code/frontmatter and never inherit this.
+      - key: PAGE_DEFAULT_TIER
+        value: public
+      # The second axis, and the phase-4 agent flip: while "1", machine
+      # surfaces (llms.txt family, crawler HTML, the prerender) stay open on
+      # auth pages so the crawl-demand window keeps measuring. "0" gates
+      # anonymous machine fetches too (keyed agents still pass). Do not flip
+      # before the window closes — see kickoff/fleet/KICKOFF-fleet-check.md.
+      - key: LLMS_PUBLIC_DEFAULT
+        value: "1"
+
+      # --- Clerk satellite auth (lib/auth.py) -----------------------------
+      # All OPTIONAL: absent, the site runs fully public and admin surfaces
+      # fail CLOSED (lib.auth.admin_access_open). Set the two keys to turn
+      # auth on. Values below mirror leaflet.2plot.dev, the pilot host.
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      # The 2plot.ai PRIMARY on its production Clerk instance (Account
+      # Portal + Frontend API custom domains — not *.accounts.dev).
+      - key: CLERK_SIGN_IN_URL
+        value: https://accounts.2plot.ai/sign-in
+      - key: CLERK_SIGN_UP_URL
+        value: https://accounts.2plot.ai/sign-up
+      # REQUIRED in satellite mode; a production custom-domain instance
+      # cannot derive it from CLERK_SIGN_IN_URL.
+      - key: CLERK_FRONTEND_API
+        value: https://clerk.2plot.ai
+      # The REGISTERED SATELLITE DOMAIN — deliberately NOT the host this app
+      # is served on. Every *.2plot.dev docs host is an ALLOWED SUBDOMAIN of
+      # the 2plot.dev satellite; clerk.<your-host>.2plot.dev is NXDOMAIN and
+      # setting it here hangs sign-in. Session cookies are scoped to
+      # .2plot.dev, which is exactly what the allowlist enables.
+      - key: CLERK_SATELLITE_DOMAIN
+        value: 2plot.dev
+      - key: CLERK_IS_SATELLITE
+        value: "true"
+      # Signs the session + __dca_identity cookies. Without it
+      # dash-clerk-auth falls back to a PUBLIC dev default string.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Admin allowlist for admin-tier pages (lib.auth.is_admin_user).
+      - key: ADMIN_EMAILS
+        sync: false
 
       # The hub takes the LAST report for a given (app, date). On an ephemeral
       # filesystem a mid-day deploy wipes the ledger and the next hourly report

@@ -265,7 +265,7 @@ def register() -> bool:
         )
 
     if is_satellite and sat_domain:
-        _install_satellite_fixups(sat_domain)
+        _install_satellite_signin_delegation()
 
     print(
         f"[auth] Clerk ENABLED (headless; satellite={is_satellite}, "
@@ -274,41 +274,56 @@ def register() -> bool:
     return True
 
 
-def _install_satellite_fixups(sat_domain: str) -> None:
-    """Two satellite fixes for dash-clerk-auth, applied via an index hook.
+def _install_satellite_signin_delegation() -> None:
+    """Delegate ``#clerk-login-button`` clicks, for buttons Dash renders LATE.
 
-    1) clerk-js@5 reads ``domain`` as a CONSTRUCTOR option, from the script
-       tag's ``data-clerk-domain`` — NOT as a ``load()`` option. 0.9.0 passed
-       the domain only to ``Clerk.load({domain})``, so the hosted loader
-       built the Clerk singleton with no domain and ``load({isSatellite:true})``
-       threw "a satellite application needs to specify a domain or a proxyUrl".
-       Fix: stamp ``data-clerk-domain`` onto the script tag. This hook runs
-       after the package's, so the tag already exists. The vendored 0.9.1
-       emits the attribute itself; the ``not in index_string`` guard below
-       makes this a no-op there, and it stays for any fork still on 0.9.0.
+    This used to be two hand-rolled satellite fixes for dash-clerk-auth 0.9.0
+    (`_install_satellite_fixups`). Both are upstream now and the local copies
+    are gone — ported back from 2plot_leaflet's auth.py 2026-08-19, whose
+    session retired them first:
 
-    2) The package binds the sign-in button to ``Clerk.openSignIn()`` — a modal
-       on the CURRENT domain. On a satellite that POSTs to the satellite FAPI's
-       ``/sign_ins`` and 403s ("This operation is not allowed on a satellite
-       domain"). Sign-in must redirect to the primary instead. Fix: intercept
-       the ``#clerk-login-button`` click in the CAPTURE phase (it fires before
-       the package's bubble-phase listener, and ``stopImmediatePropagation``
-       prevents it) and call ``redirectToSignIn()``.
+    * stamping ``data-clerk-domain`` onto the ClerkJS script tag (clerk-js@5
+      reads ``domain`` as a CONSTRUCTOR option, not a ``load()`` option) —
+      fixed in **0.9.1**;
+    * replacing ``Clerk.openSignIn()`` on a satellite, which POSTs to the
+      satellite FAPI and 403s with "This operation is not allowed on a
+      satellite domain" — fixed in **0.9.2**, which branches to
+      ``buildSatelliteRedirect()`` / ``redirectToSignIn()`` instead.
 
-       ``signInForceRedirectUrl`` / ``signUpForceRedirectUrl`` point at THIS
-       page so the primary returns the user here. The deprecated ``redirectUrl``
-       prop is ignored by clerk-js@5, so without them the primary falls back to
-       its own default and strands the user on the primary domain. Use
-       origin+pathname with no query, so stale ``__clerk_*`` handshake params
-       are not carried into the next sign-in.
+    What is NOT upstream is *delegation*. The package binds the button by id
+    inside its ``DOMContentLoaded`` handler, once. The header control exists
+    by then (``components.header``, part of the app shell) and works. Any
+    button Dash renders later — a sign-in affordance inside a page layout —
+    would have no listener at all. One delegated CAPTURE-phase listener
+    catches the button however late it appears; ``stopImmediatePropagation``
+    means exactly one handler runs even on the header button, where the
+    package's own listener is also attached — deterministic rather than
+    order-dependent. (The gate card's own buttons are ``#auth-gate-*``,
+    handled by ``assets/auth_gate.js`` — disjoint selectors, same
+    destinations.)
+
+    The action defers to the package: ``buildSatelliteRedirect()`` (the 0.9.2
+    page-JS surface, which carries the current page in ``?returnTo=``) when
+    available, else ``redirectToSignIn`` with THIS page forced as the return.
+    The fallback uses origin+pathname, not ``href`` — stale ``__clerk_*``
+    handshake params must not ride into the next sign-in.
     """
     from dash import hooks as _dash_hooks
 
+    # Unique marker: the guard below keys off it so a second registration (or
+    # a future second index hook) cannot inject this script twice.
+    marker = "ddb-clerk-signin-delegate"
+
     signin_js = (
-        "<script>(function(){"
+        f"<script data-{marker}>(function(){{"
         "document.addEventListener('click',function(e){"
         "var b=e.target&&e.target.closest?e.target.closest('#clerk-login-button'):null;"
-        "if(b&&window.Clerk&&typeof window.Clerk.redirectToSignIn==='function'){"
+        "if(!b||!window.Clerk)return;"
+        "var dca=window.dashClerkAuth;"
+        "var dest=dca&&dca.buildSatelliteRedirect?dca.buildSatelliteRedirect():null;"
+        "if(dest){e.stopImmediatePropagation();e.preventDefault();"
+        "window.location.assign(dest);return;}"
+        "if(typeof window.Clerk.redirectToSignIn==='function'){"
         "e.stopImmediatePropagation();e.preventDefault();"
         "var u=window.location.origin+window.location.pathname;"
         "window.Clerk.redirectToSignIn({signInForceRedirectUrl:u,signUpForceRedirectUrl:u});}"
@@ -316,13 +331,8 @@ def _install_satellite_fixups(sat_domain: str) -> None:
     )
 
     @_dash_hooks.index()
-    def _clerk_satellite_fixups(index_string):
-        needle = "data-clerk-publishable-key="
-        if needle in index_string and "data-clerk-domain=" not in index_string:
-            index_string = index_string.replace(
-                needle, f'data-clerk-domain="{sat_domain}" {needle}', 1
-            )
-        if "redirectToSignIn" not in index_string and "</body>" in index_string:
+    def _clerk_satellite_signin(index_string):
+        if marker not in index_string and "</body>" in index_string:
             index_string = index_string.replace("</body>", signin_js + "</body>", 1)
         return index_string
 

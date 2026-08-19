@@ -177,7 +177,8 @@ Everything this app sends to another network host now uses it:
 | Caller | Was arriving as | Volume |
 |---|---|---|
 | `lib/ad_client.py` → 2plot.dev | `python-requests/2.x` | **one per docs page view** |
-| `lib/satellite_reporter.py` → 2plot.ai | `python-requests/2.x` | one per hour |
+| `lib/satellite_reporter.py` → 2plot.ai (rollup) | `python-requests/2.x` | one per report interval (default hourly; the fleet runs 15 min) |
+| `lib/satellite_reporter.py` → 2plot.ai (presence beacon) | `python-requests/2.x` | one per minute |
 | `lib/hub_client.py` → 2plot.dev | `python-requests/2.x` | per agent-key verify |
 | `scripts/network_smoke.py`, `smoke_live.py`, `audit_links.py` | crawler / browser UAs | every deploy |
 

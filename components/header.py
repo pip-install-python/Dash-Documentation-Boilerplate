@@ -6,6 +6,27 @@ from components.backend_badge import create_backend_badge
 from lib.backend import get_backend_info
 
 
+def create_clerk_avatar():
+    """Clerk avatar / sign-in control, sat beside the colour-scheme toggle.
+
+    Returns None when Clerk is not configured, so local development and any
+    deploy without the keys renders the header exactly as before rather than
+    erroring on a missing component. `lib/auth.py` registers Clerk with
+    `headless=True`, meaning the package injects NO UI of its own — without
+    this widget there is no way to sign in even though Clerk initialises.
+    The package renders `#clerk-login-button` inside it; since
+    dash-clerk-auth 0.9.2 that button's own handler is satellite-safe, so it
+    needs nothing from us.
+    """
+    from lib.auth import clerk_enabled
+
+    if not clerk_enabled():
+        return None
+    from dash_clerk_auth import create_clerk_menu
+
+    return create_clerk_menu(show_dropdown=True, dropdown_align="right")
+
+
 def create_link(icon, href):
     """Create an external link icon button"""
     return dmc.Anchor(
@@ -120,7 +141,8 @@ def create_header(data):
                     gap="md",
                 ),
 
-                # Right section: Backend badge + OpenAPI (fastapi only) + Search + GitHub + Theme toggle
+                # Right section: Backend badge + OpenAPI (fastapi only) +
+                # Search + GitHub + Theme toggle + Clerk avatar (when on)
                 dmc.Group(
                     [
                         dmc.Box(create_backend_badge(), visibleFrom="sm"),
@@ -148,6 +170,7 @@ def create_header(data):
                             id="color-scheme-toggle",
                             size="lg",
                         ),
+                        create_clerk_avatar(),
                     ],
                     gap="sm",
                 ),

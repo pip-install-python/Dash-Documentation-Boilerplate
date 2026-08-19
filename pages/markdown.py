@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from lib.ad_client import inject_ad_into_aside
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
-from lib import page_tiers
+from lib import gate_layouts, page_tiers
 from lib.directives.headings import patch_renderer
 from lib.directives.kwargs import Kwargs
 from lib.directives.llms_copy import LlmsCopy
@@ -38,9 +38,15 @@ class Meta(BaseModel):
     category: Optional[str] = None
     icon: Optional[str] = None
     # Who may read this page: public | auth | admin | hidden. Absent means
-    # public — see lib/page_tiers.py for the tier model and why the default
-    # is open. Enforced only when access control is wired in run.py.
+    # the deployment default (PAGE_DEFAULT_TIER, else public) — see
+    # lib/page_tiers.py for the tier model and why the default is open.
+    # Enforced only when access control is wired in run.py.
     tier: Optional[str] = None
+    # The second axis: does the machine twin (/<page>/llms.txt, crawler HTML,
+    # the prerender) stay open while the interactive page is gated? Absent
+    # defers to LLMS_PUBLIC_DEFAULT (unset = open — the data-window posture).
+    # Only meaningful on `auth` pages; see lib/page_tiers.get_llms_public.
+    llms_public: Optional[bool] = None
     # schema.org @type for the crawler document's JSON-LD. Absent means
     # TechArticle — every page here documents software, and "WebPage" (the
     # package default) tells Google nothing it did not already know. The
@@ -152,14 +158,20 @@ for file in files:
         layout, id="m2d-page" + metadata.endpoint.replace("/", "-")
     )
 
-    # register with dash
+    # register with dash — the layout goes in behind the interactive gate.
+    # The tree is still built once, above; gated_layout only decides per
+    # render whether the visitor gets it or the sign-in/forbidden/404 card
+    # (lib/gate_layouts.py). With every tier public the verdict is a dict
+    # lookup that always says allow, so an ungated fork pays ~nothing.
     dash.register_page(
         metadata.name,
         metadata.endpoint,
         name=metadata.name,
         title=PAGE_TITLE_PREFIX + metadata.name,
         description=metadata.description,
-        layout=layout,
+        layout=gate_layouts.gated_layout(
+            metadata.endpoint, metadata.name, layout
+        ),
         category=metadata.category,
         icon=metadata.icon,
         # Without this Dash infers an image from assets/ and finds `logo.svg` —
@@ -173,7 +185,8 @@ for file in files:
     # route that used to live in run.py and works across all three backends.
     # Record the declared tier before the prose is registered, so a gate can
     # never be applied later than the content it is meant to gate.
-    page_tiers.register(metadata.endpoint, metadata.tier)
+    page_tiers.register(metadata.endpoint, metadata.tier,
+                        llms_public=metadata.llms_public)
 
     expanded = _expand_source_directives(content)
     # The full record, matching the dash.register_page call above. These two

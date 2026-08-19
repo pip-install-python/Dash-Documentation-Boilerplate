@@ -38,9 +38,12 @@ def restore_tiers():
     """Any test that registers a tier outside `access_on` must clean up, or the
     inertness assertion below sees a gate a later reader cannot explain."""
     saved = page_tiers.registered()
+    saved_llms = dict(page_tiers._LOCAL_LLMS_PUBLIC)
     yield
     page_tiers._LOCAL_TIERS.clear()
     page_tiers._LOCAL_TIERS.update(saved)
+    page_tiers._LOCAL_LLMS_PUBLIC.clear()
+    page_tiers._LOCAL_LLMS_PUBLIC.update(saved_llms)
 
 
 class FakeUser:
@@ -61,7 +64,11 @@ def access_on(app_module, monkeypatch):
     from dash_improve_my_llms import access as pkg_access
 
     saved_tiers = page_tiers.registered()
-    page_tiers.register(GATED_PAGE, "auth")
+    saved_llms = dict(page_tiers._LOCAL_LLMS_PUBLIC)
+    # llms_public=False: these tests exercise a machine lane that actually
+    # gates. The default-open axis (the data-window posture) has its own
+    # section below.
+    page_tiers.register(GATED_PAGE, "auth", llms_public=False)
     hub_client.clear_cache()
     access.configure(force=True)
     try:
@@ -73,6 +80,8 @@ def access_on(app_module, monkeypatch):
         pkg_access.reset()
         page_tiers._LOCAL_TIERS.clear()
         page_tiers._LOCAL_TIERS.update(saved_tiers)
+        page_tiers._LOCAL_LLMS_PUBLIC.clear()
+        page_tiers._LOCAL_LLMS_PUBLIC.update(saved_llms)
         hub_client.clear_cache()
 
 
@@ -315,11 +324,24 @@ def test_a_key_never_reaches_the_sitemap_or_canonical_tags(access_on, client):
 
 
 def test_a_key_never_reaches_a_peer_host(access_on, client):
-    """The directory points at other origins; a capability must not travel."""
+    """The directory points at other origins; a capability must not travel.
+
+    Judged by PARSED ORIGIN, not substring: the leaflet port found that bare
+    host matching flags a site's own links whenever a peer host is a
+    substring of its own (2plot.dev ⊂ leaflet.2plot.dev) — this file was
+    saved only by its host being boilerplate.2plot.dev. The invariant stated
+    properly: any URL carrying the key must be same-origin.
+    """
+    from urllib.parse import urlparse
+
+    from lib.constants import BASE_URL
+
+    own_host = urlparse(BASE_URL).netloc
     body = client.get(f"/llms.txt?key={VALID_KEY}").text
-    for line in body.splitlines():
-        if "2plot.ai" in line or "leaflet.2plot.dev" in line:
-            assert VALID_KEY not in line, f"key leaked to a peer link: {line}"
+    for url in re.findall(r"https?://[^\s)\"'>\]]+", body):
+        if VALID_KEY in url:
+            assert urlparse(url).netloc == own_host, \
+                f"key leaked to a peer link: {url}"
 
 
 def test_the_cache_never_stores_the_key_itself():
@@ -390,3 +412,141 @@ def test_a_check_that_raises_degrades_to_gated(access_on, monkeypatch):
 
     monkeypatch.setattr(pkg_access._config, "check", boom)
     assert pkg_access.resolve(GATED_PAGE) == "gated"
+
+
+# ---------------------------------------------------------------------------
+# The second axis: llms_public — "interactive gated, machine open"
+# ---------------------------------------------------------------------------
+
+
+def test_interactive_gated_machine_open_is_the_window_contract(
+    access_on, monkeypatch
+):
+    """THE contract of the data-window posture, in one test: the same
+    anonymous request is gated in a browser and allowed on the machine lane.
+    Do not "fix" either half — the split is the design (the prose is
+    anonymously fetchable at /<page>/llms.txt by decision, while the
+    interactive experience funnels through the sign-in card)."""
+    page_tiers.register(GATED_PAGE, "auth")  # llms_public -> env default: open
+    anonymous(monkeypatch)
+    assert access.check(GATED_PAGE) == "allow"
+    assert access.resolve_page_access(GATED_PAGE) == "sign_in"
+
+
+def test_llms_public_false_gates_the_anonymous_machine_fetch(
+    access_on, monkeypatch
+):
+    """The phase-4 posture, per page: axis pinned closed, anonymous machine
+    fetches meet the gate doc. (access_on registers llms_public=False.)"""
+    anonymous(monkeypatch)
+    assert access.check(GATED_PAGE) == "gated"
+
+
+def test_llms_public_default_env_is_the_phase_4_flip(access_on, monkeypatch):
+    """LLMS_PUBLIC_DEFAULT=0 flips every page that did not pin the axis —
+    the whole agent flip is this env change, no code."""
+    page_tiers.register(GATED_PAGE, "auth")  # no pin -> follows the env
+    anonymous(monkeypatch)
+    assert access.check(GATED_PAGE) == "allow"
+    monkeypatch.setenv("LLMS_PUBLIC_DEFAULT", "0")
+    assert access.check(GATED_PAGE) == "gated"
+
+
+def test_an_explicit_llms_public_pin_survives_the_env_flip(
+    access_on, monkeypatch
+):
+    page_tiers.register(GATED_PAGE, "auth", llms_public=True)
+    monkeypatch.setenv("LLMS_PUBLIC_DEFAULT", "0")
+    anonymous(monkeypatch)
+    assert access.check(GATED_PAGE) == "allow"
+
+
+def test_the_open_axis_never_loosens_a_hub_imposed_gate(
+    access_on, monkeypatch
+):
+    """Hub ceiling says auth, local axis says open — the machine lane stays
+    gated. A satellite env default must not expose what the network
+    restricted; the exemption is for locally declared gates only."""
+    anonymous(monkeypatch)
+
+    def hub(route, payload, timeout):
+        return {"tiers": {PUBLIC_PAGE: "auth"}, "ttl": 300}
+
+    monkeypatch.setattr(hub_client, "_post", hub)
+    monkeypatch.setattr(hub_client, "enabled", lambda: True)
+    hub_client.clear_cache()
+    assert access.check(PUBLIC_PAGE) == "gated"
+
+
+def test_machine_surfaces_follow_the_axis_end_to_end(
+    access_on, client, monkeypatch
+):
+    """Through the real routes: the gate doc when the axis is closed, the
+    prose when it is open — same page, same anonymous reader."""
+    anonymous(monkeypatch)
+    gated_body = client.get(f"{GATED_PAGE}/llms.txt").text
+    assert "not public" in gated_body
+    page_tiers.register(GATED_PAGE, "auth", llms_public=True)
+    open_body = client.get(f"{GATED_PAGE}/llms.txt").text
+    assert "not public" not in open_body
+    assert open_body != gated_body
+
+
+# ---------------------------------------------------------------------------
+# resolve_page_access — the interactive verdict
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_page_access_anonymous_matrix(access_on, monkeypatch):
+    anonymous(monkeypatch)
+    for tier, expected in (("public", "allow"), ("auth", "sign_in"),
+                           ("admin", "sign_in"), ("hidden", "hidden")):
+        page_tiers.register(GATED_PAGE, tier)
+        assert access.resolve_page_access(GATED_PAGE) == expected, tier
+
+
+def test_resolve_page_access_signed_in_matrix(access_on, monkeypatch):
+    signed_in(monkeypatch)
+    monkeypatch.setattr(auth, "is_admin_user", lambda user=None: False)
+    page_tiers.register(GATED_PAGE, "auth")
+    assert access.resolve_page_access(GATED_PAGE) == "allow"
+    page_tiers.register(GATED_PAGE, "admin")
+    assert access.resolve_page_access(GATED_PAGE) == "forbidden"
+    monkeypatch.setattr(auth, "is_admin_user", lambda user=None: True)
+    assert access.resolve_page_access(GATED_PAGE) == "allow"
+
+
+def test_admin_layouts_fail_closed_without_clerk_docs_fall_open(
+    access_on, monkeypatch
+):
+    """The boilerplate's posture, pinned so a future port from pip-docs+
+    (whose resolve_access falls fully open without Clerk keys) cannot
+    regress it: docs stay readable, admin stays sealed."""
+    monkeypatch.setattr(auth, "clerk_enabled", lambda: False)
+    monkeypatch.setattr(auth, "admin_access_open", lambda: False)
+    page_tiers.register(GATED_PAGE, "auth")
+    assert access.resolve_page_access(GATED_PAGE) == "allow"
+    page_tiers.register(GATED_PAGE, "admin")
+    assert access.resolve_page_access(GATED_PAGE) == "forbidden"
+    monkeypatch.setattr(auth, "admin_access_open", lambda: True)
+    assert access.resolve_page_access(GATED_PAGE) == "allow"
+
+
+def test_a_key_never_unlocks_a_browser_layout(
+    access_on, hub_allows, monkeypatch
+):
+    """Keys are machine-surface capabilities. A ?key= that opened layouts
+    would turn every copied URL into a shareable session."""
+    page_tiers.register(GATED_PAGE, "auth", llms_public=False)
+    anonymous(monkeypatch)
+    monkeypatch.setattr(access, "_request_key", lambda: VALID_KEY)
+    assert access.check(GATED_PAGE) == "allow"        # machine lane: yes
+    assert access.resolve_page_access(GATED_PAGE) == "sign_in"  # layout: no
+
+
+def test_run_py_pins_the_funnel_public(app_module):
+    """PAGE_DEFAULT_TIER=auth must never gate the funnel or the corpus
+    pseudo-paths — run.py and frontmatter pin them explicitly, and this is
+    the regression net for those pins."""
+    for path in ("/", "/getting-started", "/llms-small.txt", "/llms-full.txt"):
+        assert page_tiers.local_tier(path) == "public", path
