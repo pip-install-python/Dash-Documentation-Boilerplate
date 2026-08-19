@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-08-19
+
+### Changed
+
+- `dash-clerk-auth` is now installed by requirements.txt (from the vendored
+  tarball) rather than riding the image uninstalled. 1.4.0 shipped the whole
+  sign-in surface — avatar, gate cards, delegation — but the deployed
+  reference site could not render any of it because the package it wires was
+  never on `sys.path`. Runtime posture is unchanged: with no `CLERK_*` keys
+  the site is exactly as public as before, so forks inherit the capability,
+  never a login wall. Alongside it, the fleet security floors are now
+  asserted rather than merely permitted: `clerk-backend-api>=7.0.0,<8` and
+  `cryptography>=50.0.0` (the four-advisory baseline dash-clerk-auth 1.0.1
+  widened its cap for).
+
 ## [1.4.0] - 2026-08-19
 
 The interactive gate and the real-time half of the fleet's analytics land on

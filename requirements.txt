@@ -113,6 +113,25 @@ dash-improve-my-llms[flask]>=2.5.1
 # dash-improve-my-llms[quart]>=2.5.1     # Dash 4.4+ Quart backend
 # dash-improve-my-llms[all]>=2.5.1       # all three
 
+# Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
+#
+# Installed ALWAYS as of 1.4.1, gated at runtime: with no CLERK_* keys in the
+# environment, lib/auth.py registers nothing and the site runs fully public —
+# a fork inherits the capability, never a login wall. It moved into
+# requirements because boilerplate.2plot.dev itself now runs the sign-in
+# navigation (Clerk avatar + gate cards), and an uninstalled package meant
+# the deployed reference site could not demonstrate the auth it documents.
+#
+# The floors below are the fleet security baseline, not a preference:
+# clerk-backend-api 5.x capped cryptography at <47.0.0 — below the fixes for
+# GHSA-537c-gmf6-5ccf (48.0.1), PYSEC-2026-3553/3554 (49.0.0) and
+# PYSEC-2026-3552 (50.0.0). SDK 7.0.0 allows cryptography <51.0.0, and
+# dash-clerk-auth 1.0.1 widened its cap to <8 exactly so applications can
+# assert these floors rather than merely permit them.
+./vendor/dash_clerk_auth-1.0.2.tar.gz
+clerk-backend-api>=7.0.0,<8
+cryptography>=50.0.0
+
 # Production Servers
 # - gunicorn   -> WSGI (Flask)
 # - uvicorn    -> ASGI (FastAPI / Quart)

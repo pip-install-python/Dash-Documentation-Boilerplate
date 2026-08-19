@@ -12,9 +12,10 @@ RUN pip install --upgrade pip
 # Install core dependencies explicitly (helps with dependency resolution)
 RUN pip install pandas>=1.2.3 plotly>=5.0.0 pydantic>=2.3.0
 
-# dash-improve-my-llms installs from PyPI. vendor/ still holds dash_clerk_auth
-# (not on PyPI, deliberately outside requirements.txt) so the optional-auth
-# install command in docs/authentication works inside the image.
+# dash-improve-my-llms installs from PyPI. vendor/ holds dash_clerk_auth
+# (not on PyPI), which requirements.txt installs from this path as of 1.4.1 —
+# so vendor/ MUST be copied before the requirements install. Auth stays
+# gated at runtime: no CLERK_* keys, no login wall.
 COPY vendor/ ./vendor/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
