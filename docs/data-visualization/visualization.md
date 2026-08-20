@@ -4,6 +4,7 @@ description: Interactive charts and graphs with Plotly integration
 endpoint: /examples/visualization
 package: visualization
 icon: mdi:chart-line
+lastmod: 2026-06-14
 ---
 
 .. llms_copy::Data Visualization

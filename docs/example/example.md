@@ -5,6 +5,7 @@ endpoint: /getting-started
 package: example
 icon: mdi:rocket-launch-outline
 tier: public
+lastmod: 2026-08-19
 ---
 
 .. llms_copy::Getting Started

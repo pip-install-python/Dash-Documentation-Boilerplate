@@ -4,6 +4,7 @@ description: Run this documentation site on Flask, FastAPI or Quart with one env
 endpoint: /backends
 package: backends
 icon: mdi:server-network
+lastmod: 2026-08-16
 ---
 
 .. llms_copy::Pluggable Backends

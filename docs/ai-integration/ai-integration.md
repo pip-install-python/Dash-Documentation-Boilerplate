@@ -4,6 +4,7 @@ description: Make your Dash app discoverable to MCP clients, web crawlers, and p
 endpoint: /examples/ai-integration
 package: ai-integration
 icon: mdi:robot-outline
+lastmod: 2026-08-16
 ---
 
 .. llms_copy::AI/LLM Integration

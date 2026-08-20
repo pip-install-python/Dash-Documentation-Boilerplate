@@ -4,6 +4,7 @@ description: Wire a family of separately-hosted documentation sites together so 
 endpoint: /networks
 package: networks
 icon: mdi:lan-connect
+lastmod: 2026-07-30
 ---
 
 .. llms_copy::Multi-Site Networks

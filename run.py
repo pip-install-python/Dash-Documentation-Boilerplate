@@ -55,16 +55,22 @@ from dash_improve_my_llms import (
 # The version requirements.txt pins. Checked at startup — see the floors block
 # below for why this is worth a line of output on every boot.
 #
-# 2.5.1 is the Tier-B SEO standard: `configure_seo` (icons, social card,
+# 2.5.1 was the Tier-B SEO standard: `configure_seo` (icons, social card,
 # publisher/sameAs), the crawler <title> carrying the site name, per-page
 # `title`/`image_url`/`schema_type` actually reaching the crawler document,
-# /favicon.ico answered with a redirect instead of the app shell, and — the
-# .1 — a prerender that no longer clobbers the browser's per-page <title>
-# or duplicates og tags the app already declares.
+# /favicon.ico answered with a redirect instead of the app shell, and a
+# prerender that no longer clobbers the browser's per-page <title>.
+# 2.6.0 raises it to the honesty standard: sitemap <lastmod> is emitted
+# verbatim from `register_page_metadata(lastmod=)` and OMITTED when unset —
+# pages/markdown.py passes `lastmod=` unconditionally, which TypeErrors on
+# anything older, so this floor is load-bearing, not advisory. Also in
+# 2.6.0: icon autodiscovery (this app still declares explicitly; the two
+# must agree — tests/test_seo_icons.py), JSON-LD publisher.logo, and the
+# viewer banner de-dup.
 # `configure_seo` is deliberately imported AFTER this floor fires (see the
 # floors block) so a stale environment gets the floor's diagnosis instead of
 # a bare ImportError.
-LLMS_PKG_FLOOR = (2, 5, 1)
+LLMS_PKG_FLOOR = (2, 6, 0)
 
 # Analytics tracking
 from lib.analytics_tracker import tracker
@@ -338,7 +344,12 @@ register_page_metadata(
 configure_seo(
     icons=[
         # Same paths templates/index.html links, so the two heads agree.
-        "/assets/favicon.ico",
+        # The .ico href is the assets/favicon/ copy (byte-identical to the
+        # root one index.html links) so this list is SET-equal to what
+        # 2.6.0's autodiscovery finds — tests/test_seo_icons.py pins that
+        # agreement, which is the proof the fleet can rely on discovery
+        # alone once its pixels are right.
+        "/assets/favicon/favicon.ico",
         {"href": "/assets/favicon/favicon-32x32.png", "sizes": "32x32"},
         {"href": "/assets/favicon/favicon-16x16.png", "sizes": "16x16"},
         {"href": "/assets/favicon/favicon-96x96.png", "sizes": "96x96"},

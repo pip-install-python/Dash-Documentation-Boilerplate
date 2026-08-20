@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-20
+
+The reference host proves dimll 2.6.0 (stage 2 of the network rollout
+order). The floor is load-bearing: pages/markdown.py passes `lastmod=`
+unconditionally, which TypeErrors on anything older.
+
+### Changed
+
+- `dash-improve-my-llms[flask]>=2.6.0` (was 2.5.1), and
+  `LLMS_PKG_FLOOR = (2, 6, 0)`. What arrives: icon autodiscovery, truthful
+  sitemap `<lastmod>`, JSON-LD `publisher.logo`, and the llms.txt viewer
+  banner de-dup (package-side, free).
+- Every docs page's frontmatter now declares `lastmod:` with its REAL git
+  last-commit date (2025-11-09 through 2026-08-19 — eleven pages, zero
+  invented dates). The `Meta` model gains the field with a
+  YAML-date-to-ISO validator; `register_page_metadata` passes it through;
+  unset pages omit the tag — truth or silence. Deliberately not scripted
+  from file mtimes, which reset on every Docker build and would re-invent
+  the daily-lie sitemap 2.6.0 exists to end.
+- `configure_seo(icons=)`'s `.ico` entry moved to the
+  `assets/favicon/favicon.ico` copy (byte-identical to the root one
+  index.html links) so the declared list is SET-equal to what 2.6.0's
+  discovery finds.
+
+### Added
+
+- `tests/test_seo_icons.py`: discovery-vs-declaration set-agreement (the
+  proof the fleet can rely on discovery alone once its pixels are right —
+  order-inequality is not a failure, per the release notes) and
+  sitemap-honesty pins (every emitted `<lastmod>` traceable to a
+  frontmatter declaration; the undeclared home page carries none).
+
 ## [1.4.1] - 2026-08-19
 
 ### Changed

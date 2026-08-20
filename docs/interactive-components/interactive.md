@@ -4,6 +4,7 @@ description: Advanced callback patterns and state management examples
 endpoint: /examples/interactive
 package: interactive
 icon: mdi:gesture-tap
+lastmod: 2025-11-09
 ---
 
 .. llms_copy::Interactive Components

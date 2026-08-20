@@ -4,6 +4,7 @@ description: What the FastAPI backend unlocks in this boilerplate — OpenAPI do
 endpoint: /fastapi-showcase
 package: fastapi-showcase
 icon: simple-icons:fastapi
+lastmod: 2026-08-16
 ---
 
 .. llms_copy::FastAPI Showcase

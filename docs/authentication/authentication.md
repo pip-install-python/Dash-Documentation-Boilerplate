@@ -5,6 +5,7 @@ endpoint: /authentication
 package: authentication
 icon: mdi:shield-account-outline
 tier: public
+lastmod: 2026-07-30
 ---
 
 .. llms_copy::Authentication

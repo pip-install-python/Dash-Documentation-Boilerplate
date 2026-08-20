@@ -4,6 +4,7 @@ description: An in-depth comparison of Flask, FastAPI and Quart as Dash 4.x back
 endpoint: /backend-comparison
 package: backend-comparison
 icon: mdi:compare-horizontal
+lastmod: 2026-08-16
 ---
 
 .. llms_copy::Backend Deep Dive

@@ -4,6 +4,7 @@ description: The site-identity rules, the internal-traffic analytics contract an
 endpoint: /network-standard
 package: network-standard
 icon: mdi:file-certificate-outline
+lastmod: 2026-08-19
 ---
 
 .. llms_copy::Network Standard

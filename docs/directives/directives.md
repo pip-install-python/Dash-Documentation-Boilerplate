@@ -4,6 +4,7 @@ description: Comprehensive guide to all custom markdown directives available
 endpoint: /examples/directives
 package: directives
 icon: mdi:code-braces
+lastmod: 2025-11-09
 ---
 
 .. llms_copy::Custom Directives

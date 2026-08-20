@@ -108,10 +108,19 @@ python-dotenv>=1.0.0
 # title/image_url/schema_type reaching the crawler document, /favicon.ico
 # answered with a redirect instead of the app shell, and a prerender that
 # no longer clobbers the browser's per-page <title>.
-dash-improve-my-llms[flask]>=2.5.1
-# dash-improve-my-llms[fastapi]>=2.5.1   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.5.1     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.5.1       # all three
+#
+# 2.6.0 makes identity self-maintaining and the sitemap honest: icon
+# autodiscovery from the assets folder (explicit configure_seo(icons=)
+# still wins — this app declares, and tests/test_seo_icons.py pins that
+# discovery agrees with the declaration), sitemap <lastmod> emitted
+# verbatim from register_page_metadata(lastmod=) and OMITTED when unset
+# (the invented daily dates are gone — Google discards a sitemap of lies
+# wholesale), JSON-LD publisher.logo, and the llms.txt viewer banner
+# de-dup. Floor, not pin: the fleet upgrades through this line.
+dash-improve-my-llms[flask]>=2.6.0
+# dash-improve-my-llms[fastapi]>=2.6.0   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.6.0     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.6.0       # all three
 
 # Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
 #

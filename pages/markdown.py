@@ -9,7 +9,7 @@ import frontmatter
 from dash import html
 from dash_improve_my_llms import register_page_metadata
 from markdown2dash import Admonition, BlockExec, Divider, Image, create_parser
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from lib.ad_client import inject_ad_into_aside
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
@@ -52,6 +52,19 @@ class Meta(BaseModel):
     # package default) tells Google nothing it did not already know. The
     # home page declares SoftwareApplication in run.py.
     schema_type: Optional[str] = None
+    # Sitemap <lastmod>, YYYY-MM-DD, emitted VERBATIM by dash-improve-my-llms
+    # >= 2.6.0 — and omitted entirely when absent. Truth or silence: set it
+    # when the page's content genuinely changes (the frontmatter edit rides
+    # the same commit as the prose), never script it from file mtimes, which
+    # reset on every Docker build and would re-invent the daily-lie sitemap
+    # 2.6.0 exists to end. The validator exists because YAML parses a bare
+    # `lastmod: 2026-08-19` into datetime.date before pydantic ever sees it.
+    lastmod: Optional[str] = None
+
+    @field_validator("lastmod", mode="before")
+    @classmethod
+    def _lastmod_to_iso(cls, value):
+        return value.isoformat() if hasattr(value, "isoformat") else value
 
 
 _SOURCE_DIRECTIVE = re.compile(r'^\.\. source::(.+?)$', re.MULTILINE)
@@ -202,5 +215,8 @@ for file in files:
         title=PAGE_TITLE_PREFIX + metadata.name,
         image_url=OG_IMAGE_URL,
         schema_type=metadata.schema_type or "TechArticle",
+        # None on a pre-2.6 package would TypeError; the floor in run.py
+        # guarantees >= 2.6.0, where None simply omits the sitemap tag.
+        lastmod=metadata.lastmod,
         llms_doc=_build_llms_doc(metadata.name, metadata.description, expanded, metadata.endpoint),
     )
