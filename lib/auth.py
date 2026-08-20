@@ -267,6 +267,28 @@ def register() -> bool:
     if is_satellite and sat_domain:
         _install_satellite_signin_delegation()
 
+    # The return-trip guard (ported from the leaflet pilot, 2026-08-21).
+    # CLERK_SATELLITE_SIGN_IN_REDIRECT is read by dash-clerk-auth itself, so
+    # nothing here passes it through — but the package accepts a bad value
+    # with only a buried logger.warning, and both failure modes are silent
+    # in the browser: unset strands authenticated users on the primary
+    # (Account Portal fallback), and a truthy non-URL 404s the Sign In
+    # button on THIS host. The absence of both lines below in a deploy log
+    # is the acceptance check for the variable.
+    sat_redirect = (os.getenv("CLERK_SATELLITE_SIGN_IN_REDIRECT") or "").strip()
+    if is_satellite and not sat_redirect:
+        print("[auth] WARNING: Satellite mode with "
+              "CLERK_SATELLITE_SIGN_IN_REDIRECT unset — sign-in will hop to "
+              "the Clerk Account Portal instead of the hub, and users may "
+              "not be returned to this site at all. Set it to "
+              "https://2plot.ai/onboarding (see render.yaml).")
+    elif is_satellite and not sat_redirect.startswith(("http://", "https://")):
+        print(f"[auth] WARNING: CLERK_SATELLITE_SIGN_IN_REDIRECT="
+              f"{sat_redirect!r} is not an absolute http(s) URL. It is a "
+              "DESTINATION, not a flag — the Sign In button will navigate "
+              "to a path on THIS host and 404. Set it to "
+              "https://2plot.ai/onboarding.")
+
     print(
         f"[auth] Clerk ENABLED (headless; satellite={is_satellite}, "
         f"domain={sat_domain or '-'}, key={'live' if pk_live else 'test'})."

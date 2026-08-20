@@ -116,6 +116,18 @@ services:
         value: https://accounts.2plot.ai/sign-in
       - key: CLERK_SIGN_UP_URL
         value: https://accounts.2plot.ai/sign-up
+      # THE RETURN TRIP — the stage-5 blocker leaflet's pilot surfaced
+      # (2026-08-21 handoff). Unset, buildSatelliteRedirect() returns null,
+      # every sign-in path falls through to the Clerk Account Portal, the
+      # hub's return machinery never runs, and the user authenticates
+      # successfully and STAYS on the primary — no error anywhere.
+      # A DESTINATION, not a flag: the value is concatenated as
+      # `<value>?returnTo=<here>`, so `true` or a bare host resolves against
+      # THIS site and the button 404s — worse than unset. lib/auth.py warns
+      # at boot for both mistakes; the absence of those warnings is the
+      # deploy acceptance check.
+      - key: CLERK_SATELLITE_SIGN_IN_REDIRECT
+        value: https://2plot.ai/onboarding
       # REQUIRED in satellite mode; a production custom-domain instance
       # cannot derive it from CLERK_SIGN_IN_URL.
       - key: CLERK_FRONTEND_API
