@@ -1,5 +1,13 @@
 FROM python:3.11.8-slim
 
+# Unbuffered stdout, or none of the app's print() diagnostics ever reach the
+# platform logs: Python block-buffers stdout when it is not a tty, so the
+# boot lines this template relies on for observability ([auth] state, the
+# interactive-gate summary, [satellite-traffic]/[satellite-presence] wiring)
+# sat invisible in Render while logging-based lines sailed through on
+# stderr. An entire misconfiguration class debugs itself once these print.
+ENV PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         nodejs npm curl \
     && rm -rf /var/lib/apt/lists/*
