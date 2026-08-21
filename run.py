@@ -76,6 +76,20 @@ from dash_improve_my_llms import (
 # a bare ImportError.
 LLMS_PKG_FLOOR = (2, 6, 0)
 
+# THE FORK POINT — claim this app's network identity before any
+# hub-facing module imports. Every module that names this app
+# (satellite_reporter, ad_client, hub_client, bulletin) carries its own
+# fallback default, and after a template sync those defaults can
+# DISAGREE: the byte-copied reporter says "boilerplate" while the
+# fork's other modules say its own key, so an unset SATELLITE_APP_KEY
+# files the fork's traffic under the TEMPLATE's hub row (found live on
+# pannellum, 2026-08-21 — the same class as the flows-reported-as-
+# boilerplate contamination in the hub's history). setdefault: a real
+# env value (Render dashboard, .env — loaded by lib/backend before
+# this runs on import chains that need it) always wins; this line only
+# closes the unset gap. FORKS CHANGE THIS ONE STRING.
+os.environ.setdefault("SATELLITE_APP_KEY", "boilerplate")
+
 # Analytics tracking
 from lib.analytics_tracker import tracker
 

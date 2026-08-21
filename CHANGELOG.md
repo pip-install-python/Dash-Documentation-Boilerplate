@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-08-21
+
+Two fleet-class fixes surfaced by the wave's first pair, landed at the
+source so the other eighteen forks inherit them.
+
+### Fixed
+
+- **CD now verifies the artifact it shipped, not "whatever is live"**
+  (the muicharts finding): with `RENDER_DEPLOY_HOOK_URL` unset, the old
+  workflow skipped the wait and ran the live battery seconds after the
+  push — against the previous release, every run, invisibly.
+  `/healthz` now reports the running instance's commit
+  (`RENDER_GIT_COMMIT`, optional field — the fleet probe contract is
+  unchanged), and the CD wait holds until it matches the run's SHA,
+  falling back once (with a warning) on builds predating the field.
+- **The byte-copy identity trap** (the pannellum finding): the
+  reporter must stay byte-identical across forks, so its fallback
+  app key says "boilerplate" everywhere — while a fork's other modules
+  default to the fork's own key. `run.py` now claims the identity via
+  `os.environ.setdefault("SATELLITE_APP_KEY", ...)` before any
+  hub-facing import — the marked FORK POINT; forks change that one
+  string and keep the reporter byte-identical. A real env value always
+  wins.
+
 ## [1.6.3] - 2026-08-21
 
 ### Changed
