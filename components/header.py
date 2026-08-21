@@ -27,17 +27,25 @@ def create_clerk_avatar():
     return create_clerk_menu(show_dropdown=True, dropdown_align="right")
 
 
-def create_link(icon, href):
-    """Create an external link icon button"""
+def create_link(icon, href, label):
+    """Create an external link icon button.
+
+    ``label`` is REQUIRED: an icon-only link has no accessible name, so
+    screen readers announce it as "link" and AI agents can't tell what it
+    does — the exact Lighthouse/Agentic-Browsing failure measured on the
+    fleet 2026-08-22. The label lands on both the anchor and the button.
+    """
     return dmc.Anchor(
         dmc.ActionIcon(
             DashIconify(icon=icon, width=22),
             variant="subtle",
             size="lg",
             color="gray",
+            **{"aria-label": label},
         ),
         href=href,
         target="_blank",
+        **{"aria-label": label},
     )
 
 
@@ -107,6 +115,7 @@ def create_header(data):
                             size="lg",
                             color="gray",
                             hiddenFrom="md",
+                            **{"aria-label": "Open navigation menu"},
                         ),
                         # Desktop-only burger: collapses/expands the AppShell navbar
                         # on md-xl screens. Default opened=True so users see the X
@@ -151,6 +160,7 @@ def create_header(data):
                         create_link(
                             "radix-icons:github-logo",
                             "https://github.com/pip-install-python/Dash-Documentation-Boilerplate",
+                            "View the source on GitHub",
                         ),
                         dmc.ActionIcon(
                             [
@@ -169,6 +179,7 @@ def create_header(data):
                             color="yellow",
                             id="color-scheme-toggle",
                             size="lg",
+                            **{"aria-label": "Toggle light / dark color scheme"},
                         ),
                         create_clerk_avatar(),
                     ],
