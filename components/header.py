@@ -33,7 +33,7 @@ def create_link(icon, href, label):
     ``label`` is REQUIRED: an icon-only link has no accessible name, so
     screen readers announce it as "link" and AI agents can't tell what it
     does — the exact Lighthouse/Agentic-Browsing failure measured on the
-    fleet 2026-08-22. The label lands on both the anchor and the button.
+    fleet 2026-08-21. The label lands on both the anchor and the button.
     """
     return dmc.Anchor(
         dmc.ActionIcon(

@@ -5,7 +5,7 @@ endpoint: /authentication
 package: authentication
 icon: mdi:shield-account-outline
 tier: public
-lastmod: 2026-07-30
+lastmod: 2026-08-21
 ---
 
 .. llms_copy::Authentication
@@ -129,6 +129,34 @@ makes a sign-up funnel work:
 Absent frontmatter, a page is `public`. Change the default for a whole site
 with `PAGE_DEFAULT_TIER`.
 
+#### 3b. Flip tiers live: the control board
+
+Frontmatter is the *declaration*; `/admin/control-board` is the *override*.
+Every docs page gets a row there with a tier selector and an
+`llms.txt public` switch, and a toggle applies on the next page render —
+no restart, no redeploy. The full precedence, strongest claim first:
+
+```
+control-board override  ->  frontmatter tier:  ->  PAGE_DEFAULT_TIER
+```
+
+with the hub's network ceiling still applied on top of whatever resolves
+locally — an override can loosen your own declaration, never what the
+network restricted.
+
+The board is owner/admin-only (the `ADMIN_EMAILS` / `ADMIN_USER_IDS`
+allowlist below) and **fails closed**: without Clerk configured it
+returns a 404-style card rather than a working panel, because a board
+that can hide any page on the site must never fall open. Set
+`ALLOW_UNGATED_ADMIN=1` to work on it locally.
+
+Overrides persist to `PAGE_VISIBILITY_FILE` — point it at a mounted disk
+in production (`/var/data/page_visibility.json` in `render.yaml`) or
+every toggle silently resets on the next deploy. The boot log warns
+loudly when the variable is unset *or* the path is not on a real mount;
+the absence of that `[visibility]` warning in a deploy log is the
+acceptance check.
+
 #### 4. Who counts as an admin
 
 ```env
@@ -197,7 +225,8 @@ dashboard** before it will work.
 `lib/access.py` resolves in this order, and the order is the design:
 
 ```
-tier  ->  short-circuit public / hidden
+tier  =  board override -> frontmatter -> PAGE_DEFAULT_TIER   (then the hub ceiling)
+      ->  short-circuit public / hidden
       ->  local Clerk session          (a person in a browser)
       ->  hub verification of ?key=    (an agent, later, elsewhere)
 ```

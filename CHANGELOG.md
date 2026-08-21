@@ -5,7 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.1] - 2026-08-22
+## [1.6.2] - 2026-08-21
+
+The pre-wave hygiene pass, from the four-repo review.
+
+### Fixed
+
+- **Date-skew corrections (leaflet handoff §8):** seven committed
+  provenance stamps read `2026-08-22` for events whose verified date is
+  `2026-08-21` (git author dates corroborate) — CHANGELOG headers
+  1.5.3–1.6.1, `components/header.py`, `lib/ad_client.py`,
+  `requirements.txt`. All corrected; the three release commit SUBJECTS
+  carrying the wrong date are immutable and stand corrected by this
+  entry. A date nobody can trace is worse than no date.
+- `docs/authentication/authentication.md` now documents the
+  control-board override layer (override → frontmatter →
+  `PAGE_DEFAULT_TIER`, hub ceiling on top) instead of contradicting
+  shipped behavior; `lastmod` bumped accordingly.
+- `run.py`'s floor failure message now names what a 2.5.x actually
+  loses first — silently swallowed `lastmod`, the lying sitemap —
+  matching the comment that raised the floor.
+- `lib/auth.py`'s signout-shim docstring caught up with reality
+  (upstream fix shipped in 1.0.3/1.0.4; the shim is a deliberate
+  duplicate until the fleet-wide retirement pass).
+
+### Changed
+
+- README caught up three releases: dimll floor 2.5.1 → 2.6.0 in five
+  places, a new Access Control & Live Page Management section
+  (control board, admin allowlist, gate teasers), the mobile-drawer
+  standard under UI/UX, and the admin env vars in Configuration.
+- `.env.example` gains the admin surface (`ADMIN_EMAILS`,
+  `ADMIN_USER_IDS`, `ALLOW_UNGATED_ADMIN`) — the gate for the 1.6.0
+  headline feature was previously undiscoverable from the env template.
+- `.claude/CLAUDE.md` Customization Points now lists the control board,
+  the override store, and the auth-demo teasers.
+
+## [1.6.1] - 2026-08-21
 
 ### Fixed
 
@@ -16,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loads. All three were Lighthouse findings on the pilot host measured
   against template code — every fork inherits the fix.
 
-## [1.6.0] - 2026-08-22
+## [1.6.0] - 2026-08-21
 
 Every fork gets its own live control board — the leaflet pilot's proven
 UX, ported with its scar tissue included.
@@ -55,7 +91,7 @@ UX, ported with its scar tissue included.
   /var/data disk, with the blueprint-vs-dashboard drift warning
   inline. 14 new tests (`tests/test_control_board.py`).
 
-## [1.5.4] - 2026-08-22
+## [1.5.4] - 2026-08-21
 
 ### Changed
 
@@ -64,7 +100,7 @@ UX, ported with its scar tissue included.
   links, and the only section that navigates away from the network
   closes the list.
 
-## [1.5.3] - 2026-08-22
+## [1.5.3] - 2026-08-21
 
 ### Changed
 

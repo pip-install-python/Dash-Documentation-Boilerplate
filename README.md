@@ -39,10 +39,30 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 
 ### 🎨 Modern UI/UX
 - Built with [Dash Mantine Components](https://www.dash-mantine-components.com/)
-- Responsive design for mobile, tablet, and desktop
+- Responsive design for mobile, tablet, and desktop — the mobile burger
+  opens a solid, full-height drawer docked under the header, with a
+  sticky page-search on top (the network-standard mobile navigation;
+  needs dash-mantine-components ≥ 2.8.0)
 - Dark and light theme support with **automatic preference persistence**
+- Icon-only controls carry `aria-label`s — screen readers and AI agents
+  can name every button (Lighthouse Agentic-Browsing 3/3)
 - Smooth transitions and professional styling
 - Customizable color schemes and theming
+
+### 🔐 Access Control & Live Page Management
+- Four page tiers (`public` / `auth` / `admin` / `hidden`) declared in
+  frontmatter, defaulted by `PAGE_DEFAULT_TIER`
+- **`/admin/control-board`** — flip any page's tier or its llms.txt
+  exposure live, no restart; overrides beat frontmatter and persist to
+  `PAGE_VISIBILITY_FILE` on a mounted disk. Owner/admin-gated via
+  `ADMIN_EMAILS` / `ADMIN_USER_IDS`; fails closed without Clerk
+  (`ALLOW_UNGATED_ADMIN=1` for local work)
+- Sign-in gate cards with an optional **live demo teaser**
+  (`lib/auth_demos.py`) — anonymous visitors see a working example above
+  the "create a free account" card
+- Optional Clerk authentication (vendored `dash-clerk-auth`), fully
+  inert until the `CLERK_*` env vars exist — a fork inherits the
+  capability, never a login wall
 
 ### 🔍 Developer Experience
 - Hot reload during development
@@ -60,7 +80,7 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **Privacy controls** — `mark_hidden()` to exclude pages from sitemap, robots, MCP, and crawler prerender
 - **Share with AI** — paste the app URL into ChatGPT/Claude/etc.; they fetch the prose docs directly
 - **Cross-host network directory** — `lib/network_directory.py` publishes the sibling sites so an agent landing on one satellite can find the rest ([docs](https://boilerplate.2plot.dev/networks))
-- Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) — the floor is pinned in `requirements.txt` (2.5.1, the 2plot network standard); served pages read the version from the installed package rather than hardcoding it
+- Powered by [dash-improve-my-llms](https://pypi.org/project/dash-improve-my-llms/) — the floor is pinned in `requirements.txt` (2.6.0, the 2plot network standard — truthful sitemap `<lastmod>`, icon autodiscovery, JSON-LD publisher logo); served pages read the version from the installed package rather than hardcoding it
 
 ### 🔌 Pluggable Backends (Dash 4.x)
 - Run the **same app** on **Flask**, **FastAPI**, or **Quart** — switch with a single `DASH_BACKEND` environment variable
@@ -94,7 +114,7 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - dash `~=4.4.1` — see the support matrix below; **not 4.3.0**
 - dash-mantine-components >= 2.7.0
 - dash-ag-grid
-- dash-improve-my-llms >= 2.5.1 (the 2plot network standard — see below)
+- dash-improve-my-llms >= 2.6.0 (the 2plot network standard — see below)
 - flask >= 3.0.0 (default backend)
 - plotly >= 5.0.0
 - pandas >= 1.2.3
@@ -144,7 +164,7 @@ most constrained backend **network-wide, including Flask-only apps** —
 so a Flask deployment becomes a FastAPI deployment with one env change and no
 code change.
 
-> **Note on `dash-improve-my-llms`.** The floor is **2.5.1**, the Tier-B SEO
+> **Note on `dash-improve-my-llms`.** The floor is **2.6.0** — 2.5.1's Tier-B SEO standard plus the honesty layer: sitemap `<lastmod>` emitted verbatim from declarations and omitted when unset (older packages silently swallow the date and the sitemap goes back to lying), icon autodiscovery, JSON-LD publisher.logo. Below that, the Tier-B SEO
 > standard: `configure_seo` (icons, social card, publisher/sameAs), the
 > crawler `<title>` carrying the site name, per-page `title`/`image_url`/
 > `schema_type` reaching the crawler document, `/favicon.ico` answered with a
@@ -573,6 +593,13 @@ DASH_DEBUG=False
 DASH_HOST=0.0.0.0
 DASH_PORT=8553
 DASH_BACKEND=flask     # flask | fastapi | quart (requires the matching dash extra)
+
+# Access control (all optional — see docs/authentication)
+PAGE_DEFAULT_TIER=public          # the per-host gate switch
+ADMIN_EMAILS=you@example.com      # control-board / admin-tier allowlist
+ADMIN_USER_IDS=                   # Clerk user ids, same allowlist
+ALLOW_UNGATED_ADMIN=0             # 1 ONLY on a local box: opens /admin/control-board without Clerk
+PAGE_VISIBILITY_FILE=/var/data/page_visibility.json   # board overrides; must be a mounted disk in prod
 ```
 
 ### Network analytics (2plot.ai)
@@ -690,7 +717,7 @@ Contributions are welcome! Here's how you can help:
 - **Solution**: `markdown2dash` 0.1.2 pins `gunicorn<22` against this project's `gunicorn>=23` floor. Install it separately: `pip install --no-deps markdown2dash==0.1.2`.
 
 **Issue**: the llms.txt viewer's brand chip says "Dash", or `/llms.txt` opens with the wrong `# ` line
-- **Solution**: You are on a pre-2.3.4 `dash-improve-my-llms`, or `SITE_BRAND` is unset. `pip install -U "dash-improve-my-llms[flask]>=2.5.1"` (the current network floor) and see [Network Standard](docs/network-standard/network-standard.md).
+- **Solution**: You are on a pre-2.3.4 `dash-improve-my-llms`, or `SITE_BRAND` is unset. `pip install -U "dash-improve-my-llms[flask]>=2.6.0"` (the current network floor) and see [Network Standard](docs/network-standard/network-standard.md).
 
 **Issue**: the Docker container exits at boot with `Could not import dash.backends._fastapi`
 - **Solution**: A local `.env` was copied into the image. `.dockerignore` excludes it; make sure you have not removed that line.
@@ -714,7 +741,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 | Python | 3.11+ |
 | React | 18.2.0 |
 | Flask / FastAPI / Quart | pluggable backends |
-| dash-improve-my-llms | 2.5.1+ |
+| dash-improve-my-llms | 2.6.0+ |
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 

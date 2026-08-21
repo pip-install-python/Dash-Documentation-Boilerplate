@@ -380,10 +380,12 @@ def _install_signout_delegation() -> None:
     a reload, and the server POST runs even when ClerkJS never loaded —
     which is exactly the stale-ghost case that needs it most.
 
-    The upstream fix is specced for dash-clerk-auth 1.0.3
-    (kickoff/fleet/KICKOFF-clerk-avatar-release.md). Once the package
-    sequences this itself, this delegate degrades to a harmless duplicate
-    POST and can be retired a release later.
+    The upstream fix SHIPPED in dash-clerk-auth 1.0.3 (click paths +
+    cross-tab transition) and 1.0.4 (the fresh-load ghost reconciliation),
+    and this repo vendors >=1.0.4 — so today this delegate is a harmless,
+    deliberate duplicate POST. It is retained until the fleet-wide
+    shim-retirement pass: one clean release cycle after every host runs
+    >=1.0.4 in production (see requirements.txt's provenance block).
     """
     from dash import hooks as _dash_hooks
 

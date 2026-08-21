@@ -138,7 +138,7 @@ dash-improve-my-llms[flask]>=2.6.0
 # dash-clerk-auth 1.0.1 widened its cap to <8 exactly so applications can
 # assert these floors rather than merely permit them.
 #
-# 1.0.4 (vendored 2026-08-22, from the live network certification's two
+# 1.0.4 (vendored 2026-08-21, from the live network certification's two
 # finds): FastAPI auth endpoints are CALLABLE for the first time — 1.0.3
 # registered them with an un-annotated request param, which FastAPI reads
 # as a required query field (422 on every POST, swallowed client-side);

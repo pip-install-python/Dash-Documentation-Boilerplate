@@ -155,7 +155,10 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
-        "Below 2.5.1 the Tier-B SEO standard silently unwinds: `configure_seo` "
+        "Below 2.6.0 the sitemap goes back to lying: `lastmod=` is accepted "
+        "into **kwargs and SILENTLY IGNORED, so every date this repo stamped "
+        "is swallowed and <lastmod> reverts to invented build dates. Below "
+        "2.5.1 the Tier-B SEO standard additionally unwinds: `configure_seo` "
         "does not exist, the crawler <title> drops back to the bare page name, "
         "per-page title/image_url/schema_type never reach the crawler "
         "document, and /favicon.ico serves the app shell instead of an icon — "
