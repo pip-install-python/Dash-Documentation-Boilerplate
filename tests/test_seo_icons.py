@@ -21,8 +21,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 
 def _normalize(entries):
     """(rel, href, sizes) triples from the package's mixed icon shapes."""
