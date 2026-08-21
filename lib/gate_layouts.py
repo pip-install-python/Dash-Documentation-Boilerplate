@@ -72,7 +72,7 @@ def sign_in_layout(page_name: str, path: str | None = None):
         intro = (
             f"You're looking at a live preview of {page_name}. Create a free "
             "account to unlock the full documentation — every interactive "
-            "example and the complete API reference."
+            "example, the complete API reference, and the AI assistant."
         )
     else:
         intro = (

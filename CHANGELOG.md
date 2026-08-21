@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-22
+
+Every fork gets its own live control board — the leaflet pilot's proven
+UX, ported with its scar tissue included.
+
+### Added
+
+- **`/admin/control-board`** (`pages/control_board.py`): flip any docs
+  page between public / auth / admin / hidden and toggle its llms.txt
+  exposure, live — changes apply on the next render, no restart. Gated
+  by the ADMIN_EMAILS/ADMIN_USER_IDS allowlist + owner; **fails CLOSED**
+  without Clerk (`ALLOW_UNGATED_ADMIN=1` for local work), and the write
+  callback re-checks the gate server-side (pattern-matching callbacks
+  stay callable by anyone who can POST). The board stays OUT of both
+  tier ledgers — its machine surfaces are silenced package-side via
+  `mark_hidden()` (sitemap, llms.txt, MCP, prerender, crawler HTML all
+  treat it as absent) so `access.gating_configured()` stays False on
+  all-public forks and the hot path stays check-free.
+- **`lib/page_visibility.py`** — the override store, with both fleet
+  lessons built in: mtime-throttled cross-worker reload (a toggle lands
+  on every gunicorn worker within ~1s — the pilot's coin-flip defect)
+  and loud persistence guards (boot warns when `PAGE_VISIBILITY_FILE`
+  is unset OR points under /var/ without a real mount — the
+  twice-observed silent-reset-per-deploy class).
+- Override-first resolution in `lib/access.py`: board override →
+  frontmatter → env default, with the hub ceiling still applied on top
+  (an override can loosen a local declaration, never a network
+  restriction). `pages/markdown.py` registers every docs page on both
+  ledgers from the one declared value.
+- The sign-in card's live-demo teaser now ships ARMED: DEMOS carries a
+  working entry (`/examples/visualization` → the theme-aware chart), so
+  gating that page shows "Live demo — try it" above "Authentication
+  required — You're looking at a live preview of {page}. Create a free
+  account to unlock the full documentation — every interactive example,
+  the complete API reference, and the AI assistant."
+- `render.yaml` + `.env.example`: `PAGE_VISIBILITY_FILE` on the
+  /var/data disk, with the blueprint-vs-dashboard drift warning
+  inline. 14 new tests (`tests/test_control_board.py`).
+
 ## [1.5.4] - 2026-08-22
 
 ### Changed

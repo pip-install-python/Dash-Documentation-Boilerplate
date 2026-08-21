@@ -484,6 +484,7 @@ print(
 
 from lib import access as _access  # noqa: E402
 from lib import page_tiers as _page_tiers  # noqa: E402
+from lib import page_visibility as _page_visibility  # noqa: E402
 
 # Tiered corpus documents (dash-improve-my-llms >= 2.4.0). Pseudo-paths:
 # they never enter dash.page_registry, so they cannot leak into listings —
@@ -546,7 +547,9 @@ print(
     f"{_non_public} non-public page(s), machine surfaces "
     f"{'GATED' if not _page_tiers.get_llms_public('/__probe__') else 'open'} "
     f"by default (LLMS_PUBLIC_DEFAULT), access wiring "
-    f"{'ON' if ACCESS_ENABLED else 'off'}."
+    f"{'ON' if ACCESS_ENABLED else 'off'}, control board at "
+    f"/admin/control-board ({_page_visibility.override_count()} live "
+    f"override(s))."
 )
 
 # ============================================================================

@@ -13,7 +13,7 @@ from pydantic import BaseModel, field_validator
 
 from lib.ad_client import inject_ad_into_aside
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
-from lib import gate_layouts, page_tiers
+from lib import gate_layouts, page_tiers, page_visibility
 from lib.directives.headings import patch_renderer
 from lib.directives.kwargs import Kwargs
 from lib.directives.llms_copy import LlmsCopy
@@ -198,6 +198,15 @@ for file in files:
     # route that used to live in run.py and works across all three backends.
     # Record the declared tier before the prose is registered, so a gate can
     # never be applied later than the content it is meant to gate.
+    #
+    # ONE declared value, TWO ledgers. The control board's row first —
+    # overrides written there win at resolution time (lib.access.local_tier),
+    # which is what makes a board toggle apply live. Then the network ledger:
+    # what the hub's tier ceiling compares against and what lib.access
+    # enforces underneath any override.
+    page_visibility.register_default(metadata.endpoint, metadata.name,
+                                     visibility=metadata.tier,
+                                     llms_public=metadata.llms_public)
     page_tiers.register(metadata.endpoint, metadata.tier,
                         llms_public=metadata.llms_public)
 

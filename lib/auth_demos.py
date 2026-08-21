@@ -31,11 +31,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 DEMOS: dict[str, dict] = {
-    # "/examples": {
-    #     "module": "docs.example.interactive_example",
-    #     "caption": "Live theme-aware chart",
-    #     "max_height": 420,
-    # },
+    # The template ships ONE working entry so every fork sees the pattern
+    # live: gate /examples/visualization (control board or `tier: auth`
+    # frontmatter) and its sign-in card renders this chart above the
+    # "Authentication required" copy. Swap in your own hero example.
+    "/examples/visualization": {
+        "module": "docs.data-visualization.basic_chart",
+        "caption": "Live theme-aware chart",
+        "max_height": 420,
+    },
 }
 
 

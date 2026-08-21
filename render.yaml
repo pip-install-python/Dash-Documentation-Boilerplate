@@ -156,6 +156,16 @@ services:
       - key: TRAFFIC_ANALYTICS_FILE
         value: /var/data/visitor_analytics.json
 
+      # Control-board overrides (/admin/control-board) persist here — on the
+      # same disk, so toggles survive deploys. TWICE on the pilot host this
+      # row rode render.yaml without reaching the live service (Blueprint env
+      # applies only on a sync) and every toggle silently reset per deploy;
+      # the boot now prints a [visibility] WARNING when the variable is
+      # missing OR when /var/data is not actually a mounted disk. The absence
+      # of that warning in a deploy log is the acceptance check.
+      - key: PAGE_VISIBILITY_FILE
+        value: /var/data/page_visibility.json
+
     disk:
       name: analytics
       mountPath: /var/data
