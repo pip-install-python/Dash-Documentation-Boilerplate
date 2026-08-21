@@ -137,7 +137,20 @@ dash-improve-my-llms[flask]>=2.6.0
 # PYSEC-2026-3552 (50.0.0). SDK 7.0.0 allows cryptography <51.0.0, and
 # dash-clerk-auth 1.0.1 widened its cap to <8 exactly so applications can
 # assert these floors rather than merely permit them.
-./vendor/dash_clerk_auth-1.0.2.tar.gz
+#
+# 1.0.3 (vendored 2026-08-21): Sign Out finally revokes the server session
+# (Clerk.signOut -> POST /api/auth/signout -> reload, both entry points +
+# the signed-in->signed-out listener transition), inline SVG default avatar
+# (DiceBear removed), non-absolute satellite redirect discarded loudly.
+# Our lib/auth.py signout shim is idempotent alongside it and retires next
+# release. PROVENANCE — this tarball is the release; there is no PyPI:
+#   sha256  2c6b40f4620afdc016580d75c01b7f7f6760f030b61d1d827c498bcb01da1944
+# Vendor from Dash-Clerk-Auth-Hook's dist/ ONLY. As of 2026-08-21 that
+# repo's MAIN holds a broken build (boot-time collection error on
+# 3.10/3.11 that does not look like a Clerk problem); the import fix waits
+# on the PR from 57556bc before v1.0.3 tags. Verify the sha above before
+# re-vendoring from anywhere.
+./vendor/dash_clerk_auth-1.0.3.tar.gz
 clerk-backend-api>=7.0.0,<8
 cryptography>=50.0.0
 

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-08-21
+
+### Changed
+
+- **Vendored dash-clerk-auth 1.0.2 → 1.0.3** (sha256 `2c6b40f4…da1944`,
+  recorded in full in requirements.txt — the tarball IS the release;
+  there is no PyPI for this package). 1.0.3 fixes sign-out revocation
+  package-side (both entry points + the signed-in→signed-out listener
+  transition, so sign-outs propagate across tabs and hosts), replaces
+  the DiceBear default avatar with an inline SVG data URI (no third
+  party in the UI path), and discards non-absolute
+  `satellite_sign_in_redirect` values loudly. 1.5.1's app-side signout
+  shim is idempotent alongside it and retires next release.
+- Provenance caveat recorded in requirements.txt: vendor from the hook
+  repo's `dist/` artifact ONLY — its `main` currently holds a broken
+  build (boot-time collection error on Python 3.10/3.11) until the
+  import-fix PR lands; verify the sha before re-vendoring.
+
 ## [1.5.1] - 2026-08-21
 
 Pilot-week hotfix: Sign Out that actually signs out, and an honest
