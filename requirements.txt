@@ -152,14 +152,25 @@ dash-improve-my-llms[flask]>=2.6.0
 # cross-tab transition, inline SVG default avatar, loud bad-redirect
 # rejection. Our lib/auth.py signout shim remains an idempotent
 # duplicate; the fleet-wide shim-retirement pass runs one clean release
-# cycle after everyone is on >=1.0.4.
+# cycle after everyone is on the current line.
+#
+# 1.0.5 (vendored 2026-08-21): the return-trip stale gate — the last of
+# the reconciliation cases, on the funnel's happiest path. Sign in from
+# a satellite, return to the auth-gated page you started on, and the
+# first server render happens BEFORE __dca_identity is minted, so the
+# gate card persists until a manual refresh. 1.0.5 detects ClerkJS
+# signed-in against a server-rendered signed-out page, syncs the
+# session (getToken -> POST /api/auth/session) and reloads once, with a
+# sessionStorage no-loop marker now shared by BOTH reconciliations
+# (also closes a pre-existing loop case on 1.0.4's ghost path).
 # PROVENANCE — the dist/ tarball is the release; there is no PyPI:
-#   sha256  7a7c333af8da4739e944e3260f332a7f1a70dc3c4fd93ae9f10a197f14cf701a
-# (Reject 22117b20… — a stale first build of 1.0.4 with a bad SKILLS.md;
-# the hook session rebuilt.) Vendor from Dash-Clerk-Auth-Hook's dist/
-# ONLY and verify the sha; the shipped tarball is compile-checked on
-# 3.11 (the 3.10/3.11 trap class from the 1.0.3 round).
-./vendor/dash_clerk_auth-1.0.4.tar.gz
+#   sha256  a2f9062e15a69fc79deeaf76fcf1380907a961978db558b2aa227572cb2b74f3
+# GENERAL RULE, twice-proven (1.0.4's 22117b20…, 1.0.5's first build):
+# early builds go stale on sdist-shipped doc edits and are not
+# distinguishable by name, size or date — ONLY the recorded sha admits
+# a tarball into this file. Vendor from Dash-Clerk-Auth-Hook's dist/
+# and verify before every copy.
+./vendor/dash_clerk_auth-1.0.5.tar.gz
 clerk-backend-api>=7.0.0,<8
 cryptography>=50.0.0
 
