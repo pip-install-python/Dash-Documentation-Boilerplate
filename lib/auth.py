@@ -266,6 +266,7 @@ def register() -> bool:
 
     if is_satellite and sat_domain:
         _install_satellite_signin_delegation()
+    _install_signout_delegation()
 
     # The return-trip guard (ported from the leaflet pilot, 2026-08-21).
     # CLERK_SATELLITE_SIGN_IN_REDIRECT is read by dash-clerk-auth itself, so
@@ -356,6 +357,57 @@ def _install_satellite_signin_delegation() -> None:
     def _clerk_satellite_signin(index_string):
         if marker not in index_string and "</body>" in index_string:
             index_string = index_string.replace("</body>", signin_js + "</body>", 1)
+        return index_string
+
+
+def _install_signout_delegation() -> None:
+    """Make Sign Out actually revoke the SERVER's idea of who you are.
+
+    dash-clerk-auth 1.0.2's logout handler runs ``window.Clerk.signOut()``
+    and reloads — client-side only. The server keeps trusting the signed
+    ``__dca_identity`` cookie (and the Flask session) it minted at sign-in
+    for the rest of ``session_lifetime_days`` (default **7 days**): a
+    signed-out browser still renders every auth-gated page. The package
+    ships the endpoint that fixes this — ``POST /api/auth/signout`` clears
+    the session and the identity cookie — but nothing ever calls it.
+
+    This capture-phase delegate owns the click (``stopImmediatePropagation``,
+    the sign-in delegation's proven pattern) and sequences what the package
+    should have: Clerk sign-out FIRST (kills ``__session``, so the slow path
+    cannot re-verify and re-mint identity), then the server signout (kills
+    the Flask session + ``__dca_identity``), then the reload — awaited, so
+    the reload can never race the cookie clears. Every failure still ends in
+    a reload, and the server POST runs even when ClerkJS never loaded —
+    which is exactly the stale-ghost case that needs it most.
+
+    The upstream fix is specced for dash-clerk-auth 1.0.3
+    (kickoff/fleet/KICKOFF-clerk-avatar-release.md). Once the package
+    sequences this itself, this delegate degrades to a harmless duplicate
+    POST and can be retired a release later.
+    """
+    from dash import hooks as _dash_hooks
+
+    marker = "ddb-clerk-signout-delegate"
+
+    signout_js = (
+        f"<script data-{marker}>(function(){{"
+        "document.addEventListener('click',function(e){"
+        "var b=e.target&&e.target.closest?e.target.closest('#clerk-logout-menu-item'):null;"
+        "if(!b)return;"
+        "e.stopImmediatePropagation();e.preventDefault();"
+        "var done=function(){window.location.reload();};"
+        "var server=function(){return fetch('/api/auth/signout',"
+        "{method:'POST',credentials:'same-origin'}).catch(function(){});};"
+        "var clerk=(window.Clerk&&typeof window.Clerk.signOut==='function')"
+        "?window.Clerk.signOut().catch(function(){}):Promise.resolve();"
+        "clerk.then(server).then(done,done);"
+        "},true);})();</script>"
+    )
+
+    @_dash_hooks.index()
+    def _clerk_signout(index_string):
+        if marker not in index_string and "</body>" in index_string:
+            index_string = index_string.replace("</body>", signout_js + "</body>", 1)
         return index_string
 
 

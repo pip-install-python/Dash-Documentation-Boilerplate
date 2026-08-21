@@ -215,8 +215,9 @@ for file in files:
         title=PAGE_TITLE_PREFIX + metadata.name,
         image_url=OG_IMAGE_URL,
         schema_type=metadata.schema_type or "TechArticle",
-        # None on a pre-2.6 package would TypeError; the floor in run.py
-        # guarantees >= 2.6.0, where None simply omits the sitemap tag.
+        # Pre-2.6 packages swallow this into **kwargs and ignore it (no
+        # TypeError — measured on 2.5.1); the floor in run.py guarantees
+        # >= 2.6.0, where a real date is emitted and None omits the tag.
         lastmod=metadata.lastmod,
         llms_doc=_build_llms_doc(metadata.name, metadata.description, expanded, metadata.endpoint),
     )

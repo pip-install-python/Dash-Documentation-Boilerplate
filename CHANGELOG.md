@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-08-21
+
+Pilot-week hotfix: Sign Out that actually signs out, and an honest
+floor comment.
+
+### Fixed
+
+- **Sign Out now revokes the server session.** dash-clerk-auth 1.0.2's
+  logout runs `window.Clerk.signOut()` client-side and reloads — but the
+  server keeps trusting the signed `__dca_identity` cookie (max-age
+  `session_lifetime_days`, default **7 days**) and the Flask session it
+  minted at sign-in, so a signed-out browser kept rendering every
+  auth-gated page; on a shared computer the next person inherited the
+  previous user's access. The package ships the endpoint that fixes this
+  (`POST /api/auth/signout`) but nothing ever called it. New
+  `lib/auth.py:_install_signout_delegation()` — a capture-phase delegate
+  on the logout menu item (the sign-in delegation's proven pattern) —
+  owns the click and sequences `Clerk.signOut()` FIRST (so the slow path
+  can't re-verify `__session` and re-mint), then the server signout,
+  then the reload, awaited so the reload never races the cookie clears.
+  The package-side fix ships in dash-clerk-auth 1.0.3; this delegate is
+  idempotent alongside it and retires a release after the fleet vendors
+  `>=1.0.3`.
+
+### Changed
+
+- **Floor-comment honesty** (`run.py`, `pages/markdown.py`): 1.5.0's
+  claim that passing `lastmod=` "TypeErrors on anything older" was
+  false — measured on 2.5.1 by the pip-docs+ stage-4 session, the
+  signature is `(path, name=None, description=None, llms_doc=None,
+  **kwargs)`, so older packages accept the date and silently ignore it.
+  The 2.6.0 floor stays load-bearing, but for honesty (below it, every
+  stamped date is swallowed and the sitemap goes back to swearing
+  everything changed at build time), not crash avoidance.
+
 ## [1.5.0] - 2026-08-20
 
 The reference host proves dimll 2.6.0 (stage 2 of the network rollout

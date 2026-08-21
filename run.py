@@ -61,9 +61,13 @@ from dash_improve_my_llms import (
 # /favicon.ico answered with a redirect instead of the app shell, and a
 # prerender that no longer clobbers the browser's per-page <title>.
 # 2.6.0 raises it to the honesty standard: sitemap <lastmod> is emitted
-# verbatim from `register_page_metadata(lastmod=)` and OMITTED when unset —
-# pages/markdown.py passes `lastmod=` unconditionally, which TypeErrors on
-# anything older, so this floor is load-bearing, not advisory. Also in
+# verbatim from `register_page_metadata(lastmod=)` and OMITTED when unset.
+# The floor is load-bearing for HONESTY, not crash avoidance: older
+# packages take `lastmod=` into **kwargs and silently ignore it (measured
+# on 2.5.1 by the pip-docs+ stage-4 session, 2026-08-21 — the signature is
+# `(path, name=None, description=None, llms_doc=None, **kwargs)`), so
+# below the floor every date this repo stamped is swallowed and the
+# sitemap goes back to swearing everything changed at build time. Also in
 # 2.6.0: icon autodiscovery (this app still declares explicitly; the two
 # must agree — tests/test_seo_icons.py), JSON-LD publisher.logo, and the
 # viewer banner de-dup.
