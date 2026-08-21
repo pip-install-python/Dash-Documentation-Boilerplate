@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-08-22
+
+### Fixed
+
+- Accessibility + agentic-browsing names on the header's icon controls
+  (hamburger, theme toggle, GitHub link — `create_link` now requires a
+  label), and the network-ad image reserves a square box via
+  `aspect-ratio` so the aside no longer layout-shifts when the creative
+  loads. All three were Lighthouse findings on the pilot host measured
+  against template code — every fork inherits the fix.
+
 ## [1.6.0] - 2026-08-22
 
 Every fork gets its own live control board — the leaflet pilot's proven
