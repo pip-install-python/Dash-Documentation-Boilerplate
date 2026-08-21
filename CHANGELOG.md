@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] - 2026-08-22
+
+### Changed
+
+- **Vendored dash-clerk-auth 1.0.3 → 1.0.4** (sha256 `7a7c333a…cf701a`,
+  recorded in full in requirements.txt with the stale-first-build
+  warning). What 1.0.4 fixes, from the live network certification: the
+  FastAPI auth endpoints were never callable (un-annotated request
+  param → required query field → 422 on every POST — inert on this
+  Flask host, fatal on fastapi ones), and the ghost-cookie fresh-load
+  case — a page loading with ClerkJS signed-out while the server still
+  held the identity now reconciles with a signout POST + single reload,
+  which is the cross-host sign-out path no click shim can cover.
+  `revokeServerSession` also verifies its response now. The 1.5.1 shim
+  remains an idempotent duplicate; retirement is one clean release
+  cycle after the fleet is on >=1.0.4.
+
 ## [1.5.2] - 2026-08-21
 
 ### Changed

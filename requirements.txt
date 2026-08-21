@@ -138,19 +138,28 @@ dash-improve-my-llms[flask]>=2.6.0
 # dash-clerk-auth 1.0.1 widened its cap to <8 exactly so applications can
 # assert these floors rather than merely permit them.
 #
-# 1.0.3 (vendored 2026-08-21): Sign Out finally revokes the server session
-# (Clerk.signOut -> POST /api/auth/signout -> reload, both entry points +
-# the signed-in->signed-out listener transition), inline SVG default avatar
-# (DiceBear removed), non-absolute satellite redirect discarded loudly.
-# Our lib/auth.py signout shim is idempotent alongside it and retires next
-# release. PROVENANCE — this tarball is the release; there is no PyPI:
-#   sha256  2c6b40f4620afdc016580d75c01b7f7f6760f030b61d1d827c498bcb01da1944
-# Vendor from Dash-Clerk-Auth-Hook's dist/ ONLY. As of 2026-08-21 that
-# repo's MAIN holds a broken build (boot-time collection error on
-# 3.10/3.11 that does not look like a Clerk problem); the import fix waits
-# on the PR from 57556bc before v1.0.3 tags. Verify the sha above before
-# re-vendoring from anywhere.
-./vendor/dash_clerk_auth-1.0.3.tar.gz
+# 1.0.4 (vendored 2026-08-22, from the live network certification's two
+# finds): FastAPI auth endpoints are CALLABLE for the first time — 1.0.3
+# registered them with an un-annotated request param, which FastAPI reads
+# as a required query field (422 on every POST, swallowed client-side);
+# inert here on Flask, fatal on any DASH_BACKEND=fastapi host. And the
+# GHOST-COOKIE fresh-load reconciliation: a page that loads with ClerkJS
+# signed-out while the server rendered signed-in now POSTs the signout
+# and reloads once — the cross-host sign-out case no click shim can
+# cover. revokeServerSession also verifies the response now (the
+# assumption it didn't is what hid the 422 for a full release).
+# 1.0.3's history: sign-out revocation on the click paths + live
+# cross-tab transition, inline SVG default avatar, loud bad-redirect
+# rejection. Our lib/auth.py signout shim remains an idempotent
+# duplicate; the fleet-wide shim-retirement pass runs one clean release
+# cycle after everyone is on >=1.0.4.
+# PROVENANCE — the dist/ tarball is the release; there is no PyPI:
+#   sha256  7a7c333af8da4739e944e3260f332a7f1a70dc3c4fd93ae9f10a197f14cf701a
+# (Reject 22117b20… — a stale first build of 1.0.4 with a bad SKILLS.md;
+# the hook session rebuilt.) Vendor from Dash-Clerk-Auth-Hook's dist/
+# ONLY and verify the sha; the shipped tarball is compile-checked on
+# 3.11 (the 3.10/3.11 trap class from the 1.0.3 round).
+./vendor/dash_clerk_auth-1.0.4.tar.gz
 clerk-backend-api>=7.0.0,<8
 cryptography>=50.0.0
 
