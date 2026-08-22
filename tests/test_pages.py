@@ -98,3 +98,31 @@ def test_home_page_links_out_to_other_pages(client):
 @pytest.mark.parametrize("path", ["/nope", "/examples/does-not-exist"])
 def test_unknown_paths_do_not_500(client, path):
     assert client.get(path).status in (200, 404), "unknown path should 404 or render the app's 404"
+
+
+def test_prerender_rides_the_generic_lane_not_a_ua_gate(client):
+    """The universal prerender must be in the initial HTML for a PLAIN
+    client — no crawler user-agent. An outside SEO audit (2026-08-22) read
+    five hosts as serving "Loading... and nothing else" to browsers; the
+    prose was there all along, but every test in this file fetched with
+    CRAWLER_UA (which exercises the separate bot-document path), so a
+    regression that UA-gated the universal lane would have been invisible
+    to the suite. This test is the generic-lane pin.
+
+    KNOWN LIMITATION, deliberately not asserted yet: dimll <= 2.6.0 ships
+    the injected div with the `hidden` attribute, so visibility-respecting
+    text extractors (and arguably crawler content weighting) still see
+    nothing — the visibility fix is package-side (the prerender div must
+    be visible by default and hidden by a synchronous inline script that
+    only JS browsers execute; React's mount already wipes the div, so
+    `hidden` only ever covered the pre-mount flash). When the floor moves
+    past the fixing release, extend this test to assert the div is NOT
+    `hidden`.
+    """
+    for path in ("/", "/getting-started"):
+        html = client.get(path).text  # default UA — the point of the test
+        assert 'id="dimll-prerender"' in html, (
+            f"{path}: no prerender block for a generic client — the "
+            "universal lane is gated or off"
+        )
+        assert "<main>" in html, f"{path}: prerender block carries no <main> prose"
