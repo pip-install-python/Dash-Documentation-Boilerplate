@@ -218,24 +218,33 @@ input:invalid {
     background: color-mix(in srgb, var(--mantine-color-gray-5), transparent 80%);
 }
 
-div .m_46b77525 {
-    margin-top: calc(0.5rem* var(--mantine-scale)) !important;
+/* Markdown tables scroll in their own box instead of dragging the page
+   sideways on phones. A <table> is min-content sized: with overflow
+   visible it refuses to shrink below its widest row and pushes the whole
+   document wide, so every paragraph on the page can be swiped off-screen
+   (a fork measured 105px of horizontal drag at 414px from one prop
+   table). This is GitHub's markdown recipe: content-width, capped at the
+   container, scrollable past it — a no-op for tables that already fit.
+   Element+class selector so it outranks Mantine's own width rule
+   regardless of stylesheet load order. markdown2dash stamps m2d-table on
+   every table it renders, including kwargs prop tables. */
+table.m2d-table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
-.m_5caae85b {
-    position: absolute !important;
-    top: calc(0.3125rem* var(--mantine-scale));
-    inset-inline-end: calc(0.3125rem* var(--mantine-scale));
-    z-index: 1;
-}
-
-.m_9cdde9a {
-    inset-inline-end: 0;
-    width: var(--app-shell-aside-width);
-    transform: var(--app-shell-aside-transform);
-    z-index: var(--app-shell-aside-z-index);
-    margin-top: 15px;
-}
+/* NEVER style Mantine's hashed .m_* classes — they are private internals,
+   version-coupled by construction. A rule that stops matching after a bump
+   fails silently; one that starts matching applies geometry to the wrong
+   component. Three fossils from the dmc-docs fork era lived here until
+   1.6.5 (.m_46b77525 !important margin on every Input wrapper,
+   .m_5caae85b dead in both DMC 2.7 and 2.8, .m_9cdde9a restating
+   Mantine's own aside declarations) — the same class of rule that left
+   leaflet's drawer floating and emojimart's drawer pinned at 63vh.
+   tests/test_css_hygiene.py now fails on any hashed selector; use the
+   static mantine-<Component>-<part> classes like the rule below. */
 
 /* Rank the AppShell sections: the aside under the header, always.
    The Clerk avatar dropdown renders INSIDE the header, so no z-index on the
@@ -253,6 +262,10 @@ div .m_46b77525 {
    10 keeps the aside above page content and below every piece of chrome. */
 aside.mantine-AppShell-aside {
     z-index: 10 !important;
+    /* Rescued from the retired .m_9cdde9a fossil: the one intentful pixel
+       in that copied block was this breathing gap between the header line
+       and the top of the TOC. */
+    margin-top: 15px;
 }
 
 :root[data-mantine-color-scheme="dark"] {

@@ -126,11 +126,21 @@ def create_header(data):
                             size="sm",
                             visibleFrom="md",
                         ),
+                        # The home link's accessible name comes from the
+                        # aria-label, NOT the wordmark text: below xs the
+                        # wordmark is display:none (visibleFrom), which
+                        # removes it from the accessibility tree — without
+                        # the label the home link would have no name at
+                        # all on phones (the logo img is decorative,
+                        # alt=""). Two forks hit this independently;
+                        # visibleFrom (vs dropping the node) also keeps
+                        # the typing animation's target in the DOM.
                         dmc.Anchor(
                             dmc.Group(
                                 [
                                     html.Img(
                                         src=get_asset_url('ddb.png'),
+                                        alt="",
                                         style={'height': '36px', 'width': '36px'}
                                     ),
                                     dmc.Text(
@@ -139,12 +149,14 @@ def create_header(data):
                                         fw=700,
                                         c="#03c7e5",
                                         id="dash-docs-title",
+                                        visibleFrom="xs",
                                     ),
                                 ],
                                 gap="sm",
                             ),
                             href="/",
                             underline=False,
+                            **{"aria-label": "Dash Docs — home"},
                         ),
                     ],
                     gap="md",

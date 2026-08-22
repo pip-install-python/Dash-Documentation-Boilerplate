@@ -83,3 +83,36 @@ def test_sitemap_lastmod_is_verbatim_or_absent(client):
     assert home_block and "<lastmod>" not in home_block.group(0), (
         "The home page's sitemap entry carries a lastmod it never declared."
     )
+
+
+def test_apple_touch_icon_is_opaque():
+    """iOS composites the icon's alpha onto ITS OWN background — black on
+    some surfaces, white on others — so a transparent apple-touch icon
+    renders differently everywhere it appears. scripts/make_favicons.py
+    flattens exactly this one file onto opaque white (every other size
+    keeps its alpha; browsers and Android handle it correctly).
+
+    Read the colour type straight out of the PNG header — stdlib only, no
+    Pillow in the test environment. IHDR is always the first chunk: colour
+    type is the byte at offset 25. 2 = RGB (opaque), 6 = RGBA. A palette
+    PNG (3) can smuggle transparency back in through a tRNS chunk, so pin
+    that absent too.
+    """
+    icon = (
+        Path(__file__).resolve().parent.parent
+        / "assets"
+        / "favicon"
+        / "apple-touch-icon.png"
+    )
+    data = icon.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG?"
+    colour_type = data[25]
+    assert colour_type in (0, 2, 3), (
+        f"apple-touch-icon.png has colour type {colour_type} (an alpha "
+        "channel) — regenerate it with scripts/make_favicons.py, which "
+        "flattens this one icon onto opaque white."
+    )
+    assert b"tRNS" not in data, (
+        "apple-touch-icon.png carries a tRNS transparency chunk — iOS will "
+        "composite it onto an unpredictable background."
+    )

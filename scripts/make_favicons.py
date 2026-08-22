@@ -52,7 +52,21 @@ def make(source: str | Path, repo_root: str | Path = ".") -> list[Path]:
     written: list[Path] = []
     for name, px in SIZES.items():
         path = out_dir / name
-        canvas.resize((px, px), Image.LANCZOS).save(path, optimize=True)
+        resized = canvas.resize((px, px), Image.LANCZOS)
+        if name == "apple-touch-icon.png":
+            # iOS composites the icon's alpha channel onto ITS OWN
+            # background (black on some surfaces, white on others), so a
+            # transparent apple-touch icon renders differently everywhere
+            # it appears. Flatten onto opaque white — iOS rounds the
+            # corners itself. Every OTHER size keeps its transparency;
+            # browsers and Android handle alpha correctly.
+            # tests/test_seo_icons.py pins the opacity by reading the PNG
+            # colour type out of the file header.
+            flat = Image.new("RGB", (px, px), (255, 255, 255))
+            flat.paste(resized, mask=resized.getchannel("A"))
+            flat.save(path, optimize=True)
+        else:
+            resized.save(path, optimize=True)
         written.append(path)
 
     ico_base = canvas.resize((48, 48), Image.LANCZOS)
