@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.7] - 2026-08-22
+
+### Added
+
+- **Auth-wiring guards, both halves** (the flexlayout finding):
+  dash-clerk-auth wires either side of `Dash(...)` — `register()` is
+  the UI half, `configure_app(app)` the server half (`/api/auth/*`
+  routes + per-request identity). Flexlayout's batch-2 pass shipped
+  the first call without the second: components rendered and ClerkJS
+  reported signed-in while every server render read signed-out — the
+  control board served the owner the sign-in card forever,
+  `POST /api/auth/session` answered 405 through Dash's GET-only page
+  catch-all, and sign-out never revoked. Invisible to every suite,
+  because Clerk is off in test environments and `configure_app`
+  no-ops without keys. Two guards now, one per environment:
+  `tests/test_auth_wiring.py` pins structurally (AST) that run.py
+  calls BOTH halves; `scripts/smoke_live.py` gains an "Auth wiring"
+  block that POSTs both endpoints on the live host (registered =
+  2xx/4xx; unregistered = 404/405), gated on the package's inline
+  bootstrap being present in the served shell so clerk-off hosts skip
+  rather than fail. Measured baselines: boilerplate answers 401/200,
+  flexlayout answered 405/405. Note: the battery's POST probes need
+  real egress — sandboxed environments that allow only GET report
+  transport-0.
+
 ## [1.6.6] - 2026-08-22
 
 ### Changed
