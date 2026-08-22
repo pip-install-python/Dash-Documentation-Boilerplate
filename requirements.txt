@@ -117,10 +117,15 @@ python-dotenv>=1.0.0
 # (the invented daily dates are gone — Google discards a sitemap of lies
 # wholesale), JSON-LD publisher.logo, and the llms.txt viewer banner
 # de-dup. Floor, not pin: the fleet upgrades through this line.
-dash-improve-my-llms[flask]>=2.6.0
-# dash-improve-my-llms[fastapi]>=2.6.0   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.6.0     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.6.0       # all three
+# 2.6.1 floor: the universal prerender ships VISIBLE to non-JS consumers
+# (below it the block carries a literal `hidden` attribute and every
+# visibility-respecting reader sees only "Loading..." — the outside-audit
+# finding of 2026-08-22). run.py's boot floor and a test in
+# tests/test_pages.py encode the same number — grep it, don't move one.
+dash-improve-my-llms[flask]>=2.6.1
+# dash-improve-my-llms[fastapi]>=2.6.1   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.6.1     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.6.1       # all three
 
 # Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
 #

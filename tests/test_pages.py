@@ -109,20 +109,29 @@ def test_prerender_rides_the_generic_lane_not_a_ua_gate(client):
     regression that UA-gated the universal lane would have been invisible
     to the suite. This test is the generic-lane pin.
 
-    KNOWN LIMITATION, deliberately not asserted yet: dimll <= 2.6.0 ships
-    the injected div with the `hidden` attribute, so visibility-respecting
-    text extractors (and arguably crawler content weighting) still see
-    nothing — the visibility fix is package-side (the prerender div must
-    be visible by default and hidden by a synchronous inline script that
-    only JS browsers execute; React's mount already wipes the div, so
-    `hidden` only ever covered the pre-mount flash). When the floor moves
-    past the fixing release, extend this test to assert the div is NOT
-    `hidden`.
+    Since the 2.6.1 floor the block must also be VISIBLE: dimll <= 2.6.0
+    shipped the div with a literal `hidden` attribute, so every
+    visibility-respecting text extractor (and arguably crawler
+    content-weighting) saw only "Loading..." — present and invisible, the
+    worst of both. 2.6.1 serves it visible and hides it via a synchronous
+    inline script that only JS browsers execute (React's mount then wipes
+    the pair, so nothing changes for humans). The div shape below is the
+    regression pin for that fix, from the app's side.
     """
     for path in ("/", "/getting-started"):
         html = client.get(path).text  # default UA — the point of the test
-        assert 'id="dimll-prerender"' in html, (
+        div = re.search(r'<div id="dimll-prerender"[^>]*>', html)
+        assert div, (
             f"{path}: no prerender block for a generic client — the "
             "universal lane is gated or off"
+        )
+        assert "hidden" not in div.group(0), (
+            f"{path}: the prerender div carries `hidden` again — "
+            "visibility-respecting consumers are back to reading "
+            "'Loading...'; the dimll floor is >=2.6.1 for exactly this"
+        )
+        assert 'data-dimll-prerender="1">document.getElementById' in html, (
+            f"{path}: the marked synchronous hide script is missing — "
+            "JS browsers would flash the prose before React mounts"
         )
         assert "<main>" in html, f"{path}: prerender block carries no <main> prose"

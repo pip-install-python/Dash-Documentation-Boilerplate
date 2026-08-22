@@ -71,10 +71,15 @@ from dash_improve_my_llms import (
 # 2.6.0: icon autodiscovery (this app still declares explicitly; the two
 # must agree — tests/test_seo_icons.py), JSON-LD publisher.logo, and the
 # viewer banner de-dup.
+# 2.6.1 moved the floor again: below it the universal prerender ships with
+# a literal `hidden` attribute, so every visibility-respecting consumer
+# (html-to-text extractors, plausibly crawler content-weighting) reads
+# "Loading..." instead of the page's prose — the outside-audit finding of
+# 2026-08-22. tests/test_pages.py pins the visible shape.
 # `configure_seo` is deliberately imported AFTER this floor fires (see the
 # floors block) so a stale environment gets the floor's diagnosis instead of
 # a bare ImportError.
-LLMS_PKG_FLOOR = (2, 6, 0)
+LLMS_PKG_FLOOR = (2, 6, 1)
 
 # THE FORK POINT — claim this app's network identity before any
 # hub-facing module imports. Every module that names this app
@@ -169,6 +174,9 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
+        "Below 2.6.1 the universal prerender ships `hidden`, so every "
+        "visibility-respecting consumer (text extractors, arguably crawler "
+        "content-weighting) reads 'Loading...' instead of the page's prose. "
         "Below 2.6.0 the sitemap goes back to lying: `lastmod=` is accepted "
         "into **kwargs and SILENTLY IGNORED, so every date this repo stamped "
         "is swallowed and <lastmod> reverts to invented build dates. Below "

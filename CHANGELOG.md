@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-08-22
+
+### Changed
+
+- **dimll floor 2.6.0 → 2.6.1** (requirements incl. the commented
+  backend extras, run.py's boot floor + its message, and the test —
+  the floor lives in more than one place; all moved together). 2.6.1
+  makes the universal prerender VISIBLE to non-JS consumers: below it
+  the injected block carries a literal `hidden` attribute, so every
+  visibility-respecting reader (html-to-text extractors, arguably
+  crawler content-weighting) saw only "Loading..." — the outside-audit
+  finding of 2026-08-22, diagnosed live across six hosts and fixed at
+  the package. The generic-UA prerender test now asserts the fixed
+  shape: div without `hidden`, plus the marked synchronous hide script
+  that keeps JS browsers flash-free (React's mount wipes the pair, so
+  nothing changes for humans). The fleet inherits 2.6.1 on each host's
+  next deploy with no requirements edit; this release is the reference
+  host's own pickup plus the floor that makes the guarantee permanent.
+
 ## [1.6.5] - 2026-08-22
 
 Batch-1 closeout: the wave's other three hosts (emojimart, modelviewer,
