@@ -24,6 +24,16 @@ RUN pip install pandas>=1.2.3 plotly>=5.0.0 pydantic>=2.3.0
 # (not on PyPI), which requirements.txt installs from this path as of 1.4.1 —
 # so vendor/ MUST be copied before the requirements install. Auth stays
 # gated at runtime: no CLERK_* keys, no login wall.
+#
+# CACHE SEMANTICS (the round-2 fleet lesson, found by pannellum
+# 2026-08-22): this layer re-runs ONLY when vendor/ or requirements.txt
+# bytes change. A `>=` floor can NEVER pull a newer release through a
+# cache hit — a code-only commit rebuilds the app layers below while pip
+# silently keeps whatever version the image was first built with. Ship
+# every dependency upgrade as a floor bump in requirements.txt (grep the
+# number — it also lives in run.py's boot floor and the tests): the bump
+# IS the cache bust, and the boot floor turns a stale image from a
+# silent downgrade into a loud refusal to start.
 COPY vendor/ ./vendor/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
