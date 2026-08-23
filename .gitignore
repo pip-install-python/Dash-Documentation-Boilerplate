@@ -141,6 +141,13 @@ dmypy.json
 visitor_analytics.json
 visitor_analytics.json.lock
 visitor_analytics.json.tmp
+# The control board's override store falls back to the app directory when
+# PAGE_VISIBILITY_FILE is unset — running the board locally must never
+# write a real policy file into the checkout (same reason as the
+# analytics ledger above; found on the llms-2plot-dev fork, 1.6.8).
+page_visibility.json
+page_visibility.json.lock
+page_visibility.json.tmp
 # Reporter lease — which worker POSTed the last hourly rollup to 2plot.ai.
 .satellite_report.lease
 

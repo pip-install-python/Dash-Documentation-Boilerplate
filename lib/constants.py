@@ -43,6 +43,15 @@ APP_TITLE = SITE_BRAND
 # run past every platform's truncation point.
 SITE_SHORT_NAME = "Dash Documentation Boilerplate"
 
+# The two-or-three-word mark in the header, next to the logo. Lives HERE and
+# not as a string literal in components/header.py because a fork edits this
+# file's identity block and reasonably assumes that's the whole job —
+# llms-2plot-dev shipped serving the literal words "Dash Docs" beside its own
+# logo because the wordmark was hardcoded in the header (found at its owner
+# review, upstreamed in 1.6.8). The header's aria-label derives from this
+# too, so the accessible name can never disagree with the visible one.
+WORDMARK = "Dash Docs"
+
 # Prefixed to every per-page title (`pages/markdown.py`, `pages/home.py`), and
 # therefore NOT only a browser-tab string: Dash passes the page title straight
 # into `og:title` and `twitter:title` (dash/_pages.py `_page_meta_tags`), so

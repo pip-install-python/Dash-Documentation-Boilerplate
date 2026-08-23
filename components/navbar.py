@@ -12,6 +12,22 @@ excluded_links = [
     "/learning-resources",
 ]
 
+# A page excluded from the sidebar is excluded from the MACHINE surfaces
+# too — sitemap.xml, /llms.txt, the tier corpora, MCP, the prerender and
+# the crawler document. Before 1.6.8 this list hid pages from human eyes
+# only: llms-2plot-dev "hid" the template's tutorial pages here and kept
+# publishing them to every crawler as its own documentation — duplicate
+# content competing with the site it forked from, invisible from the
+# browser. One list, both audiences; mark_hidden on a path that never
+# registers is a harmless no-op, so placeholder entries stay safe.
+try:
+    from dash_improve_my_llms import mark_hidden as _mark_hidden
+
+    for _excluded_path in excluded_links:
+        _mark_hidden(_excluded_path)
+except ImportError:  # pragma: no cover - dimll always present in this app
+    pass
+
 
 def create_nav_link(icon, text, href, external=False):
     """Create a styled navigation link with icon"""

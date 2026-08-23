@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.8] - 2026-08-22
+
+Five fork footguns upstreamed from the llms-2plot-dev phase-1 fork
+audit — each fires on every fork, not just that one, and each carries
+that repo's fix as its reference implementation.
+
+### Fixed
+
+- **`excluded_links` now hides from BOTH audiences**: the navbar wires
+  every excluded path through dimll's `mark_hidden`, so a page removed
+  from the sidebar is also removed from sitemap.xml, /llms.txt, the
+  tier corpora, MCP, the prerender and the crawler document. Before
+  this, llms-2plot-dev "hid" the template's tutorial pages and kept
+  publishing them to every crawler as its own documentation — duplicate
+  content invisible from a browser. `tests/test_excluded_links_hidden.py`
+  pins the parity from both ends, with a positive control so an empty
+  sitemap can't pass it vacuously.
+- **The header wordmark moved to `lib/constants.WORDMARK`**: it was a
+  hardcoded "Dash Docs" string in components/header.py, so a fork that
+  edited the constants identity block — reasonably assuming that was
+  the whole job — still served the template's wordmark beside its own
+  logo. The aria-label derives from the same constant, so the
+  accessible name can never disagree with the visible one.
+- **The foreign-canonical smoke test derives its host from BASE_URL**:
+  it spelled the template's hostname literally, so on any renamed fork
+  its rewrite matched nothing and the test passed as a no-op — a guard
+  that silently stopped guarding exactly where it was needed. An
+  in-stub assertion now errors if the rewrite ever fails to change a
+  canonical-bearing page.
+- **`page_visibility.json` (+ lock/tmp) joined .gitignore**: with
+  PAGE_VISIBILITY_FILE unset the control-board store falls back to the
+  app directory, so running the board locally wrote a real policy file
+  into the checkout — same class as the analytics ledger, which was
+  already ignored for exactly this reason.
+- **run.py's dev server honours $PORT and HOST**: the port was a string
+  literal and the host hardcoded, so a platform injecting $PORT needed
+  a code change. Production never reaches this block (gunicorn).
+
 ## [1.6.7] - 2026-08-22
 
 ### Added

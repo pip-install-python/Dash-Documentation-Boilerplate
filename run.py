@@ -613,4 +613,13 @@ start_reporter()
 
 
 if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port='8559')
+    # Env-overridable so a platform that injects $PORT (Render does) is
+    # honoured without a code change, and the string-port fossil is gone.
+    # HOST stays 0.0.0.0 by default for container-based dev; set HOST=
+    # 127.0.0.1 when running on a laptop you don't want publishing to the
+    # local network. Production never reaches this block (gunicorn).
+    app.run(
+        debug=False,
+        host=os.environ.get("HOST", "0.0.0.0"),
+        port=int(os.environ.get("PORT", "8559")),
+    )

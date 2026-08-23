@@ -4,6 +4,7 @@ from dash_iconify import DashIconify
 
 from components.backend_badge import create_backend_badge
 from lib.backend import get_backend_info
+from lib.constants import WORDMARK
 
 
 def create_clerk_avatar():
@@ -144,7 +145,7 @@ def create_header(data):
                                         style={'height': '36px', 'width': '36px'}
                                     ),
                                     dmc.Text(
-                                        "Dash Docs",
+                                        WORDMARK,
                                         size="lg",
                                         fw=700,
                                         c="#03c7e5",
@@ -156,7 +157,7 @@ def create_header(data):
                             ),
                             href="/",
                             underline=False,
-                            **{"aria-label": "Dash Docs — home"},
+                            **{"aria-label": f"{WORDMARK} — home"},
                         ),
                     ],
                     gap="md",

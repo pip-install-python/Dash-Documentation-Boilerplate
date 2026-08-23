@@ -122,14 +122,32 @@ def test_smoke_script_detects_a_stub_body(wired, smoke, monkeypatch, capsys):
 
 
 def test_smoke_script_detects_a_foreign_canonical(wired, smoke, monkeypatch, capsys):
+    """The rewrite host is DERIVED from BASE_URL, never spelled literally.
+
+    Before 1.6.8 this stub spelled the template's hostname: on any renamed
+    fork the replace matched nothing, the canonical stayed correct, and the
+    test passed as a no-op — a guard that silently stops guarding on
+    exactly the sites that need it (found by llms-2plot-dev's fork audit).
+    The in-stub assertion makes that failure mode loud: if the rewrite ever
+    touches a canonical-bearing page without changing it, the test errors
+    instead of vacuously passing.
+    """
     original = smoke.fetch
 
     def rehosted(url, user_agent=smoke.BROWSER_UA, accept=None):
         status, body, headers = original(url, user_agent, accept)
-        return status, body.replace(
-            'rel="canonical" href="https://boilerplate.2plot.dev',
+        needle = f'rel="canonical" href="{BASE}'
+        rewritten = body.replace(
+            needle,
             'rel="canonical" href="https://someone-elses-host.example.com',
-        ), headers
+        )
+        if 'rel="canonical"' in body:
+            assert rewritten != body, (
+                "canonical present but the rewrite matched nothing — the "
+                "stub's host has drifted from BASE_URL and this test would "
+                "pass vacuously"
+            )
+        return status, rewritten, headers
 
     monkeypatch.setattr(smoke, "fetch", rehosted)
     assert wired.main(BASE) > 0
