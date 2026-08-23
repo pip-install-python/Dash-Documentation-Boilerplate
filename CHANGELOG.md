@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.10] - 2026-08-23
+
+Two `/healthz` defects found (and first fixed) on llms-2plot-dev during
+its production verification, ported back as the reference
+implementation — plus the identity and geo diagnostics that exposed
+them. The probe is how CD, the hub sweep, and any outside verification
+know WHAT is serving; both defects made it lie by omission.
+
+### Fixed
+
+- **The Flask/Quart payload was a snapshot**: `register_health_route`
+  computed the dict once at registration and the route closed over it.
+  Harmless while every field was static, silently wrong the moment one
+  is not — on the fork, the route is mounted before `configure_geo`
+  runs, so the new geo diagnostic reported the guardrail unconfigured
+  on a host where it is configured. Built per request now.
+- **FastAPI built its own payload and never called `health_payload`**,
+  so a FastAPI deployment silently lacked `build` — the exact field
+  cd.yml's build-match wait polls for. It would have fallen into the
+  "predates the build field" warning path forever, verifying whichever
+  release happened to be serving: the muicharts defect the wait was
+  written to prevent, reintroduced per-backend. All backends now render
+  from the one `health_payload`; `HealthResponse` only types it for
+  Swagger.
+
+### Added
+
+- **`app` in the healthz payload** (`SATELLITE_APP_KEY`, else
+  `"unknown"`): `build` says which commit answered, `app` says which
+  satellite — different questions on a fleet where every host shares
+  one template and a hostname can be repointed between services
+  (llms.2plot.dev was, 2026-08-23).
+- **`geo` in the healthz payload** on dash-improve-my-llms ≥ 2.7.0:
+  `{configured, denied, resolved}` — counts and flags only, never the
+  denylist's country codes; `resolved` reveals only the caller's own
+  country, and is the per-host check GEO.md calls mandatory before
+  trusting a denylist. On older packages the key is OMITTED, not
+  error-flagged — the fleet's ≥2.7.1 floor round lights it up with no
+  further change. Four tests pin the contract (per-request liveness,
+  identity fields, FastAPI parity, counts-not-codes).
+
 ## [1.6.9] - 2026-08-23
 
 ### Removed
