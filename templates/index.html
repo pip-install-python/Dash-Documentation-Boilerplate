@@ -389,11 +389,17 @@
          ======================================================================== -->
 
     <noscript>
+        <!-- No <h1> in here, deliberately: crawlers run no JavaScript and
+             PARSE noscript content, so an h1 in this block becomes a second
+             site-wide h1 on every page, competing with each page's own.
+             Found on the llms-2plot-dev fork (2026-08-23); the heading
+             hierarchy below starts at h2 for exactly this reason, and
+             tests/test_config.py pins it. -->
         <div style="padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-            <h1>Dash Documentation Boilerplate — the 2plot network's template</h1>
+            <h2>Dash Documentation Boilerplate — the 2plot network's template</h2>
             <p><strong>This application requires JavaScript to run.</strong></p>
 
-            <h2>For AI/LLM Access and Documentation:</h2>
+            <h3>For AI/LLM Access and Documentation:</h3>
             <p>This site provides comprehensive documentation in multiple formats optimized for both humans and AI assistants:</p>
 
             <ul style="margin: 20px 0;">
