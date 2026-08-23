@@ -8,8 +8,16 @@ FROM python:3.11.8-slim
 # stderr. An entire misconfiguration class debugs itself once these print.
 ENV PYTHONUNBUFFERED=1
 
+# curl only — the HEALTHCHECK below uses it. Deliberately NO nodejs/npm:
+# this image once apt-installed both to `npm install` a package.json that
+# was dash-mantine-components' component-build toolchain, inherited through
+# the fork lineage and used by NOTHING in this repo (no webpack config, no
+# src/ts, no CI job, no served asset) — while shipping a known-vulnerable
+# jsonpath into every production image in the fleet (issue #12,
+# CVE-2026-1615). A docs site is a Python app; if a fork genuinely builds
+# JS components it adds its own toolchain knowingly, not by inheritance.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        nodejs npm curl \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -43,10 +51,6 @@ RUN pip install -r requirements.txt
 # alone, without letting pip see the spurious pin. CI asserts the resulting
 # gunicorn version inside this image, which is what keeps the dodge honest.
 RUN pip install --no-deps markdown2dash==0.1.2
-
-# Install node dependencies
-COPY package.json ./
-RUN npm install
 
 COPY . .
 

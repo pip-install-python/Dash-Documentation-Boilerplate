@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.9] - 2026-08-23
+
+### Removed
+
+- **The vestigial Node layer left the production image** (issue #12,
+  CVE-2026-1615): `package.json`/`package-lock.json` were
+  dash-mantine-components' component-build toolchain, inherited
+  through the fork lineage and used by NOTHING here — no webpack
+  config, no `src/ts`, no CI job, no served asset — yet the
+  Dockerfile apt-installed nodejs+npm and `npm install`ed the tree
+  into every production image, fleet-wide, including a
+  known-vulnerable `jsonpath@1.1.1` (static-eval expression
+  evaluation; fixed upstream in 1.3.0, March 2026). Exploitability
+  here was effectively nil — no Node process serves traffic, nothing
+  evaluates user-supplied JSONPath, and the code isn't bundled into
+  any served asset — but dead weight that trips scanners and bloats
+  images is still dead weight. Both files deleted, the Dockerfile
+  keeps only curl (the HEALTHCHECK's), with the rationale in place so
+  no future fork re-adds Node by inheritance. Forks that genuinely
+  build JS components add their own toolchain knowingly. Docs-fleet
+  forks pick this up with the next Dockerfile sync (the ≥2.7.1 floor
+  round carries it).
+
 ## [1.6.8] - 2026-08-22
 
 Five fork footguns upstreamed from the llms-2plot-dev phase-1 fork
