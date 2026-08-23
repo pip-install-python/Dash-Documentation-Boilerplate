@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 import dash
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from pydantic import BaseModel, Field
 
 
@@ -117,13 +117,17 @@ def build_health_router() -> APIRouter:
     router = APIRouter(tags=["health"])
 
     @router.get("/healthz", response_model=HealthResponse, summary="Liveness probe")
-    def healthz() -> HealthResponse:
+    def healthz(request: Request) -> HealthResponse:
         # One payload builder for all three backends — see HealthResponse.
         # Built per request: `geo` reports live state, and this route is
-        # mounted long before any geo configuration runs.
+        # mounted long before any geo configuration runs. The request's
+        # headers go with it — geo's `resolved` reads the country header
+        # from THIS request, and the Flask-context fallback inside
+        # health_payload can never see a Starlette request (pannellum's
+        # production healthz answered "no request context" until this).
         from lib.health import health_payload
 
-        return HealthResponse(**health_payload("fastapi"))
+        return HealthResponse(**health_payload("fastapi", headers=request.headers))
 
     return router
 

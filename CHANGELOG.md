@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.12] - 2026-08-23
+
+### Fixed
+
+- **healthz `geo.resolved` works on every backend**: each route now
+  hands its own request headers to `health_payload`, which passes them
+  to `geo.explain_resolution` explicitly. The 1.6.10 version read
+  Flask's request context, so the FastAPI and Quart lanes answered
+  "no request context" forever — pannellum's production healthz
+  (FastAPI) was the host that showed it, caught by the round-3 wave-1
+  wire check within hours of shipping. `normalize_headers` accepts
+  Flask/Starlette/Quart headers and never raises; the Flask-context
+  fallback stays for callers that pass nothing. Both backend tests now
+  pin that a spoofed `CF-IPCountry` header surfaces in `resolved`.
+  Waves 2–4 of the floor round port this version automatically;
+  pannellum takes it as a one-line follow-up.
+
 ## [1.6.11] - 2026-08-23
 
 The fleet floor-round opener: the dimll floor moves to ≥2.7.1, and the

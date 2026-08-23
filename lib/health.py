@@ -19,12 +19,20 @@ import os
 import dash
 
 
-def _resolved_country() -> str:
+def _resolved_country(headers=None) -> str:
     """``geo.explain_resolution`` over THIS request's headers, or a reason.
 
-    Reads the framework's request object directly rather than anything the
-    package threads through, so it answers "did the country header reach this
-    app at all?" independently of how the enforcement seam is wired.
+    Reads the request headers directly rather than anything the package
+    threads through, so it answers "did the country header reach this app
+    at all?" independently of how the enforcement seam is wired.
+
+    Each route passes its own framework's headers explicitly — the first
+    version read Flask's request context, which made the FastAPI and Quart
+    lanes answer "no request context" forever: pannellum's production
+    healthz (FastAPI) was the host that showed it, first wave of the
+    ≥2.7.1 floor round. ``normalize_headers`` accepts Flask/Starlette/
+    Quart/dict and never raises. The Flask-context fallback stays for
+    callers that pass nothing.
     """
     try:
         from dash_improve_my_llms import geo
@@ -33,6 +41,9 @@ def _resolved_country() -> str:
         return "unavailable (pre-2.7.0 package)"
 
     try:
+        if headers is not None:
+            return geo.explain_resolution(normalize_headers(headers))
+
         from flask import has_request_context, request
 
         if not has_request_context():
@@ -42,7 +53,7 @@ def _resolved_country() -> str:
         return "unavailable"
 
 
-def health_payload(backend: str) -> dict:
+def health_payload(backend: str, headers=None) -> dict:
     payload = {"ok": True, "backend": backend, "dash_version": dash.__version__}
     # Which commit the RUNNING instance was built from. This is what lets CD
     # verify the artifact it shipped rather than whichever build happens to
@@ -96,7 +107,7 @@ def health_payload(backend: str) -> dict:
                 "denied": len(
                     geo.effective_policy().get("deny_countries") or []
                 ),
-                "resolved": _resolved_country(),
+                "resolved": _resolved_country(headers),
             }
         except Exception:  # never let a diagnostic break the health probe
             payload["geo"] = {"configured": False, "denied": 0, "error": True}
@@ -120,17 +131,17 @@ def register_health_route(app, backend: str) -> None:
     # configured — the diagnostic lying in exactly the situation it exists
     # for (found 2026-08-23, fixed fork-side first).
     if backend == "quart":
-        from quart import jsonify
+        from quart import jsonify, request
 
         @server.get("/healthz")
         async def _healthz():  # pragma: no cover — quart runtime
-            return jsonify(health_payload(backend))
+            return jsonify(health_payload(backend, headers=request.headers))
     else:
-        from flask import jsonify
+        from flask import jsonify, request
 
         @server.get("/healthz")
         def _healthz():
-            return jsonify(health_payload(backend))
+            return jsonify(health_payload(backend, headers=request.headers))
 
     print(f"[boilerplate] /healthz registered ({backend}) — "
           "the 2plot.ai hourly health sweep probes this path.")
