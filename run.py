@@ -76,10 +76,20 @@ from dash_improve_my_llms import (
 # (html-to-text extractors, plausibly crawler content-weighting) reads
 # "Loading..." instead of the page's prose — the outside-audit finding of
 # 2026-08-22. tests/test_pages.py pins the visible shape.
+# 2.7.1 is the round-3 floor: 2.7.0 dedups the prerender H1 (every page
+# served TWO h1s to crawlers — the injected header plus the doc body's
+# own markdown H1) and the home footer's doubled /llms.txt link, and
+# hardens the idempotency probe so a page that MENTIONS the marker no
+# longer loses its prerender (the marker-in-comment trap that silently
+# blanked email's and flows' hub pages). 2.7.1 adds the llms.txt v2
+# discovery relations on both lanes + Link headers, the Accept:
+# text/plain ramp, and the representation digest — the surfaces the
+# network's agent lane composes over. tests/test_pages.py pins the
+# single-H1 shape.
 # `configure_seo` is deliberately imported AFTER this floor fires (see the
 # floors block) so a stale environment gets the floor's diagnosis instead of
 # a bare ImportError.
-LLMS_PKG_FLOOR = (2, 6, 1)
+LLMS_PKG_FLOOR = (2, 7, 1)
 
 # THE FORK POINT — claim this app's network identity before any
 # hub-facing module imports. Every module that names this app
@@ -174,6 +184,13 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
+        "Below 2.7.1 the llms.txt v2 discovery relations (rel=alternate/"
+        "describedby + Link headers), the text/plain Accept ramp, and the "
+        "representation digest are missing. Below 2.7.0 every page serves a "
+        "DUPLICATE H1 to crawlers (the injected prerender header plus the doc "
+        "body's own), the home footer doubles its /llms.txt link, and a page "
+        "that merely MENTIONS the prerender marker loses its prerender "
+        "entirely (the marker-in-comment trap). "
         "Below 2.6.1 the universal prerender ships `hidden`, so every "
         "visibility-respecting consumer (text extractors, arguably crawler "
         "content-weighting) reads 'Loading...' instead of the page's prose. "

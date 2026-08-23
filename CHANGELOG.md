@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.11] - 2026-08-23
+
+The fleet floor-round opener: the dimll floor moves to ≥2.7.1, and the
+pin written for what that floor buys immediately caught a template bug
+of its own.
+
+### Changed
+
+- **dimll floor ≥2.7.1** in every encoding (requirements.txt, run.py's
+  `LLMS_PKG_FLOOR` + boot message, the tests). What it buys: 2.7.0
+  dedups the prerender H1 (every page served two h1s to crawlers) and
+  the home footer's doubled /llms.txt link, hardens the idempotency
+  probe (the marker-in-comment trap), and ships the geo guardrail +
+  operator panel seams; 2.7.1 adds the llms.txt v2 discovery relations
+  on both lanes + Link headers, the text/plain Accept ramp, and the
+  representation digest. The requirements line changing IS each fork's
+  Docker cache bust — the round-2 lesson, now restated beside the
+  floor. The boot floor turns a stale image into a loud refusal.
+
+### Fixed
+
+- **`_expand_source_directives` is fence-aware** (pages/markdown.py):
+  it expanded `.. source::` examples sitting INSIDE fenced code blocks
+  — docs/example and docs/directives teach the directive inside
+  ```markdown fences — injecting a fence into the open fence, closing
+  it early, and rendering the inlined Python file as markdown on the
+  machine lane: every `# comment` line became an `<h1>` (five h1s on
+  the directives tutorial, on every fork, browser lane unaffected).
+  Found minutes after writing the single-h1 pin below.
+
+### Added
+
+- **Every-page generic-lane structure pin** (tests/test_pages.py):
+  exactly one `<h1>` per document (comments stripped), no duplicate
+  llms.txt links in the prerender footer, home carries exactly the
+  root link — plus a unit pin that fenced directive examples stay
+  documentation.
+
 ## [1.6.10] - 2026-08-23
 
 Two `/healthz` defects found (and first fixed) on llms-2plot-dev during

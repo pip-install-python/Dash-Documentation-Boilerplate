@@ -120,12 +120,23 @@ python-dotenv>=1.0.0
 # 2.6.1 floor: the universal prerender ships VISIBLE to non-JS consumers
 # (below it the block carries a literal `hidden` attribute and every
 # visibility-respecting reader sees only "Loading..." — the outside-audit
-# finding of 2026-08-22). run.py's boot floor and a test in
-# tests/test_pages.py encode the same number — grep it, don't move one.
-dash-improve-my-llms[flask]>=2.6.1
-# dash-improve-my-llms[fastapi]>=2.6.1   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.6.1     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.6.1       # all three
+# finding of 2026-08-22).
+# 2.7.1 floor (the round-3 fleet number): 2.7.0 dedups the prerender H1
+# (injected header h1 vs the doc body's own markdown H1 — every page was
+# a duplicate-H1 page to crawlers) and the home footer's doubled
+# /llms.txt link, hardens the idempotency probe (a page MENTIONING the
+# marker no longer disables prerendering — the marker-in-comment trap),
+# and ships the geo guardrail + operator panel seams; 2.7.1 adds the
+# llms.txt v2 discovery relations (rel=alternate/describedby on BOTH
+# lanes + Link headers), the Accept: text/plain ramp, and the
+# representation content digest. run.py's boot floor and tests encode
+# the same number — grep it, don't move one. REMEMBER THE CACHE TRAP:
+# this line changing IS the Docker cache bust; a `>=` floor can never
+# pull a new release through a cache hit (see Dockerfile).
+dash-improve-my-llms[flask]>=2.7.1
+# dash-improve-my-llms[fastapi]>=2.7.1   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]>=2.7.1     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]>=2.7.1       # all three
 
 # Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
 #
