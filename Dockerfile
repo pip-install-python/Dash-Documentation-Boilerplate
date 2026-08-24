@@ -57,7 +57,14 @@ COPY . .
 # The 2plot.ai hub's hourly sweep probes /healthz; give the container the same
 # check so an unhealthy process is visible to the orchestrator too.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://localhost:8550/healthz || exit 1
+    CMD curl -fsS http://localhost:${PORT:-8550}/healthz || exit 1
 
 EXPOSE 8550
-CMD ["gunicorn", "run:server", "-b", "0.0.0.0:8550"]
+# Shell form on purpose: exec-form CMD never expands env, so the old
+# ["gunicorn", ..., "0.0.0.0:8550"] hardcoded the port no matter what the
+# platform asked for. run.py has honored $PORT since 1.6.8; the container
+# lane didn't, and only worked on Render because Render port-detects.
+# excalidraw fixed this fork-side in its gate-wave pass and rightly refused
+# to regress it on template sync (floor round, 2026-08-23) — this makes the
+# template agree with the fork instead of the other way around.
+CMD gunicorn run:server -b 0.0.0.0:${PORT:-8550}
