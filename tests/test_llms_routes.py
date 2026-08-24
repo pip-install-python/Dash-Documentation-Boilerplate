@@ -214,6 +214,24 @@ def test_fastapi_healthz_renders_from_the_shared_payload(monkeypatch):
         assert "DE" in body["geo"]["resolved"], body["geo"]
 
 
+def test_resolved_country_reads_explicit_headers_without_a_request():
+    """The context-free pin — the only one that can actually fail.
+
+    The in-request pins above pass even if a Flask route drops its
+    `headers=`: inside a request the context fallback reads the same
+    headers, and the lanes that genuinely break (Starlette/Quart) are
+    unreachable from a Flask-pinned suite. Calling _resolved_country
+    with a plain dict OUTSIDE any request context has no fallback to
+    hide behind (dash-flows' finding, 2026-08-23).
+    """
+    from lib.health import _resolved_country
+
+    result = _resolved_country({"CF-IPCountry": "DE"})
+    if result.startswith("unavailable (pre-2.7.0"):
+        pytest.skip("geo shipped in dash-improve-my-llms 2.7.0")
+    assert "DE" in result, result
+
+
 def test_healthz_geo_block_is_counts_not_codes():
     """Present on dash-improve-my-llms >= 2.7.0 (counts and flags only — a
     health endpoint is not where anyone learns policy), OMITTED on older

@@ -37,11 +37,15 @@ jobs:
     name: deploy to render
     needs: [test]
     runs-on: ubuntu-latest
-    # Long enough for the build-match wait below (up to 60 × 15s) and no
+    # Long enough for the build-match wait below (up to 100 × 15s) and no
     # longer. Without it the job inherits GitHub's six-hour default, which
     # is how a platform that never comes back healthy holds the
-    # `cd-production` concurrency group all day.
-    timeout-minutes: 20
+    # `cd-production` concurrency group all day. Sized for the WORST build,
+    # not the median: a floor bump busts the Docker dependency cache by
+    # design, so this pipeline's most important deploy is also Render's
+    # slowest — dash-email's wait timed out on exactly that build class
+    # (2026-08-23) with the old 60 × 15s window.
+    timeout-minutes: 30
     environment:
       name: production
       url: https://boilerplate.2plot.dev
@@ -54,7 +58,12 @@ jobs:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$HOOK" ]; then
-            echo "::notice::RENDER_DEPLOY_HOOK_URL is not set. Skipping the deploy trigger and verifying whatever is currently live."
+            # ::warning, not ::notice — dash-email's finding (2026-08-23):
+            # with no hook AND a push Render's autoDeploy happened to skip,
+            # nothing deployed at all and the build-match wait below timed
+            # out on a deploy nobody had started. The wait refusing was
+            # honest; the quiet notice was why the cause took a run to see.
+            echo "::warning::RENDER_DEPLOY_HOOK_URL is not set — this push deploys only if render.yaml autoDeploy fires. The build-match wait below still holds for THIS commit either way."
             echo "deployed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -80,7 +89,7 @@ jobs:
           want="${GITHUB_SHA}"
           matched=0
           ok=0
-          for _ in $(seq 1 60); do
+          for _ in $(seq 1 100); do
             body="$(curl -fsS "$SITE_URL/healthz" 2>/dev/null || true)"
             if [ -n "$body" ]; then
               build="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("build",""))' 2>/dev/null || true)"

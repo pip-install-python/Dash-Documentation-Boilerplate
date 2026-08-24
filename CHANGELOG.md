@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.13] - 2026-08-23
+
+Two wave-2 findings folded back, both from hosts that hit what the
+template hadn't: dash-email's CD timeout class and dash-flows' proof
+that the Flask-lane healthz pin couldn't fail.
+
+### Changed
+
+- **CD's build-match wait is sized for the worst build, not the
+  median** (cd.yml): the loop grows to 100 × 15s and the job timeout
+  to 30 minutes. A floor bump busts the Docker dependency cache by
+  design, so the pipeline's most important deploy is also Render's
+  slowest build — dash-email's wait timed out on exactly that class.
+- **Hookless deploys warn instead of whispering**: with
+  RENDER_DEPLOY_HOOK_URL unset the step now emits a `::warning` with
+  accurate wording (the push deploys only if autoDeploy fires; the
+  build-match wait still holds for THIS commit). dash-email hit the
+  case where autoDeploy also skipped — nothing deployed, the wait
+  honestly timed out, and the quiet `::notice` was why the cause took
+  a full run to see.
+
+### Added
+
+- **Context-free `_resolved_country` pin** (dash-flows' finding): the
+  in-request pins pass even if a Flask route drops `headers=` — the
+  context fallback reads the same headers, and the lanes that truly
+  break are unreachable from a Flask-pinned suite. The new test calls
+  `_resolved_country({"CF-IPCountry": "DE"})` outside any request
+  context, where there is no fallback to hide behind.
+
 ## [1.6.12] - 2026-08-23
 
 ### Fixed
