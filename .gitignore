@@ -167,7 +167,23 @@ build/
 # 2plot.dev has no business in the checkout of the template, and every
 # satellite forking this repo would inherit a to-do list that was never theirs.
 kickoff/
-# Local Claude Code workspace: session notes, design scratch, and the vendored
-# package copy used while iterating. Useful locally, noise in a template other
-# people fork.
-.claude/
+
+# Session working documents are LOCAL BY CONVENTION, network-wide: sync
+# reports, handoffs, and kickoff briefs name hosts, topology, and process.
+# Two public fleet repos were caught tracking theirs and clerkhook's staged
+# handoff (naming the full satellite inventory) was one push from public
+# (2026-08-24). The ignore rule is the enforcement, here and in every fork.
+X402-SYNC-REPORT.md
+HANDOFF-*.md
+KICKOFF-*.md
+
+# The .claude/ development kit IS shipped — it is how every fork inherits
+# the network's behavioral contract, skills, and settings (the F1 fabric
+# build, 2026-08-24). Everything else in .claude/ stays local: session
+# scratch, screenshots, settings.local.json (per-seat model overrides),
+# vendored iteration copies. Allow-list, not blanket ignore — a dir-level
+# ignore cannot be re-included beneath, hence the /* form.
+.claude/*
+!.claude/CLAUDE.md
+!.claude/settings.json
+!.claude/skills/

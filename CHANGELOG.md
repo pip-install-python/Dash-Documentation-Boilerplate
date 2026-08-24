@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.15] - 2026-08-24
+
+The F1 fabric build: the `.claude/` development kit ships with the
+template, so every fork inherits the network's behavioral contract
+instead of a blank slate. Until now the blanket `.claude/` gitignore
+kept the project instructions local-only — forks inherited NOTHING.
+
+### Added
+
+- **`.claude/CLAUDE.md` gains the network role & behavioral
+  contract**: identity derives from the repo, never the file; check
+  every prompt against this tree; corrections are the session's job;
+  wire-verify your own deploy before reporting; divergence is
+  legitimate when recorded; never touch env values/dashboards/other
+  repos — plus the fleet's verification traps (cache bust, GET not
+  HEAD, dependabot-run watchers, two-lane rule). File case
+  canonicalized (`claude.md` → `CLAUDE.md` — macOS forgave it,
+  Linux would not).
+- **`DIVERGENCES.md`** at the repo root: the boundary between design
+  and drift. Syncs read it first and must not restore what it
+  records; an unrecorded difference is treated as drift. Fleet
+  precedents named (flexlayout, flows, clerkhook, muischeduler).
+- **Three skills**: `/wire-verify` (the acceptance ritual as one
+  command — healthz identity/build/geo, both lanes, the traps),
+  `/sync-template` (divergence-aware, spec-driven, acceptance-
+  pinned), `/report` (evidence-first structure with the observed
+  anti-patterns named and rejected).
+- **`.claude/settings.json`** (checked in): fleet model default
+  (opus — seats override locally via settings.local.json, which
+  stays ignored), sandbox network allowlist naming THIS host +
+  the hub so sessions can wire-verify their own production
+  (clerkhook and pannellum both couldn't reach theirs), WebFetch
+  domain allows. `tests/test_claude_kit.py` pins the kit shipped,
+  case-correct, and — the anti-drift pin — that allowedDomains
+  follows `lib/constants.BASE_URL`, so a fork keeping the
+  template's host verbatim goes red until it points at itself.
+
+### Changed
+
+- **`.gitignore`**: `.claude/` blanket ignore becomes an allow-list
+  (`CLAUDE.md`, `settings.json`, `skills/` ship; scratch and
+  settings.local.json stay local), and the session-document
+  convention is now enforced network-wide: `X402-SYNC-REPORT.md`,
+  `HANDOFF-*.md`, `KICKOFF-*.md` ignored — two public fleet repos
+  were caught tracking theirs, and clerkhook's staged handoff was
+  one push from public.
+
 ## [1.6.14] - 2026-08-23
 
 ### Fixed
