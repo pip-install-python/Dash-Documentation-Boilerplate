@@ -1,4 +1,4 @@
-FROM python:3.11.8-slim
+FROM python:3.14.7-slim
 
 # Unbuffered stdout, or none of the app's print() diagnostics ever reach the
 # platform logs: Python block-buffers stdout when it is not a tty, so the
