@@ -259,3 +259,20 @@ def set_llms_public(path: str, value: bool) -> None:
     with _lock:
         _overrides.setdefault(path, {})["llms_public"] = bool(value)
         _persist()
+
+
+def published_name(path: str, name: str) -> str:
+    """The name this path publishes to agents — the site brand at the root.
+
+    A home page registered as "Home" is a nav label to humans and an
+    IDENTITY to dash-improve-my-llms: the registered name feeds the
+    /llms.txt H1 and the injected prerender header. When the preamble
+    `# {name}` and the injected header disagree, 2.7.0's H1 dedup cannot
+    fire and the machine lane serves a duplicate-H1 page — leaflet's home
+    served THREE h1s this way until its fork-side fix (ported here
+    2026-08-24, F1 pilot finding: the template's own markdown pipeline
+    still passed `metadata.name`, so every fresh fork re-lived it).
+    """
+    from lib.constants import SITE_BRAND
+
+    return SITE_BRAND if path == "/" else name

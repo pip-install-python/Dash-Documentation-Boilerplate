@@ -14,6 +14,7 @@ from pydantic import BaseModel, field_validator
 from lib.ad_client import inject_ad_into_aside
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
 from lib import gate_layouts, page_tiers, page_visibility
+from lib.page_visibility import published_name
 from lib.directives.headings import patch_renderer
 from lib.directives.kwargs import Kwargs
 from lib.directives.llms_copy import LlmsCopy
@@ -250,5 +251,14 @@ for file in files:
         # TypeError — measured on 2.5.1); the floor in run.py guarantees
         # >= 2.6.0, where a real date is emitted and None omits the tag.
         lastmod=metadata.lastmod,
-        llms_doc=_build_llms_doc(metadata.name, metadata.description, expanded, metadata.endpoint),
+        llms_doc=_build_llms_doc(
+            # The PUBLISHED name, not the nav label: a home page named "Home"
+            # would put `# Home` in the preamble while the package injects
+            # the site brand — mismatched H1s the 2.7.0 dedup cannot fold
+            # (leaflet's three-h1 home; F1 pilot finding, 2026-08-24).
+            published_name(metadata.endpoint, metadata.name),
+            metadata.description,
+            expanded,
+            metadata.endpoint,
+        ),
     )

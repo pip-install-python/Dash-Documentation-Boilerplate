@@ -189,7 +189,17 @@ def post(url: str, payload: str = "{}") -> int:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT) as resp:
+        # context= must match fetch()'s — this line shipped WITHOUT it, so on
+        # any Python without OS trust-store integration (macOS: the fleet's
+        # whole local-dev half) every auth POST died in the TLS handshake,
+        # returned 0, and the check accused the app of the exact
+        # configure_app regression it exists to detect. CI never saw it
+        # (Linux verifies fine); no wired test can see it (they monkeypatch
+        # post) — hence the SOURCE pin in tests/test_auth_wiring.py.
+        # Found by flexlayout during the F1 kit adoption (154688e).
+        with urllib.request.urlopen(
+            request, timeout=TIMEOUT, context=SSL_CONTEXT
+        ) as resp:
             return resp.status
     except urllib.error.HTTPError as exc:
         return exc.code

@@ -114,7 +114,11 @@ jobs:
   verify:
     name: verify the live site
     needs: [deploy]
-    if: always() && needs.deploy.result != 'cancelled'
+    # != 'skipped' too (muicharts' fix, adopted 2026-08-24): when deploy is
+    # skipped there is nothing this run shipped to verify — running anyway
+    # certifies whatever build happens to be serving and turns one cause
+    # into two red jobs.
+    if: always() && needs.deploy.result != 'cancelled' && needs.deploy.result != 'skipped'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

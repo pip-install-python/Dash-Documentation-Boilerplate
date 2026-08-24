@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.16] - 2026-08-24
+
+The first harvest of the F1 pilots: three template-class defects found
+by fork sessions exercising the new behavioral contract, all verified
+against this tree before adoption, plus one honesty fix.
+
+### Fixed
+
+- **`scripts/smoke_live.py` `post()` passes `context=SSL_CONTEXT`**
+  (flexlayout's finding): `fetch()` carried it; `post()` didn't, so on
+  any Python without OS trust-store integration (macOS — the fleet's
+  whole local-dev half) every auth POST died in the TLS handshake,
+  returned 0, and the check accused the app of the exact
+  `configure_app` regression it exists to detect. CI never saw it
+  (Linux verifies fine); no wired test could (they monkeypatch
+  `post`) — a SOURCE pin in tests/test_auth_wiring.py now sweeps every
+  `urlopen` in the file.
+- **cd.yml's verify job also skips on a SKIPPED deploy** (muicharts'
+  fix, adopted): with only `!= 'cancelled'`, a skipped deploy still
+  ran verification against whatever build happened to be serving —
+  one cause, two red jobs.
+- **The machine lane publishes the site brand at the root**
+  (leaflet's finding): `_build_llms_doc` took `metadata.name`, so a
+  home page named "Home" put `# Home` in the preamble while the
+  package injects the site brand — mismatched H1s the 2.7.0 dedup
+  cannot fold (leaflet's home served three). `published_name(path,
+  name)` (ported from leaflet's fork-side fix into
+  lib/page_visibility.py) returns `SITE_BRAND` at "/" and the page
+  name elsewhere; the markdown pipeline now publishes through it, so
+  fresh forks stop re-living the defect.
+- **The gate card stops promising "the AI assistant"** (leaflet's
+  catch): no fork wires one, and a sign-in card selling a feature
+  that doesn't exist spends credibility at the highest-intent moment.
+  The card now promises exactly what ships.
+
 ## [1.6.15] - 2026-08-24
 
 The F1 fabric build: the `.claude/` development kit ships with the
