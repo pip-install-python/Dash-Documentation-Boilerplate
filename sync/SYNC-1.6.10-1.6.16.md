@@ -12,6 +12,18 @@ Floor statement, per the authoring rule: after this spec,
 requirements.txt and run.py retains every older rung by design —
 do not read those as the floor.
 
+```yaml sync-verbatim
+# Whole-file byte-copy targets for the F3b fan-out (sync/README.md).
+# These are item 6's byte-verbatim halves; its adapted halves
+# (CLAUDE.md, settings.json, DIVERGENCES.md, .gitignore) and the
+# fragment verbatims (3a's _expand_source_directives, 7's source
+# pin inside test_auth_wiring.py) stay session-class.
+- .claude/skills/wire-verify/SKILL.md
+- .claude/skills/sync-template/SKILL.md
+- .claude/skills/report/SKILL.md
+- tests/test_claude_kit.py
+```
+
 ### 1. Healthz identity + diagnostics (1.6.10 4523c69, 1.6.12 9462aff)
 class: contract
 files: lib/health.py, lib/asgi_routes.py (only if the fork has one)

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.20] - 2026-08-24
+
+The F3b prerequisite, authored by the ops seat (2plot-network) and
+executed here: the sync spec grows a machine-readable half. Prose
+stays the contract; the fenced block is what the fan-out workflow
+byte-copies into a fork.
+
+### Added
+
+- **The `sync-verbatim` block** (`sync/README.md`): every spec
+  carries exactly one fenced list of whole-file byte-copy targets.
+  The class boundary becomes explicit — whole-file = machine,
+  fragment = session. "The template wins on these bytes" is
+  something a session can apply to a function; a workflow cannot,
+  and without the block the fan-out had nothing safe to carry.
+  Recorded divergences on a listed path win (the workflow skips and
+  flags); `.claude/settings.json` never rides along unless the
+  spec's prose declares a fleet-wide settings change — it CAN fan
+  out mechanically, so it must be deliberate.
+- **The pin extends** (`tests/test_claude_kit.py`): every
+  `SYNC-*.md` has exactly one block, every listed path exists at
+  HEAD, none escapes the repo. An empty block is a statement; a
+  missing one is an omission. Fork-side the whole test still skips
+  (no `sync/`).
+- **The retro-spec gains its block**: item 6's four byte-verbatim
+  halves (the three skills + the kit test). Verified against the
+  actual pilot population before listing — leaflet2 (pushed HEAD via
+  API; its local checkout is months stale), muicharts, flexlayout:
+  wire-verify and report SKILL.md byte-identical to the template on
+  all three; sync-template SKILL.md and the kit test lag identically
+  on all three (pre-1.6.17/1.6.18 copies — no localisation anywhere,
+  and exactly the cargo the fan-out's first run should carry).
+  Rejected from the block: nothing beyond the drop's own fragment
+  exclusions (3a, 7).
+
 ## [1.6.19] - 2026-08-24
 
 F2 closes: emojimart synced from the spec alone (078e514,

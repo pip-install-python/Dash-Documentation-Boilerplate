@@ -122,6 +122,11 @@ def test_sync_specs_are_specifiable():
     authors them — emojimart's F2 correction: this file is a byte-
     verbatim kit port, and without the guard it failed on arrival at
     every fork. The pin wakes up the day a fork starts authoring specs.
+
+    F3b: every spec also carries exactly one ```yaml sync-verbatim
+    fence — the machine block the fan-out workflow byte-copies from.
+    Every listed path must exist at HEAD and stay inside the repo; a
+    wrong entry becomes twelve wrong PRs.
     """
     import pytest
 
@@ -131,8 +136,12 @@ def test_sync_specs_are_specifiable():
     assert (sync_dir / "README.md").is_file(), "sync/README.md (the format) missing"
     specs = sorted(sync_dir.glob("SYNC-*.md"))
     assert specs, "no sync specs — releases ship one (F2)"
+    fence = re.compile(
+        r"^```yaml sync-verbatim[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S
+    )
     for spec in specs:
-        blocks = re.split(r"^### ", spec.read_text(), flags=re.M)[1:]
+        text = spec.read_text()
+        blocks = re.split(r"^### ", text, flags=re.M)[1:]
         assert blocks, f"{spec.name}: no items"
         for block in blocks:
             title = block.splitlines()[0]
@@ -140,3 +149,25 @@ def test_sync_specs_are_specifiable():
                 assert field in block, (
                     f"{spec.name} item {title!r} lacks {field}"
                 )
+
+        fences = fence.findall(text)
+        assert len(fences) == 1, (
+            f"{spec.name}: expected exactly one ```yaml sync-verbatim "
+            f"fence, found {len(fences)} — an empty block is a statement, "
+            "a missing one is an omission (sync/README.md)"
+        )
+        for raw in fences[0].splitlines():
+            entry = raw.split("#", 1)[0].strip()
+            if not entry:
+                continue
+            assert entry.startswith("- "), (
+                f"{spec.name} sync-verbatim: {raw!r} is not a `- path` line"
+            )
+            path = entry[2:].strip()
+            assert ".." not in path and not path.startswith("/"), (
+                f"{spec.name} sync-verbatim: {path!r} escapes the repo"
+            )
+            assert (REPO / path).is_file(), (
+                f"{spec.name} sync-verbatim: {path!r} does not exist at "
+                "HEAD — the fan-out would copy nothing or the wrong thing"
+            )

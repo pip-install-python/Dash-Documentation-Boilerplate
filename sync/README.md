@@ -36,6 +36,40 @@ pilots proved necessary.
   (flexlayout's Part B model: "does a FastAPI lane exist here?" was
   the first command, not an assumption).
 
+## The `sync-verbatim` block
+
+Every spec carries exactly ONE fenced machine block listing the
+whole files the F3b fan-out workflow may byte-copy into a fork.
+Prose stays the contract; the block is what the machine consumes:
+
+    ```yaml sync-verbatim
+    - .claude/skills/wire-verify/SKILL.md
+    - tests/test_claude_kit.py
+    ```
+
+Rules:
+
+- **Only whole-file byte-copy targets go in.** A verbatim item whose
+  target is a fragment (a function, a pin inside a shared test file)
+  stays session-class: listed in prose with `class: verbatim` as
+  always, never in the block — "the template wins on these bytes" is
+  something a session can apply to a fragment and a workflow cannot.
+  The criterion is the target, not the item's class: a contract
+  item's byte-verbatim sub-targets qualify (item 6's skills + kit
+  test are the precedent) while its adapted halves stay out.
+- Paths are repo-relative, no `..`, one per line, `#` comments
+  allowed.
+- A spec with no whole-file verbatims ships an EMPTY block —
+  present, so the absence is a statement, not an omission.
+- A fork's recorded divergence on a listed path wins: the workflow
+  skips it and flags the fork for a session. The author does not
+  need to know the fleet's divergences.
+- The block never carries `.claude/settings.json` unless the spec's
+  prose says the release intends a fleet-wide settings change. It
+  CAN fan out mechanically (a workflow commit is not bound by the
+  session-side write guard — the F2 settings-write friction closes
+  here), so it must be deliberate, never incidental.
+
 ## Authoring rules (earned, not invented)
 
 - **Floors are stated by `LLMS_PKG_FLOOR` semantics, never by
