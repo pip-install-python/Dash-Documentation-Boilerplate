@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.18] - 2026-08-24
+
+The retro-spec's first real consumer (emojimart, the F2 acceptance
+run) returned two spec corrections and one permission lesson — all
+adopted.
+
+### Fixed
+
+- **Spec item 9's detect was unsatisfiable by grep** — the fix's own
+  explanatory comment necessarily names the phrase it retired, so
+  the template failed its own detect. Now "the intro STRING,
+  comments stripped" — the marker-in-comment trap, in its third
+  costume.
+- **The kit's sync-spec pin skips where no `sync/` exists**: forks
+  consume specs, only the template authors them — the byte-verbatim
+  kit port failed on arrival at every fork without the guard. The
+  pin wakes if a fork ever authors specs.
+
+### Added
+
+- **The settings-write precedent** (spec item 6 notes):
+  `.claude/settings.json` is permission-classed and a session may be
+  unable to write it — that guard is CORRECT, and the procedure is:
+  stage the exact content in the scratchpad, hand the owner a
+  one-line `!` copy, orchestrator verifies the staged content before
+  the copy.
+
 ## [1.6.17] - 2026-08-24
 
 The F2 fabric build: propagation as artifact, not conversation.

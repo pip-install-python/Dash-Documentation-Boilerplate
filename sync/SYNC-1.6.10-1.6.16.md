@@ -118,6 +118,13 @@ contract: skills + kit test byte-verbatim; CLAUDE.md's contract and
   deleted, no padding.
 acceptance: kit test green; a probe HANDOFF-x.md is ignored;
   settings allowlist lets the session curl its own /healthz
+notes: `.claude/settings.json` is PERMISSION-CLASSED — a session may
+  be unable to write it, and that guard is correct: do not route
+  around it. Stage the exact content in the scratchpad and hand the
+  owner a one-line `!` copy command; the orchestrator verifies the
+  staged content before the copy (emojimart's F2 run set the
+  precedent). The kit test's sync-spec pin skips on forks (no sync/
+  directory — forks consume specs; only the template authors them).
 
 ### 7. smoke_live post() carries the SSL context (1.6.16 ceb0d50)
 class: verbatim
@@ -148,8 +155,13 @@ acceptance: item 3b's sweep green on "/"
 class: conditional
 predicate: the fork carries lib/gate_layouts.py's preview-card copy
 files: lib/gate_layouts.py
-detect: the card copy does not mention "the AI assistant"
-acceptance: grep clean; gate card renders
+detect: the intro STRING does not mention "the AI assistant" —
+  comments stripped first: the fix's own explanatory comment
+  necessarily names the phrase it retired, so a raw grep fails
+  against the fixed file (emojimart's spec correction, 2026-08-24;
+  the marker-in-comment trap, again)
+acceptance: the rendered card copy is honest; string-level check
+  clean
 
 ## Reporting
 

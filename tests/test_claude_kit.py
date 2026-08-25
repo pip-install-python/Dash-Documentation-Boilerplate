@@ -116,8 +116,18 @@ def test_settings_point_at_this_forks_own_host():
 def test_sync_specs_are_specifiable():
     """F2: every sync spec item must carry class/detect/acceptance — an
     item without detect and acceptance is not specifiable (write a
-    kickoff instead and fix the item until it is; sync/README.md)."""
+    kickoff instead and fix the item until it is; sync/README.md).
+
+    Skips where no sync/ exists: forks CONSUME specs, only the template
+    authors them — emojimart's F2 correction: this file is a byte-
+    verbatim kit port, and without the guard it failed on arrival at
+    every fork. The pin wakes up the day a fork starts authoring specs.
+    """
+    import pytest
+
     sync_dir = REPO / "sync"
+    if not sync_dir.is_dir():
+        pytest.skip("no sync/ — this repo consumes specs, it does not author them")
     assert (sync_dir / "README.md").is_file(), "sync/README.md (the format) missing"
     specs = sorted(sync_dir.glob("SYNC-*.md"))
     assert specs, "no sync specs — releases ship one (F2)"
