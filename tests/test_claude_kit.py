@@ -111,3 +111,22 @@ def test_settings_point_at_this_forks_own_host():
     assert f"WebFetch(domain:{host})" in allows, (
         f"permissions.allow lacks WebFetch(domain:{host})"
     )
+
+
+def test_sync_specs_are_specifiable():
+    """F2: every sync spec item must carry class/detect/acceptance — an
+    item without detect and acceptance is not specifiable (write a
+    kickoff instead and fix the item until it is; sync/README.md)."""
+    sync_dir = REPO / "sync"
+    assert (sync_dir / "README.md").is_file(), "sync/README.md (the format) missing"
+    specs = sorted(sync_dir.glob("SYNC-*.md"))
+    assert specs, "no sync specs — releases ship one (F2)"
+    for spec in specs:
+        blocks = re.split(r"^### ", spec.read_text(), flags=re.M)[1:]
+        assert blocks, f"{spec.name}: no items"
+        for block in blocks:
+            title = block.splitlines()[0]
+            for field in ("class:", "detect:", "acceptance:"):
+                assert field in block, (
+                    f"{spec.name} item {title!r} lacks {field}"
+                )

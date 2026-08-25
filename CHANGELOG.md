@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.17] - 2026-08-24
+
+The F2 fabric build: propagation as artifact, not conversation.
+
+### Added
+
+- **`sync/` — release sync specs** (`sync/README.md` defines the
+  format; `sync/SYNC-1.6.10-1.6.16.md` is the retro-spec pilot).
+  Each item carries a class (`verbatim` / `contract` /
+  `conditional`), a **detect** check so forks at different levels
+  consume the same document and apply only what they lack, and an
+  **acceptance** pin. The authoring rules are the F1 pilots'
+  earned corrections: floors stated by `LLMS_PKG_FLOOR` semantics
+  (the ladder retains old rungs by design — grep finds history and
+  calls it the present), CLAUDE.md's contract/traps sections
+  verbatim with the rest adapted, DIVERGENCES retirements marked
+  not deleted, and the contract-class evidence standard (a diff or
+  passing pins, never an assertion). A format pin in
+  tests/test_claude_kit.py rejects any spec item lacking
+  detect + acceptance: an item without both is not specifiable.
+- **`/sync-template` aligned**: the current floor is what
+  `LLMS_PKG_FLOOR` says, never what grepping finds; detect-first
+  dispositions (`already-present` with evidence); the spec is
+  subject to the same correction contract as any prompt.
+
 ## [1.6.16] - 2026-08-24
 
 The first harvest of the F1 pilots: three template-class defects found
