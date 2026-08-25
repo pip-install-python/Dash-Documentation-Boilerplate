@@ -39,10 +39,13 @@ contract: append the "Byte-owned paths" section (the template's
   so all three blocks start EMPTY.
 acceptance: kit test green
 notes: SEQUENCING — this spec's sync-verbatim block ships the kit
-  test that enforces the fence, so a fan-out PR goes red on a fork
-  until this item is ported. That red is the designed flag (this
-  spec carries a contract item, so every fork needs a session touch
-  this round regardless); port this item first and the PR greens.
+  test that validates the fence, and on a fork that has not ported
+  this item the pin SKIPS with a reason naming it ("port
+  SYNC-1.6.17-1.6.21 item 1; until then the fan-out uses the
+  mention heuristic" — 1.6.22, the ops seat's own correction of its
+  red-until-ported first cut). The verbatim promise holds: fan-out
+  PRs merge green regardless; CI guards what a fork HAS declared,
+  and adoption is driven by this contract item's session round.
 
 ### 2. CI asserts Docker's own health verdict (1.6.19 0f05540)
 class: conditional

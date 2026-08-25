@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.22] - 2026-08-24
+
+The ops seat's correction of its own 1.6.21 drop, after proving the
+sequencing note on a fresh fence-less clone (1 failed, 5 passed,
+1 skipped): the byte-owned pin failing on absence let one unported
+contract item keep EVERY later mechanical PR red — revoking the
+fan-out's "verbatim class = green merge" promise indefinitely, and
+contradicting the same release's own rule that the machine tolerates
+absence via the mention heuristic.
+
+### Fixed
+
+- **The byte-owned pin SKIPS when the fence is absent**, with the
+  reason naming the adoption path ("port SYNC-1.6.17-1.6.21 item 1;
+  until then the fan-out uses the mention heuristic"). One or more
+  fences still validate exactly as before (exactly one, paths real
+  at HEAD, no escapes). Template-side behaviour unchanged — the
+  template's fence exists. CI guards what a fork HAS declared; the
+  contract item's session round drives adoption. A fork that once
+  had the fence and lost it degrades safely: the mention heuristic
+  over-flags and never restores, and deleting the fence is a
+  session-class DIVERGENCES.md edit the report contract covers.
+- The spec's sequencing note now describes the skip, not the red.
+
 ## [1.6.21] - 2026-08-24
 
 DIVERGENCES.md gets its machine half. Found by the ops seat's A1

@@ -187,10 +187,25 @@ def test_divergences_carry_the_byte_owned_block():
     bytes are template-owned, a false positive recurring every release.
     The fence is the machine answer; when present it is authoritative,
     and empty means "the template owns every sync-verbatim path here".
+
+    ABSENCE SKIPS, never fails (1.6.22, the ops seat's own correction):
+    the machine tolerates a missing fence (the mention heuristic —
+    over-flags, never restores), so the pin must too. Failing here
+    would let one unported contract item keep every later mechanical
+    PR red, revoking the fan-out's "verbatim class = green merge"
+    promise indefinitely. CI guards what a fork HAS declared; the
+    spec's contract item and its session round drive adoption.
     """
     import pytest
 
     div = REPO / "DIVERGENCES.md"
     if not div.is_file():
         pytest.skip("no DIVERGENCES.md — nothing for the fan-out to honour")
-    _machine_fence("byte-owned", div.read_text(), "DIVERGENCES.md")
+    text = div.read_text()
+    if not re.search(r"^```yaml byte-owned[ \t]*$", text, re.M):
+        pytest.skip(
+            "DIVERGENCES.md has no byte-owned fence — port "
+            "SYNC-1.6.17-1.6.21 item 1; until then the fan-out uses the "
+            "mention heuristic"
+        )
+    _machine_fence("byte-owned", text, "DIVERGENCES.md")
