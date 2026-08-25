@@ -11,6 +11,8 @@ remains `(2, 7, 1)`. The rationale ladders retain every older rung by
 design; do not read those as the floor.
 
 ```yaml sync-verbatim
+# requires: .claude/CLAUDE.md
+# requires: .claude/settings.json
 # Whole-file byte-copy targets (sync/README.md). Same four as the
 # previous spec — their bytes at 1.6.21 now carry the 1.6.17
 # sync-template rewrite, the 1.6.18 fork-skip guard, and the

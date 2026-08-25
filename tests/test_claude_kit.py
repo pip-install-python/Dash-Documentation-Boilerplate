@@ -42,7 +42,8 @@ def _machine_fence(kind: str, text: str, where: str) -> None:
     ```yaml byte-owned in DIVERGENCES.md): exactly one block, `- path`
     lines with `#` comments, every path repo-relative and real at HEAD.
     Empty is valid — an empty block is a statement, a missing one is an
-    omission."""
+    omission. `# requires: <path>` lines (the fan-out's adoption gate,
+    1.6.23) are validated like paths — a typo'd gate gates nothing."""
     fences = re.findall(
         r"^```yaml " + kind + r"[ \t]*\n(.*?)^```[ \t]*$", text, re.M | re.S
     )
@@ -51,6 +52,17 @@ def _machine_fence(kind: str, text: str, where: str) -> None:
         f"found {len(fences)}"
     )
     for raw in fences[0].splitlines():
+        required = re.match(r"#\s*requires:\s*(.+)$", raw.strip())
+        if required:
+            req = required.group(1).strip()
+            assert ".." not in req and not req.startswith("/"), (
+                f"{where} {kind}: `# requires:` path {req!r} escapes the repo"
+            )
+            assert (REPO / req).is_file(), (
+                f"{where} {kind}: `# requires:` names {req!r} which does "
+                "not exist at HEAD — a typo'd gate gates nothing"
+            )
+            continue
         entry = raw.split("#", 1)[0].strip()
         if not entry:
             continue

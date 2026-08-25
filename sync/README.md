@@ -43,6 +43,8 @@ whole files the F3b fan-out workflow may byte-copy into a fork.
 Prose stays the contract; the block is what the machine consumes:
 
     ```yaml sync-verbatim
+    # requires: .claude/CLAUDE.md
+    # requires: .claude/settings.json
     - .claude/skills/wire-verify/SKILL.md
     - tests/test_claude_kit.py
     ```
@@ -59,6 +61,18 @@ Rules:
   test are the precedent) while its adapted halves stay out.
 - Paths are repo-relative, no `..`, one per line, `#` comments
   allowed.
+- **`# requires: <repo-relative path>`** — zero or more lines inside
+  the fence. Each names a file that must ALREADY exist in the
+  consuming fork for the block to apply at all. A fork missing any
+  of them receives NOTHING from the block and is flagged for a
+  session (`not-adopted`) — its next step is the contract item the
+  cargo assumes, not the cargo (the machine must not do a session's
+  job badly: six fleet forks predate the kit, and ungated cargo
+  would have dropped a failing kit test into each). Any block
+  carrying kit files or the kit test requires the kit's own markers,
+  `.claude/CLAUDE.md` and `.claude/settings.json`. Required paths
+  must also exist at template HEAD — anything else is a typo, and
+  the pin fails it.
 - A spec with no whole-file verbatims ships an EMPTY block —
   present, so the absence is a statement, not an omission.
 - A fork's recorded divergence on a listed path wins: the workflow

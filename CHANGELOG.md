@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.23] - 2026-08-25
+
+The sync-verbatim block gains its adoption gate. Found by the ops
+seat's first `forks=all` fan-out dry run (32812831785): six of the
+ten public fleet forks predate the .claude kit, and the ungated
+block would have dropped three skills and a FAILING kit test into
+each — the machine doing a session's job badly.
+
+### Added
+
+- **`# requires: <repo-relative path>`** (sync/README.md): zero or
+  more lines inside the fence naming files that must already exist
+  in the consuming fork for the block to apply AT ALL. A fork
+  missing any receives nothing and is flagged `not-adopted` — its
+  next step is the contract item the cargo assumes, not the cargo.
+  Any block carrying kit files or the kit test requires the kit's
+  own markers (`.claude/CLAUDE.md`, `.claude/settings.json`); both
+  specs' blocks gained the two lines — the 1.6.10–16 spec is what a
+  fresh fork consumes first, so it gates too.
+- **`_machine_fence` validates the directive**: a required path must
+  exist at template HEAD and stay inside the repo — a typo'd gate
+  gates nothing, so the pin fails it.
+- Gate is per-BLOCK, not per-path, per the ops seat's position
+  (adopted here): skills without the kit's CLAUDE.md contract are
+  inert files, and a partial kit is worse than none — the next
+  adopter session has to detect which half landed. If a future
+  block ever carries mixed-prerequisite cargo, the fix is that
+  spec's requires set, not per-path gating; today's cargo is all
+  item-6 halves.
+
 ## [1.6.22] - 2026-08-24
 
 The ops seat's correction of its own 1.6.21 drop, after proving the

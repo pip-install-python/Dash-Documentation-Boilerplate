@@ -13,6 +13,8 @@ requirements.txt and run.py retains every older rung by design —
 do not read those as the floor.
 
 ```yaml sync-verbatim
+# requires: .claude/CLAUDE.md
+# requires: .claude/settings.json
 # Whole-file byte-copy targets for the F3b fan-out (sync/README.md).
 # These are item 6's byte-verbatim halves; its adapted halves
 # (CLAUDE.md, settings.json, DIVERGENCES.md, .gitignore) and the
