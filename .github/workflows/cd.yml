@@ -78,6 +78,8 @@ jobs:
         # invisible for the workflow's whole life (the old build always
         # already passed the old battery) until a new surface made the race
         # lose — found on muicharts, 2026-08-21, fleet-wide class.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # A bare 200 proves nothing about WHICH build answered: /healthz
           # now reports the running instance's commit (RENDER_GIT_COMMIT),
@@ -86,9 +88,25 @@ jobs:
           # sustained-health wait, with a warning naming what it can't tell
           # — that fallback fires exactly once, on the deploy carrying the
           # field for the first time.
+          #
+          # Fail FAST on supersession (1.6.25; observed live on 4a1d430,
+          # 2026-08-25): when a DIFFERENT build serves, one compare-API
+          # call per distinct sha classifies it. "ahead" — the live build
+          # is a DESCENDANT of this run's sha — means branch HEAD moved
+          # past us and the hook shipped it; this run's build can never
+          # serve again, so holding the remaining ~25 minutes only turns
+          # a race into a timeout. That commit's own run must certify it.
+          # Every other verdict keeps waiting: "behind" is the previous
+          # release still serving mid-build (the normal case) or a
+          # deliberate rollback — an older build is NOT a descendant and
+          # must not fast-fail; "diverged" and unknown/404 (e.g. a
+          # workflow_dispatch verify against another host, whose shas this
+          # repo has never seen) prove nothing, so the honest generic
+          # timeout stays their answer.
           want="${GITHUB_SHA}"
           matched=0
           ok=0
+          checked=""
           for _ in $(seq 1 100); do
             body="$(curl -fsS "$SITE_URL/healthz" 2>/dev/null || true)"
             if [ -n "$body" ]; then
@@ -98,6 +116,14 @@ jobs:
                 [ "$matched" -ge 3 ] && break
               elif [ -z "$build" ]; then
                 ok=$((ok + 1))
+              elif [ "$build" != "$checked" ]; then
+                checked="$build"
+                rel="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${want}...${build}" --jq .status 2>/dev/null || true)"
+                if [ "$rel" = "ahead" ]; then
+                  echo "::error::superseded — $build already serves and is a descendant of $want; that commit's own run must certify"
+                  exit 1
+                fi
+                echo "::notice::live build $build is ${rel:-unknown} relative to $want — still waiting for this run's build"
               fi
             fi
             sleep 15

@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.25] - 2026-08-25
+
+The bot actor comes off main; the build-match wait learns to say
+"superseded" in one poll instead of red-at-timeout. Owner option A on
+the 1.6.24 report: the auto-merge workflow could only ever fix the
+GATE (merge waits for CI), never the ACTOR — a GITHUB_TOKEN merge
+gets zero workflow runs on its sha, so no CD run certifies the
+deploy, and every repair (a merge-capable secret in every repo, or a
+workflow_run re-trigger that must ALSO dispatch cd.yml through the
+anti-recursion exemption) is a quirk chain propping up the fabric's
+one proof. ~11 human clicks a month fleet-wide is cheaper; the
+workflow_run shape is recorded as the deferred option if clicks ever
+become the burden.
+
+### Removed
+
+- **`.github/workflows/dependabot-automerge.yml`** (added 1.6.24,
+  retired one release later) and its line in SYNC-1.6.22-1.6.24's
+  sync-verbatim block; spec item 1 is marked RETIRED with its
+  history appended, not rewritten. Standing policy in its place:
+  actions-group PRs are merged by a human click when the PR's CI is
+  green — the human actor's push triggers CD, which certifies the
+  merge. No fork ever received the workflow (the pair never fanned
+  out), so the deletion has no fleet tail beyond the spec's
+  consumer note. The dependabot.yml actions-group comment now
+  states the policy instead of pointing at the deleted file.
+
+### Changed
+
+- **`cd.yml`'s build-match wait fails FAST on supersession.** When
+  a different build serves, one compare-API call per distinct sha
+  classifies it: "ahead" (the live build is a DESCENDANT of this
+  run's sha) means branch HEAD moved past this run and the hook
+  shipped it — this run's build can never serve again, so the wait
+  errors "superseded" immediately instead of red after 25 minutes.
+  "behind" (the previous release still serving mid-build, or a
+  deliberate ROLLBACK — an older build is not a descendant),
+  "diverged", and unknown/404 shas all keep waiting. Everything
+  else — 100×15s, matched≥3, the pre-build-field fallback — is
+  unchanged.
+- The trap texts (CLAUDE.md, spec item 1 notes, the 1.6.24 entry
+  below) keep the observed narrative; the remedy line becomes
+  "actions PRs: human merge when green; never a bot actor on main".
+
 ## [1.6.24] - 2026-08-25
 
 Dependabot stops proposing pip floor-raises; the actions group
@@ -57,7 +101,8 @@ against the floor).
   production anyway: the deploy hook builds branch HEAD, so the
   in-flight 1.6.24 CD shipped the merge while its build-match wait
   held out for `f25cb4f` and went red. Not a lag, a race; the fix
-  is a re-verify commit.
+  was a re-verify commit. (Remedy line adjusted in 1.6.25 — actions
+  PRs: human merge when green; never a bot actor on main.)
 
 ## [1.6.23] - 2026-08-25
 

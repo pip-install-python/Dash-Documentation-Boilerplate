@@ -19,9 +19,11 @@
 # code-security/concepts/supply-chain-security/dependabot-security-updates).
 version: 2
 updates:
-  # Runner/action bumps are mechanical and CI-gated; this group auto-merges
-  # when CI is green — see .github/workflows/dependabot-automerge.yml and
-  # the two repo-settings prerequisites documented there.
+  # Runner/action bumps are mechanical and CI-gated; a human merges the
+  # group's PR when its CI is green — never a bot actor on main. (The
+  # 1.6.24 auto-merge workflow was retired in 1.6.25: a GITHUB_TOKEN merge
+  # gets zero workflow runs on the merge sha, so its deploy is never
+  # certified by CD.)
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
