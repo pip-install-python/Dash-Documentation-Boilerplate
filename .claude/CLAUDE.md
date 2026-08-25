@@ -143,8 +143,11 @@ they win.
   the same sha — key on the workflow path (cd.yml) instead.
 - The browser lane and the machine lane are different documents;
   a fix proven on one is unproven on the other.
-- An auto-merged dependabot actions PR can land WITHOUT triggering
-  cd.yml (auto-merge is enabled by GITHUB_TOKEN, and GITHUB_TOKEN
-  events don't create workflow runs). A healthz build behind a HEAD
-  that is a dependabot merge is that lag, not the cache trap —
-  check `git log -1` before diagnosing.
+- An auto-merged dependabot actions PR lands with ZERO workflow
+  runs on the merge sha (GITHUB_TOKEN anti-recursion) yet still
+  reaches production: the deploy hook builds branch HEAD, so an
+  in-flight CD run ships the merge while its own build-match wait
+  holds out for the superseded release sha and goes red. Observed
+  live on 4a1d430 (2026-08-25). Red CD on a release sha whose HEAD
+  is a dependabot merge is that race, not the cache trap; an empty
+  re-verify commit restores green-CD-on-HEAD.

@@ -41,16 +41,21 @@ contract: the workflow the block ships is inert until the owner flips
   or with the merge of the PR that carries the workflow.
 acceptance: the next actions-group dependabot PR shows the
   `dependabot-automerge` run green and merges only after CI passes
-notes: VERIFICATION TRAP, fleet-wide — auto-merge here is enabled by
-  `GITHUB_TOKEN`, and GITHUB_TOKEN-triggered events do not create
-  workflow runs (the Actions anti-recursion rule). If the eventual
-  merge push does not trigger cd.yml, healthz `build` will lag HEAD
-  after every auto-merged actions bump. That is NOT the cache trap:
-  before diagnosing a build/HEAD mismatch, check whether HEAD is a
-  dependabot actions merge. First live auto-merge on each repo is the
-  experiment; if CD is confirmed suppressed, report it — the fix
-  (ops-seat PAT vs. accepting the lag for workflow-only commits) is
-  an ops-seat decision, not a fork-side one.
+notes: VERIFICATION TRAP, observed live on the template within
+  minutes of shipping (merge `4a1d430`, 2026-08-25). The merge push
+  creates ZERO workflow runs (GITHUB_TOKEN anti-recursion) and STILL
+  reaches production — the deploy hook builds branch HEAD, so an
+  in-flight CD run ships the merge while its own build-match wait
+  holds out for the superseded release sha and goes red. After an
+  auto-merge, expect: no CI/CD runs on the merge sha, the previous
+  release's CD red on build-match, wire build == the merge sha. The
+  fix is an empty re-verify commit, not diagnosis. SEQUENCING,
+  observed the same way: copying dependabot.yml makes dependabot
+  rebase your open actions PRs within seconds, and the workflow then
+  merges them — on the template, 79 seconds BEFORE the PR's CI
+  finished, because nothing was required. Flip both settings BEFORE
+  merging the fan-out PR that carries this pair, or close your open
+  actions PRs first.
 
 ### 2. Close the lingering pip floor-raise PRs (1.6.24)
 class: contract

@@ -49,10 +49,15 @@ against the floor).
   Both dependabot files join the sync-verbatim block under the
   existing kit gate: inert on a non-adopted fork anyway, and one
   gate keeps one rule.
-- A CLAUDE.md verification trap: an auto-merge enabled by
-  GITHUB_TOKEN may merge without triggering cd.yml (the Actions
-  anti-recursion rule) — healthz `build` behind a dependabot-merge
-  HEAD is that lag, not the Docker cache trap.
+- A CLAUDE.md verification trap, amended same-day to the OBSERVED
+  shape: the workflow fired live within minutes (dependabot rebased
+  PR #4 on the config change; merged as `4a1d430`, 79s before its
+  own CI finished — no required checks on main). The merge sha got
+  ZERO workflow runs (GITHUB_TOKEN anti-recursion) yet reached
+  production anyway: the deploy hook builds branch HEAD, so the
+  in-flight 1.6.24 CD shipped the merge while its build-match wait
+  held out for `f25cb4f` and went red. Not a lag, a race; the fix
+  is a re-verify commit.
 
 ## [1.6.23] - 2026-08-25
 
