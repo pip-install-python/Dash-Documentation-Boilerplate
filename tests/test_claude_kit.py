@@ -37,6 +37,36 @@ def _ignored(path: str) -> bool:
     )
 
 
+def _machine_fence(kind: str, text: str, where: str) -> None:
+    """The shared pin for machine fences (```yaml sync-verbatim in specs,
+    ```yaml byte-owned in DIVERGENCES.md): exactly one block, `- path`
+    lines with `#` comments, every path repo-relative and real at HEAD.
+    Empty is valid — an empty block is a statement, a missing one is an
+    omission."""
+    fences = re.findall(
+        r"^```yaml " + kind + r"[ \t]*\n(.*?)^```[ \t]*$", text, re.M | re.S
+    )
+    assert len(fences) == 1, (
+        f"{where}: expected exactly one ```yaml {kind} fence, "
+        f"found {len(fences)}"
+    )
+    for raw in fences[0].splitlines():
+        entry = raw.split("#", 1)[0].strip()
+        if not entry:
+            continue
+        assert entry.startswith("- "), (
+            f"{where} {kind}: {raw!r} is not a `- path` line"
+        )
+        path = entry[2:].strip()
+        assert ".." not in path and not path.startswith("/"), (
+            f"{where} {kind}: {path!r} escapes the repo"
+        )
+        assert (REPO / path).is_file(), (
+            f"{where} {kind}: {path!r} does not exist at HEAD "
+            "— the machine would act on nothing or the wrong thing"
+        )
+
+
 def test_kit_files_exist_and_are_not_ignored():
     """The blanket `.claude/` ignore kept the contract local-only for the
     template's whole life — every fork inherited nothing. The allow-list
@@ -136,9 +166,6 @@ def test_sync_specs_are_specifiable():
     assert (sync_dir / "README.md").is_file(), "sync/README.md (the format) missing"
     specs = sorted(sync_dir.glob("SYNC-*.md"))
     assert specs, "no sync specs — releases ship one (F2)"
-    fence = re.compile(
-        r"^```yaml sync-verbatim[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S
-    )
     for spec in specs:
         text = spec.read_text()
         blocks = re.split(r"^### ", text, flags=re.M)[1:]
@@ -150,24 +177,20 @@ def test_sync_specs_are_specifiable():
                     f"{spec.name} item {title!r} lacks {field}"
                 )
 
-        fences = fence.findall(text)
-        assert len(fences) == 1, (
-            f"{spec.name}: expected exactly one ```yaml sync-verbatim "
-            f"fence, found {len(fences)} — an empty block is a statement, "
-            "a missing one is an omission (sync/README.md)"
-        )
-        for raw in fences[0].splitlines():
-            entry = raw.split("#", 1)[0].strip()
-            if not entry:
-                continue
-            assert entry.startswith("- "), (
-                f"{spec.name} sync-verbatim: {raw!r} is not a `- path` line"
-            )
-            path = entry[2:].strip()
-            assert ".." not in path and not path.startswith("/"), (
-                f"{spec.name} sync-verbatim: {path!r} escapes the repo"
-            )
-            assert (REPO / path).is_file(), (
-                f"{spec.name} sync-verbatim: {path!r} does not exist at "
-                "HEAD — the fan-out would copy nothing or the wrong thing"
-            )
+        _machine_fence("sync-verbatim", text, spec.name)
+
+
+def test_divergences_carry_the_byte_owned_block():
+    """F3b A1's finding: the fan-out honours DIVERGENCES.md by never
+    overwriting a byte-owned path, and a prose MENTION over-flags —
+    muicharts' host-pin nuance names tests/test_claude_kit.py while its
+    bytes are template-owned, a false positive recurring every release.
+    The fence is the machine answer; when present it is authoritative,
+    and empty means "the template owns every sync-verbatim path here".
+    """
+    import pytest
+
+    div = REPO / "DIVERGENCES.md"
+    if not div.is_file():
+        pytest.skip("no DIVERGENCES.md — nothing for the fan-out to honour")
+    _machine_fence("byte-owned", div.read_text(), "DIVERGENCES.md")

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.21] - 2026-08-24
+
+DIVERGENCES.md gets its machine half. Found by the ops seat's A1
+rehearsal of the fan-out against 1.6.20: honouring divergences by
+prose MENTION over-flags — muicharts' host-pin nuance names the kit
+test while its bytes are template-owned, a false positive recurring
+every release on a file the template intends to own.
+
+### Added
+
+- **The `byte-owned` block** (DIVERGENCES.md, final section): the
+  fence is the machine answer to "may the fan-out overwrite this
+  path?" — listed paths are the fork's byte-for-byte; empty means
+  the template owns every sync-verbatim path here; a fork without
+  the block gets the conservative mention heuristic (over-flags,
+  never restores). The template's own block ships empty.
+- **The pin** (`tests/test_claude_kit.py`): exactly one byte-owned
+  fence wherever DIVERGENCES.md exists, paths real at HEAD, none
+  escaping the repo — validation shared with the sync-verbatim
+  fence via one helper. Byte-portable.
+- **`sync/SYNC-1.6.17-1.6.21.md`**: the range's first spec (1.6.17–
+  1.6.20 shipped without one — the drop said "the next spec" and
+  none existed; corrected by authoring it). Item 1 (contract): the
+  byte-owned retro-add — fence content is per-fork judgment and
+  cannot fan out; the pilots were audited first and none of the
+  three carries a byte-level claim on a sync-verbatim path, so all
+  three blocks start empty. Item 2 (conditional): the 1.6.19 docker
+  health-verdict step. Sequencing note recorded in the spec: this
+  spec's own sync-verbatim block ships the enforcing test, so
+  fan-out PRs run red until item 1 is ported — the designed flag,
+  not an accident.
+
 ## [1.6.20] - 2026-08-24
 
 The F3b prerequisite, authored by the ops seat (2plot-network) and

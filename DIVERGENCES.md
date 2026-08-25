@@ -25,3 +25,19 @@ host); muischeduler's no-npm dependabot scope.
 *(none — this IS the template. Forks: replace this section with your
 list at fork time; the fork-point identity ritual in run.py is the
 model for what a well-recorded decision looks like.)*
+
+## Byte-owned paths
+
+Paths this fork owns byte-for-byte. The F3b fan-out never overwrites
+a path listed here; everything else in the spec's `sync-verbatim`
+block is the template's to update mechanically. Prose above explains
+divergences; this block is the machine answer.
+
+Repo-relative paths, one per line, `#` comments, no `..`; exactly one
+block. An EMPTY block means "the template owns every sync-verbatim
+path here" — present so the absence is a statement. When the block
+exists it is authoritative; a fork without it gets the conservative
+mention heuristic (over-flags, never restores).
+
+```yaml byte-owned
+```
