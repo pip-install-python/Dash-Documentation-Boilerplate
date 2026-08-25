@@ -276,6 +276,32 @@ jobs:
       - name: Smoke battery against the booted container
         run: python3 scripts/network_smoke.py --base-url http://127.0.0.1:8550
 
+      # The guard on the guard (emojimart's F2 finding, 2026-08-24): the
+      # boot step curls /healthz from OUTSIDE, which proves the app binds
+      # and answers — but says nothing about the Dockerfile's HEALTHCHECK
+      # instruction itself. A broken probe (wrong port, missing binary,
+      # bad quoting) ships silently while every external check stays
+      # green, and the orchestrator that relies on container health sees
+      # an opaque box. Poll Docker's own verdict: with --interval=30s and
+      # --start-period=20s the first probe lands within ~50s.
+      - name: Assert Docker's own health verdict
+        run: |
+          for i in $(seq 1 30); do
+            status="$(docker inspect -f '{{.State.Health.Status}}' docs 2>/dev/null || echo none)"
+            if [ "$status" = "healthy" ]; then
+              echo "docker reports healthy after ~$((i*3))s"
+              exit 0
+            fi
+            if [ "$status" = "none" ]; then
+              echo "image has NO HEALTHCHECK — the container is opaque to its orchestrator"
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "HEALTHCHECK never reported healthy (last: $status) — the probe itself is broken:"
+          docker inspect -f '{{json .State.Health}}' docs || true
+          exit 1
+
       - name: Container logs (for the record)
         if: always()
         run: docker logs --tail 40 docs 2>/dev/null || true

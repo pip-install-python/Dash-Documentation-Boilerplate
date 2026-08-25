@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.19] - 2026-08-24
+
+F2 closes: emojimart synced from the spec alone (078e514,
+wire-verified — the conditional predicate delivered its missing
+HEALTHCHECK unprompted). Its remaining corrections and its
+template-class finding, adopted:
+
+### Fixed
+
+- **Spec item 2's detect can't catch item 2's own failure mode**
+  (the sharp one): sampling two of four floor encodings reports
+  already-present on exactly the forks that drifted — emojimart's
+  ci.yml asserts still gated (2,6,0) while both sampled encodings
+  were correct, a guard that silently stopped guarding. The detect
+  now also requires that no GATING encoding names a lower version —
+  a negative grep that doesn't collide with the never-grep rule,
+  because it greps for what must NOT appear in gates.
+- **Spec item 5's detect is port-agnostic** (defaulted at the point
+  of use is the contract; 8550 is the template's number) and **item
+  7's files** acknowledge forks without post() — the source pin is
+  the half that ports everywhere.
+
+### Added
+
+- **CI asserts Docker's own health verdict** (emojimart's
+  template-class finding — the guard on the guard): the boot step
+  curls /healthz from outside, proving the app answers, but a broken
+  HEALTHCHECK instruction shipped silently while everything stayed
+  green. The docker job now polls
+  `docker inspect '{{.State.Health.Status}}'` to `healthy`, fails on
+  `none` (no HEALTHCHECK = opaque to the orchestrator), and dumps
+  the probe's own log on failure.
+
 ## [1.6.18] - 2026-08-24
 
 The retro-spec's first real consumer (emojimart, the F2 acceptance

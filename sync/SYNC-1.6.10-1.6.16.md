@@ -38,8 +38,15 @@ notes: leaflet still owes the headers-through half (its own filed
 ### 2. dimll floor ≥2.7.1, every encoding (1.6.11 30075d0)
 class: contract
 files: requirements.txt, run.py (LLMS_PKG_FLOOR + message), tests, CI
-detect: LLMS_PKG_FLOOR == (2, 7, 1) and the requirements install
-  line says >=2.7.1
+detect: LLMS_PKG_FLOOR == (2, 7, 1), the requirements install line
+  says >=2.7.1, AND no GATING encoding anywhere (tests, CI asserts)
+  names a LOWER version — emojimart's correction: a detect that
+  samples two of four encodings reports already-present on exactly
+  the forks that drifted (its ci.yml asserts still gated (2,6,0)
+  while both sampled encodings were correct). This negative check
+  does not collide with the never-grep-the-number rule: it greps for
+  numbers that must NOT appear in gates, not for what the floor is —
+  ladder/rationale prose is exempt.
 contract: the floor moves in EVERY encoding at once; the
   requirements line changing IS the Docker cache bust; the ladder
   EXTENDS (2.6.0 / 2.6.1 / 2.7.0 / 2.7.1 rungs), never rewrites;
@@ -91,8 +98,12 @@ notes: a floor bump busts the pip cache, so the round's most
 class: conditional
 predicate: the fork has a Dockerfile
 files: Dockerfile
-detect: CMD is shell-form on ${PORT:-8550} AND the HEALTHCHECK
-  probes the same variable (exec-form CMD never expands env)
+detect: CMD is shell-form with the port DEFAULTED AT THE POINT OF
+  USE (${PORT:-<this fork's port>} — 8550 is the template's number,
+  not the contract; emojimart's is 8050) AND the HEALTHCHECK probes
+  the same variable with the same default (exec-form CMD never
+  expands env; a bare ${PORT} collapses the bind when the var is
+  set empty)
 acceptance: CI's docker boot/battery green
 notes: emojimart + muischeduler have no HEALTHCHECK at all — for
   them this item ADDS the template's block (curl in apt for the
@@ -126,11 +137,13 @@ notes: `.claude/settings.json` is PERMISSION-CLASSED — a session may
   precedent). The kit test's sync-spec pin skips on forks (no sync/
   directory — forks consume specs; only the template authors them).
 
-### 7. smoke_live post() carries the SSL context (1.6.16 ceb0d50)
+### 7. smoke_live urlopens carry the SSL context (1.6.16 ceb0d50)
 class: verbatim
-files: scripts/smoke_live.py (post()'s urlopen gains
-  context=SSL_CONTEXT), tests/test_auth_wiring.py (the source pin
-  sweeping every urlopen)
+files: tests/test_auth_wiring.py (the source pin sweeping EVERY
+  urlopen — this is the half that ports everywhere); scripts/
+  smoke_live.py where a post()/urlopen lacks context=SSL_CONTEXT
+  (a fork without post() has nothing to fix there — emojimart's
+  note; the pin ships regardless as the net)
 detect: the source pin exists and passes
 acceptance: source pin green; on macOS, the live auth probe returns
   401/200 instead of 0
