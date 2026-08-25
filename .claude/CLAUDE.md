@@ -143,3 +143,8 @@ they win.
   the same sha — key on the workflow path (cd.yml) instead.
 - The browser lane and the machine lane are different documents;
   a fix proven on one is unproven on the other.
+- An auto-merged dependabot actions PR can land WITHOUT triggering
+  cd.yml (auto-merge is enabled by GITHUB_TOKEN, and GITHUB_TOKEN
+  events don't create workflow runs). A healthz build behind a HEAD
+  that is a dependabot merge is that lag, not the cache trap —
+  check `git log -1` before diagnosing.

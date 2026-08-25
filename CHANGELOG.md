@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.24] - 2026-08-25
+
+Dependabot stops proposing pip floor-raises; the actions group
+auto-merges. Owner decision on the ops seat's fleet-wide reading of
+all 38 open dependabot PRs: 18 were pip floor-raises — the
+`dash-network` allow-list group, built to make a package release ONE
+reviewable PR, could only ever propose floor raises on range
+requirements, structurally producing the class the allow-list exists
+to suppress. Drift detection, the group's stated purpose, is already
+answered on the wire by the contract battery (healthz `dash_version`
+against the floor).
+
+### Removed
+
+- **The `pip` ecosystem entry in `.github/dependabot.yml`** —
+  allow-list, `dash-network` group and all. Floors move deliberately
+  through sync specs, every encoding at once. SECURITY updates are
+  unaffected, verified against GitHub's docs before shipping: they
+  ride the alerts channel (dependency graph + Dependabot alerts, a
+  repo setting), and "there is no interaction between the settings
+  specified in the dependabot.yml file and Dependabot security
+  alerts" (code-security/concepts/supply-chain-security/
+  dependabot-security-updates). Removing the entry closes NOTHING:
+  the template's own five pip floor-raise PRs (#6–#10) outlived the
+  08-23 allow-list that already excluded their packages — closing
+  them is SYNC-1.6.22-1.6.24 item 2, an owner action.
+
+### Added
+
+- **`.github/workflows/dependabot-automerge.yml`**: on dependabot
+  PRs whose branch is `dependabot/github_actions/*` (the branch
+  prefix IS the ecosystem — no third-party metadata action to pin),
+  `gh pr merge --auto --squash` with `GITHUB_TOKEN`, permissions
+  contents+pull-requests write on this workflow only. Docker
+  base-image PRs are NOT auto-merged — a Python major is a merits
+  decision. Inert until the owner flips "Allow auto-merge", and
+  over-eager until `main` requires the CI checks (auto-merge waits
+  for REQUIRED checks only) — both enumerated as the new spec's
+  item 1.
+- **SYNC-1.6.22-1.6.24.md** — "the next spec" did not exist (1.6.22
+  and 1.6.23 shipped as amendments), so this release authors it.
+  Both dependabot files join the sync-verbatim block under the
+  existing kit gate: inert on a non-adopted fork anyway, and one
+  gate keeps one rule.
+- A CLAUDE.md verification trap: an auto-merge enabled by
+  GITHUB_TOKEN may merge without triggering cd.yml (the Actions
+  anti-recursion rule) — healthz `build` behind a dependabot-merge
+  HEAD is that lag, not the Docker cache trap.
+
 ## [1.6.23] - 2026-08-25
 
 The sync-verbatim block gains its adoption gate. Found by the ops

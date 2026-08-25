@@ -1,0 +1,46 @@
+# Auto-merge for dependabot's `actions` group ONLY.
+#
+# TEMPLATE FILE: satellites copy this verbatim. Runner/action version bumps
+# are mechanical and gated by the same CI as any push, so a human review adds
+# nothing; docker base-image PRs are NOT auto-merged (a Python major is a
+# merits decision), and pip version updates no longer exist at all
+# (.github/dependabot.yml).
+#
+# Two repo settings make this real — without them it is inert or over-eager:
+#   1. Settings → General → "Allow auto-merge" must be ON, or the
+#      `gh pr merge --auto` call fails outright.
+#   2. A branch protection rule / ruleset on `main` requiring the CI status
+#      checks. Auto-merge waits for REQUIRED checks only — with none
+#      required, the merge happens immediately, green or not (GitHub docs,
+#      automate-dependabot-with-actions).
+#
+# The ecosystem gate is the branch name: dependabot names its branches
+# `dependabot/<ecosystem>/...`, so the `dependabot/github_actions/` prefix
+# is exactly "the actions group" with no third-party metadata action to pin.
+#
+# This is the documented shape for dependabot automation: `pull_request`
+# workflows from dependabot get a read-only GITHUB_TOKEN by default, and the
+# explicit `permissions` block below is what restores the two writes the
+# merge call needs.
+name: dependabot-automerge
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    name: enable auto-merge (actions group)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/github_actions/')
+    steps:
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
