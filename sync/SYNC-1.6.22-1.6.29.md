@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.28 (template @ 1.6.28)
+# SYNC 1.6.22 → 1.6.29 (template @ 1.6.29)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -24,6 +24,18 @@ scripts/smoke_live.py rides the block. Three forks (flows,
 muischeduler, clerkhook) filed item 5's runtime correction
 INDEPENDENTLY in the batch-2/3 round — convergence adjudicated and
 accepted by the ops seat, 2026-08-26.)
+(1.6.29 pulls scripts/smoke_live.py back OUT of the block after
+exactly one round: the LIVE fan-out — 2plot-network run 33000661276 —
+landed the byte-identical file red on 7 of 12 forks, because every
+fork's OWN tests/test_smoke_live.py monkeypatches `fetch` with the
+pre-1.6.2x signature and wake()'s `fetch(url, retries=1, timeout=10)`
+TypeErrors on the stub. Invariance of the file is not invariance of
+its contract; item 6 is class contract for EVERY fork now, and the
+authoring rule this bought — verbatim-safe only if no fork-owned test
+exercises the interface; ask "who stubs this?" — is in
+sync/README.md. The template's wake() is also stub-tolerant since
+1.6.29, so a byte-copy port no longer detonates a not-yet-updated
+legacy stub.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -61,16 +73,20 @@ design; do not read those as the floor.
 # no demo gate and no such file LEGITIMATELY — clerkhook, forks=all
 # dry run 32991971564 — and must still receive the rest of the
 # block; the per-file gate skips just that one copy. 1.6.28 also
-# adds scripts/smoke_live.py — item 6: fork-invariant by
+# added scripts/smoke_live.py — item 6: fork-invariant by
 # construction, host from argv, knobs from env — while muischeduler
-# certified CD with a 1.2.4-vintage copy: no wake loop, no retries.)
+# certified CD with a 1.2.4-vintage copy: no wake loop, no retries.
+# 1.6.29 REMOVES it after one live round: byte-invariant, but its
+# INTERFACE is pinned by each fork's own tests/test_smoke_live.py —
+# fetch stubs written for the pre-1.6.2x signature TypeErrored in
+# wake() on 7 of 12 forks, run 33000661276. Item 6 is contract-class
+# now; the rule is in sync/README.md: who stubs this?)
 - .claude/skills/wire-verify/SKILL.md
 - .claude/skills/sync-template/SKILL.md
 - .claude/skills/report/SKILL.md
 - tests/test_claude_kit.py
 - .github/dependabot.yml
 - tests/test_auth_demos.py  # requires: lib/auth_demos.py
-- scripts/smoke_live.py
 ```
 
 ### 1. Auto-merge is two repo settings away (1.6.24) — RETIRED (1.6.25)
@@ -166,6 +182,13 @@ notes: the fork picks its OWN entry — excalidraw chose /ai-agent
   is the funnel work, and it is judgment, not sync). The block
   fan-out will land this test red wherever the dead entry survives —
   that red is the detect firing, not breakage to route around.
+  1.6.29 cargo audit (the who-stubs-this rule): nothing stubs this
+  test, but it CALLS INTO two fork-owned seams — DEMOS's shape
+  (mapping endpoint → {"module": ...}; `spec["module"]` assumes
+  dict values) and conftest's `app_module` fixture. Both are
+  fleet-uniform today (the 1.6.28 round landed it with zero
+  interface reds); a fork that reshaped either reads a red here as
+  interface drift, not the detect firing — port as contract there.
 
 ### 4. home.py and markdown.py agree on the content pipeline (1.6.26)
 class: contract
@@ -263,32 +286,50 @@ notes: the eight open dependabot docker PRs (python:3.12-slim →
   — port them as contract; the agreement test then pins render.yaml
   against ci.yml with no image lane.
 
-### 6. scripts/smoke_live.py is versioned cargo, not folklore (1.6.28)
-class: verbatim (rides the block)
-files: scripts/smoke_live.py
-detect: the fork's copy is byte-identical to the template's. For a
-  fork whose CD certifies with a DIFFERENT live tool (a recorded
-  divergence — clerkhook's lockdown_smoke.py), the contract detect
-  instead: the cold-start wake loop present (`SMOKE_WAKE_ATTEMPTS`),
+### 6. smoke_live.py: wake loop, retry ladder, SSL context (1.6.28; reclassed contract 1.6.29)
+class: contract
+files: scripts/smoke_live.py (or the fork's recorded divergent tool),
+  tests/test_smoke_live.py (fork-OWNED and never cargo: BASE, the
+  canonical host and the og:image URL inside it are per-fork)
+detect: the cold-start wake loop present (`SMOKE_WAKE_ATTEMPTS`),
   fetch retries present (`SMOKE_FETCH_RETRIES`), and an explicit SSL
   context on EVERY urlopen — the GET fetch and the auth POST both.
-contract: (the divergent-tool case) whatever live tool a CD run
-  certifies with must carry the wake loop, the retry ladder and the
-  certifi-backed SSL context. The file had no spec item, so it
-  drifted exactly as unversioned copies do: muischeduler ran a
-  1.2.4-vintage copy — no wake loop, no env knobs — against a
-  free-tier host in CD; clerkhook's lockdown_smoke.py had no SSL
-  context while being that host's ONLY deploy proof (flexlayout
-  filed the same class earlier — the POST half, pinned upstream in
-  tests/test_auth_wiring.py). The template's file is fork-invariant
-  by construction — host from argv, knobs from env, the brand token
-  imported with a fallback — which is what makes verbatim the class.
-acceptance: the F3b fan-out dry run flags no smoke_live.py
-  mention-divergence on any fork after one round (ops-seat check);
-  the fork's next CD log shows the wake ladder running.
-notes: byte-copy IS the fix for stale copies. A fork that replaced
-  the tool records the divergence and ports the contract half; the
-  block's copy landing beside it is inert unless cd.yml invokes it.
+  This is now THE detect for every fork, not just divergent-tool
+  ones.
+contract: whatever live tool a CD run certifies with must carry the
+  wake loop, the retry ladder and the certifi-backed SSL context.
+  The file had no spec item, so it drifted exactly as unversioned
+  copies do: muischeduler ran a 1.2.4-vintage copy — no wake loop,
+  no env knobs — against a free-tier host in CD; clerkhook's
+  lockdown_smoke.py had no SSL context while being that host's ONLY
+  deploy proof (flexlayout filed the same class earlier — the POST
+  half, pinned upstream in tests/test_auth_wiring.py).
+  RECLASSED 1.6.29, after exactly one round as block cargo: the live
+  fan-out (run 33000661276) landed the byte-identical file red on 7
+  of 12 forks — every fork's OWN tests/test_smoke_live.py
+  monkeypatches `fetch` with the pre-1.6.2x signature
+  `(url, user_agent, accept)`, and wake()'s
+  `fetch(url, retries=1, timeout=10)` TypeErrors on the stub. The
+  file's bytes are fork-invariant; its INTERFACE is pinned by a
+  fork-owned, fork-specific test that can never be cargo — so the
+  class is contract, per sync/README.md's who-stubs-this rule. A
+  session ports the behaviour and updates its stubs IN THE SAME
+  TOUCH. Byte-copying the template's current file remains the
+  recommended port — since 1.6.29 its wake() probes tolerantly
+  (falls back to `fetch(url)` when a legacy stub rejects the
+  kwargs; pinned by test_wake_survives_a_legacy_fetch_stub
+  upstream), so a copy landing ahead of the stub update degrades to
+  the fork's old red checks instead of a suite-wide TypeError. The
+  stub update is still the port's second half, not optional.
+acceptance: the fork's own tests/test_smoke_live.py green against
+  its own copy; the fork's next CD log shows the wake ladder
+  running.
+notes: a fork that replaced the tool records the divergence and
+  ports the contract half; a template copy landing beside it is
+  inert unless cd.yml invokes it. Green in the 1.6.28 round proved
+  only stub-compatibility, not currency: emojimart, muicharts and
+  pipdocs matched signatures, clerkhook has no such test — run the
+  detect there anyway.
 
 ### 7. The battery must see the CONFIGURED gate page (1.6.28; found by clerkhook)
 class: conditional + contract

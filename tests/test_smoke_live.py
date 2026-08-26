@@ -455,6 +455,28 @@ def test_a_cold_host_wakes_and_the_probe_requires_ok_true(smoke, monkeypatch, ca
     assert "attempt 4" in capsys.readouterr().out
 
 
+def test_wake_survives_a_legacy_fetch_stub(smoke, monkeypatch, capsys):
+    """A pre-wake-vintage fetch stub must not TypeError the whole suite.
+
+    Every fork owns a version of THIS file, and the older ones monkeypatch
+    fetch as `(url, user_agent, accept)` without patching wake — the 1.6.28
+    fan-out shipped wake()'s `fetch(url, retries=1, timeout=10)` into that
+    and went red on 7 of 12 forks before a single check ran. wake now
+    falls back to a bare `fetch(url)` when the stub rejects its kwargs, so
+    a template copy landing ahead of the fork's stub update degrades to
+    the fork's own honest check results instead of a suite-wide crash.
+    """
+    monkeypatch.setattr(smoke, "time", _FakeTime())
+
+    def legacy(url, user_agent=smoke.BROWSER_UA, accept=None):
+        assert url.endswith("/healthz")
+        return 200, '{"backend":"flask","ok":true}', {}
+
+    monkeypatch.setattr(smoke, "fetch", legacy)
+    assert smoke.wake("https://x") is True
+    assert "attempt 1" in capsys.readouterr().out
+
+
 def test_a_host_that_never_wakes_is_one_failure_not_a_cascade(
     smoke, monkeypatch, capsys
 ):

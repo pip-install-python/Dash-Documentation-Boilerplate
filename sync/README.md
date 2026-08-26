@@ -85,8 +85,21 @@ Rules:
   always, never in the block — "the template wins on these bytes" is
   something a session can apply to a fragment and a workflow cannot.
   The criterion is the target, not the item's class: a contract
-  item's byte-verbatim sub-targets qualify (item 6's skills + kit
+  item's byte-verbatim sub-targets qualify (the kit skills + kit
   test are the precedent) while its adapted halves stay out.
+- **A whole file is verbatim-safe only if no fork-owned test
+  exercises its interface** (1.6.29) — if `tests/` in a fork calls
+  into it with a signature the fork wrote, the file is contract-class
+  no matter how invariant its bytes are. Ask the question for every
+  cargo candidate: who stubs this? The case: scripts/smoke_live.py
+  rode the block for exactly one round (1.6.28) — byte-invariant by
+  construction, host from argv, knobs from env — but every fork's own
+  tests/test_smoke_live.py (BASE, canonical host, og:image are all
+  per-fork, so the test can never be cargo) monkeypatches its
+  `fetch`, and the live fan-out (run 33000661276) landed the file red
+  on 7 of 12 forks: wake()'s new kwargs meeting stubs written for the
+  pre-1.6.2x signature. Green on the other four proved
+  stub-compatibility, not safety.
 - Paths are repo-relative, no `..`, one per line, `#` comments
   allowed.
 - **Adoption gates** — zero or more gate lines inside the fence.

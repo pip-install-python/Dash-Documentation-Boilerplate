@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.29] - 2026-08-26
+
+The 1.6.28 corrections' own correction, one round later. The LIVE
+fan-out of SYNC-1.6.22-1.6.28 (2plot-network run 33000661276) went
+red on 7 of 12 forks with one signature: the block's new cargo
+`scripts/smoke_live.py` calls `fetch(url, retries=1, timeout=10)` in
+wake(), and every fork's OWN `tests/test_smoke_live.py` monkeypatches
+`fetch` with the pre-1.6.2x signature `(url, user_agent, accept)` —
+TypeError before a single check ran. The file is byte-invariant; its
+INTERFACE is pinned by a fork-owned, fork-specific test that can
+never be cargo. Invariance of a file is not invariance of its
+contract.
+
+### Changed
+- Sync spec renamed `SYNC-1.6.22-1.6.28.md` → `SYNC-1.6.22-1.6.29.md`.
+  `scripts/smoke_live.py` removed from the sync-verbatim block; item 6
+  reclassed **contract** for every fork — detect: wake loop
+  (`SMOKE_WAKE_ATTEMPTS`) + fetch retries (`SMOKE_FETCH_RETRIES`) +
+  explicit SSL context on EVERY urlopen; acceptance: the fork's own
+  `tests/test_smoke_live.py` green against its own copy, stubs updated
+  in the same touch. The divergent-tool branch (clerkhook's
+  lockdown_smoke.py) kept as written.
+- `sync/README.md` gains the authoring rule the round bought: **a
+  whole file is verbatim-safe only if no fork-owned test exercises
+  its interface** — ask "who stubs this?" for every cargo candidate.
+- `scripts/smoke_live.py` wake() is stub-tolerant: when a legacy
+  fetch stub rejects the retries/timeout kwargs (TypeError at
+  signature binding — the real fetch cannot raise it), the probe
+  falls back to a bare `fetch(url)`. A template copy landing ahead of
+  a fork's stub update now degrades to that fork's honest check
+  results instead of a suite-wide crash. Pinned by
+  `test_wake_survives_a_legacy_fetch_stub`. This makes the release
+  spec + one CD-tool robustness change, not spec-only as dropped.
+- Spec item 3 notes gain the 1.6.29 cargo audit of
+  `tests/test_auth_demos.py`: nothing stubs it, but it calls INTO two
+  fork-owned seams (DEMOS's dict shape, conftest's `app_module`
+  fixture) — fleet-uniform today; a reshaped fork reads a red there
+  as interface drift, not the detect firing.
+
 ## [1.6.28] - 2026-08-26
 
 Batch-2/3 corrections release — spec text, gate grammar and reference

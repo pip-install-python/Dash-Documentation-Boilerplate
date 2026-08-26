@@ -250,7 +250,17 @@ def wake(base: str) -> bool:
     """
     url = f"{base}/healthz"
     for attempt in range(1, WAKE_ATTEMPTS + 1):
-        status, body, _ = fetch(url, retries=1, timeout=10)
+        try:
+            status, body, _ = fetch(url, retries=1, timeout=10)
+        except TypeError:
+            # A legacy fetch stub — `(url, user_agent, accept)`, pre-wake
+            # vintage — from a fork test that monkeypatches fetch without
+            # patching wake. The real fetch cannot raise TypeError (its
+            # signature takes these kwargs and everything inside its attempt
+            # loop is caught), so this branch can only be a stub's signature
+            # binding; probe bare rather than take the fork's whole suite
+            # down (the 1.6.28 fan-out went red on 7/12 forks exactly here).
+            status, body, _ = fetch(url)
         if status == 200 and re.search(r'"ok"\s*:\s*true', body):
             print(f"  wake  attempt {attempt}/{WAKE_ATTEMPTS}: up")
             return True
