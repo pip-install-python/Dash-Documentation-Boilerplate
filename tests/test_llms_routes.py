@@ -180,6 +180,15 @@ def test_healthz_identity_fields(monkeypatch):
     assert payload["build"] == "cafebabe"
     assert payload["app"] == "boilerplate"
 
+    # ...and `python` says which interpreter — the field that ended the
+    # era of three declared Pythons nothing on the wire could contradict
+    # (ops-seat finding, 2026-08-25). Equality with THIS process, not with
+    # the fleet minor: the suite legitimately runs on the matrix's window
+    # legs; image-vs-declaration is scripts/network_smoke.py's check.
+    import platform
+
+    assert payload["python"] == platform.python_version()
+
     monkeypatch.delenv("SATELLITE_APP_KEY")
     assert health_payload("flask")["app"] == "unknown"
 
@@ -205,6 +214,12 @@ def test_fastapi_healthz_renders_from_the_shared_payload(monkeypatch):
     assert body["build"] == "cafebabe"
     assert body["app"] == "boilerplate"
     assert body["backend"] == "fastapi"
+    # The typed model must carry `python` too — a field the builder sets
+    # but the model drops would ship on Flask and vanish on FastAPI, the
+    # exact per-backend divergence this test exists to prevent.
+    import platform
+
+    assert body["python"] == platform.python_version()
     # THIS request's headers must reach geo's `resolved` — the route passes
     # them explicitly, because the Flask-context fallback can never see a
     # Starlette request: pannellum's production healthz (FastAPI) answered

@@ -151,7 +151,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       # The network battery first: it is the same script, with the same check
       # names, that CI ran against the container this deploy shipped. A name

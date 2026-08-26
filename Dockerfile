@@ -1,4 +1,12 @@
-FROM python:3.11.8-slim
+# MINOR tag on purpose — never a patch pin. `3.11.8-slim` sat here while the
+# matrix said 3.12 and render.yaml said 3.12.0: three declared Pythons, none
+# tested against the image, and the patch pin meant the image never received
+# a 3.11.x security release either (ops-seat finding, 2026-08-25). The minor
+# tag tracks patch releases through Docker Hub; the minor itself is the ONE
+# fleet Python, and tests/test_python_version.py pins that this tag, the CI
+# matrix main and render.yaml's PYTHON_VERSION all agree — while /healthz
+# reports the serving interpreter so the wire can contradict a stale image.
+FROM python:3.14-slim
 
 # Unbuffered stdout, or none of the app's print() diagnostics ever reach the
 # platform logs: Python block-buffers stdout when it is not a tty, so the

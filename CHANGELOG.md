@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.27] - 2026-08-25
+
+One Python for the fleet. The repo declared three (Dockerfile
+`3.11.8-slim` — a patch pin that never received a 3.11.x security
+release; CI matrix `3.12`; render.yaml `3.12.0`), the docker
+boot/battery tested an interpreter the matrix never ran, and healthz
+could not contradict any of it — the drift was invisible to the
+battery by construction (ops-seat finding, read in the tree,
+2026-08-25). The fleet Python is now **3.14**, decided by evidence:
+the full suite and the real image's boot/battery ran green on
+`python:3.14-slim` before anything shipped.
+
+### Changed
+
+- **`Dockerfile`**: `FROM python:3.11.8-slim` → `python:3.14-slim`.
+  MINOR tag, never a patch pin — the minor tag tracks 3.14.x fix
+  releases through the registry; the patch pin was the security bug.
+- **CI matrix**: main `3.12` → `3.14` (all three backends); window
+  legs `3.11`/`3.13` → `3.13`/`3.12` (three wide around the main —
+  3.15 is at rc1 and does not exist as a release). The two dash-4.4.0
+  bottom-range rows stay on 3.12 deliberately: each include row
+  varies one axis. lint, pip-audit and cd.yml's verify job align to
+  3.14.
+- **`render.yaml`**: `PYTHON_VERSION` `3.12.0` → `3.14.7` (Render's
+  native runtime requires full X.Y.Z; the minor is what the test
+  pins). Blueprint env applies on a sync, not a push — a lagging
+  dashboard value is exactly what the new battery check catches.
+- **README / home.md**: supported floor 3.11+ → 3.12+ (the window).
+
+### Added
+
+- **`/healthz` reports `python`** (`platform.python_version()`) —
+  one field, both backends: set in `lib/health.py`'s shared builder,
+  typed as a required field on `HealthResponse` in
+  `lib/asgi_routes.py`, pinned per backend in
+  `tests/test_llms_routes.py`. The serving interpreter is now
+  observable, so this drift class cannot re-hide.
+- **`python_matches_declared`** in `scripts/network_smoke.py`: the
+  served minor must equal the Dockerfile's FROM minor (declaration
+  read from the checkout; field presence alone where there is none).
+  Runs in CI against the booted container and in CD against
+  production, like every battery check.
+- **`tests/test_python_version.py`** — the encodings-agreement pins:
+  FROM tag is minor-only, render.yaml/matrix main/singleton jobs all
+  carry the same minor, matrix legs stay inside the three-wide
+  window. Session-class for forks (presumes Dockerfile+render.yaml).
+- **Spec item 5** in the rolling spec, renamed
+  `SYNC-1.6.22-1.6.26.md` → `SYNC-1.6.22-1.6.27.md`: conditional
+  (predicate: the fork has a Dockerfile) + contract. Nothing new
+  rides the sync-verbatim block — every file the item touches is
+  fork-divergent or presumes files not every fork carries. The eight
+  open dependabot docker PRs are the ops seat's triage: merge where
+  byte-equivalent, close with "template first, spec item 5".
+
 ## [1.6.26] - 2026-08-25
 
 Batch-1 adoption feedback folds back into the specs: four corrections

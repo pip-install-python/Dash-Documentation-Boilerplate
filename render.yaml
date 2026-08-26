@@ -26,8 +26,17 @@ services:
       - key: APP_BASE_URL
         value: https://boilerplate.2plot.dev
 
+      # The fleet Python (one minor everywhere: Dockerfile FROM tag, CI
+      # matrix main, this line — tests/test_python_version.py holds the
+      # three together, and /healthz reports what actually serves). Render's
+      # native runtime requires the full X.Y.Z here, so unlike the image's
+      # minor tag the patch needs a human bump now and then; the test pins
+      # only the minor. NOTE for this service: Blueprint env values apply on
+      # a Blueprint sync, not on push (see PAGE_VISIBILITY_FILE below) — a
+      # dashboard-side PYTHON_VERSION that still says 3.12.0 is exactly what
+      # the battery's python_matches_declared check exists to catch.
       - key: PYTHON_VERSION
-        value: "3.12.0"
+        value: "3.14.7"
 
       # flask | fastapi | quart. FastAPI and Quart need the matching dash
       # extra installed and an ASGI start command (uvicorn), so switching this

@@ -20,7 +20,7 @@ It is also the reference implementation of the **2plot network standard**: the s
 - **Dash Mantine Components 2.7+** - Beautiful, accessible UI components
 - **Mantine 8.3+** - Modern React component library
 - **React 18** - Latest React features
-- **Python 3.11+** - Modern Python with type hints
+- **Python 3.12+** - Modern Python with type hints
 
 ---
 

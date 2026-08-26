@@ -16,7 +16,7 @@
 [![Dash](https://img.shields.io/badge/Dash-4.4.1-blue.svg)](https://dash.plotly.com/)
 [![DMC](https://img.shields.io/badge/DMC-2.7.0-teal.svg)](https://www.dash-mantine-components.com/)
 [![Backends](https://img.shields.io/badge/Backends-Flask%20%7C%20FastAPI%20%7C%20Quart-orange.svg)](https://dash.plotly.com/)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Live:** [boilerplate.2plot.dev](https://boilerplate.2plot.dev) · the template every
@@ -99,14 +99,14 @@ A comprehensive boilerplate for creating beautiful, interactive documentation fo
 - **DMC 2.7.0** - Dash Mantine Components
 - **Mantine 8.3.6** - Beautiful React UI library
 - **React 18** - Latest React features
-- **Python 3.11+** - Modern Python
+- **Python 3.12+** - Modern Python
 
 ---
 
 ## 📋 Requirements
 
 ### System Requirements
-- **Python**: 3.11 or higher
+- **Python**: 3.12 or higher (3.14 is the fleet Python — the Docker image, the CI matrix main and render.yaml all encode it, and `tests/test_python_version.py` holds them to one minor)
 - **Node.js**: 14+ (for npm dependencies)
 - **npm**: 6+
 
@@ -448,8 +448,8 @@ What it covers, and why each one is there:
 pull request:
 
 - **lint** — flake8, blocking
-- **test** — the full suite on Flask, FastAPI and Quart (Python 3.12), plus
-  Python 3.11 and 3.13 on Flask. Asserts the installed Dash is ≥ 4.4 and
+- **test** — the full suite on Flask, FastAPI and Quart (Python 3.14), plus
+  Python 3.12 and 3.13 on Flask. Asserts the installed Dash is ≥ 4.4 and
   `dash-improve-my-llms` is ≥ 2.1 before running anything
 - **boot under gunicorn** — a page can render under a test client and still
   fail under a real WSGI worker
@@ -738,7 +738,7 @@ For more issues, check [GitHub Issues](https://github.com/pip-install-python/Das
 | Dash | 4.4.0+ (4.3.0 excluded — broken FastAPI backend) |
 | Dash Mantine Components | 2.7.0+ |
 | Mantine | 8.3.6 |
-| Python | 3.11+ |
+| Python | 3.12+ |
 | React | 18.2.0 |
 | Flask / FastAPI / Quart | pluggable backends |
 | dash-improve-my-llms | 2.6.0+ |

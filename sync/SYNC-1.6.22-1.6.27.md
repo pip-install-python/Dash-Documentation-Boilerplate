@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.26 (template @ 1.6.26)
+# SYNC 1.6.22 → 1.6.27 (template @ 1.6.27)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -11,7 +11,10 @@ see item 1's tail; the block no longer carries the workflow.)
 (1.6.26 extends the range with batch-1's two template-class findings
 — items 3 and 4 — and the block gains item 3's test. This file was
 `SYNC-1.6.22-1.6.24.md` until 1.6.26; one rolling document per
-consumption round, renamed as its range grows.)
+consumption round, renamed as its range grows. 1.6.27 adds item 5 —
+one fleet Python — conditional on the fork having a Dockerfile, and
+nothing new rides the block: every file the item touches is
+fork-divergent or presumes files not every fork carries.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -161,6 +164,49 @@ notes: class ruling — contract, not verbatim: batch-1's own evidence
   (pannellum's hand-written home, item 8's correction in
   SYNC-1.6.10-1.6.16) proves home.py is not whole-file verbatim
   across the population; a byte-copy would clobber fork branding.
+
+### 5. One fleet Python — image, matrix, render.yaml, healthz agree (1.6.27)
+class: conditional (predicate: the fork has a Dockerfile) + contract
+files: Dockerfile (FROM python:3.14-slim — MINOR tag, never a patch
+  pin), render.yaml PYTHON_VERSION (full X.Y.Z, Render's encoding —
+  minor must match), ci.yml matrix main + singleton jobs + cd.yml
+  verify, lib/health.py + lib/asgi_routes.py (the `python` healthz
+  field, one builder both backends), scripts/network_smoke.py (the
+  `python_matches_declared` battery check), tests/
+  test_python_version.py (the encodings-agreement pins — session-
+  class, NOT block cargo: it presumes Dockerfile and render.yaml,
+  which the predicate says not every fork carries)
+detect: `grep ^FROM Dockerfile` — the tag must be the fleet minor
+  and minor-only — AND healthz `python` on the wire reporting the
+  same minor. Either alone can lie: the template itself carried a
+  patch-pinned 3.11.8 image, a 3.12 matrix and a 3.12.0 render.yaml
+  simultaneously, and no battery could see it (ops-seat finding,
+  2026-08-25 — read in the tree, invisible on the wire by
+  construction).
+contract: ONE Python per fork, everywhere it is encoded. The fleet
+  Python is 3.14, decided by evidence, not preference: the full
+  suite and the docker boot/battery ran green on python:3.14-slim
+  (template evidence run + CI matrix, 2026-08-25) with dash 4.4.1,
+  dash-improve-my-llms ≥2.7.1, cryptography ≥50 all importing. The
+  patch pin is the security bug — a `3.X.Y-slim` FROM never
+  receives 3.X fix releases; the minor tag tracks them through the
+  registry. render.yaml keeps a full X.Y.Z because Render's native
+  runtime requires it — its minor is what must agree, its patch is
+  a human bump. A fork whose platform runtime (dashboard
+  PYTHON_VERSION) lags the repo declaration will fail the battery's
+  python_matches_declared check — that red is the detect firing;
+  the fix is the platform side, not the check.
+acceptance: CI docker boot/battery green on the fork's own image;
+  healthz on the wire carries `python` with the fleet minor;
+  tests/test_python_version.py green where adopted
+notes: the eight open dependabot docker PRs (python:3.12-slim →
+  3.14-slim, 2026-08-25) are the ops seat's triage, not the fork
+  session's: merged where byte-equivalent to this item's FROM line,
+  closed with "template first, spec item 5" where not. A fork with
+  no Dockerfile (predicate false) still benefits from the healthz
+  field + battery check halves if it serves via a platform runtime
+  — port them as contract; the agreement test then pins render.yaml
+  against ci.yml with no image lane.
 
 ## Reporting
 

@@ -64,7 +64,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          # The fleet Python — tests/test_python_version.py pins every
+          # encoding of it (Dockerfile FROM tag, matrix main, render.yaml,
+          # this job and pip-audit) to one minor.
+          python-version: "3.14"
           cache: pip
       - run: pip install flake8
       - name: flake8
@@ -98,23 +101,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Every backend gets a run on the current Python and the pinned Dash...
-        python: ["3.12"]
+        # Every backend gets a run on the fleet Python — decided by evidence,
+        # not preference: 3.14 ran this full suite and the docker
+        # boot/battery green before it became the main (2026-08-25). It is
+        # also what the production image serves (Dockerfile FROM tag, same
+        # minor — tests/test_python_version.py pins the two together), which
+        # the old matrix never tested: main said 3.12 while the image was a
+        # patch-pinned 3.11.8 nothing here exercised...
+        python: ["3.14"]
         backend: [flask, fastapi, quart]
         dash: [""]
         include:
-          # ...the supported Python range gets a run on the default backend...
-          - python: "3.11"
+          # ...the two adjacent minors keep the compat window three wide on
+          # the default backend...
+          - python: "3.13"
             backend: flask
             dash: ""
-          - python: "3.13"
+          - python: "3.12"
             backend: flask
             dash: ""
           # ...and the bottom of the `~=4.4.1` range is pinned explicitly on
           # both backends that matter, so a 4.4.0-only regression cannot hide
           # behind pip resolving to 4.4.1. 4.3.0 is deliberately absent: its
           # FastAPI backend 500s on every non-root URL (upstream, fixed in
-          # 4.4.0), which is why requirements.txt floors at 4.4.
+          # 4.4.0), which is why requirements.txt floors at 4.4. These two
+          # rows stay on a window leg (3.12), not the main: each include row
+          # varies ONE axis — these vary dash, the rows above vary python —
+          # so a red here always names its cause.
           - python: "3.12"
             backend: fastapi
             dash: "4.4.0"
@@ -183,6 +196,13 @@ jobs:
 
       - name: Boot under a production server
         if: matrix.backend == 'flask'
+        env:
+          # This gunicorn serves the MATRIX LEG's interpreter (3.13/3.12 on
+          # the window rows) while the Dockerfile declares the fleet Python —
+          # off-contract for the battery's python_matches_declared check by
+          # design, so it stands down here. The docker job below and CD's
+          # verify leave it armed: there the interpreter IS the artifact.
+          SMOKE_PYTHON_DECLARED: ignore
         run: |
           gunicorn run:server -b 127.0.0.1:8550 --daemon --access-logfile - --error-logfile -
           for _ in $(seq 1 30); do
@@ -318,7 +338,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - run: pip install pip-audit
       # Skip local vendor/ paths — pip-audit can only assess PyPI dists.
       - run: |
