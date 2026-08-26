@@ -20,6 +20,17 @@ pilots proved necessary.
    per-item dispositions: `applied` / `ported-as-contract` /
    `already-present` / `not-applicable-because` (+ evidence).
 
+Batch-1 precedent (2026-08-25): a fork may already carry a
+blanket-ignored `.claude/` with its OWN content (excalidraw: a
+component-repo kit with agents/ and flat skills; email: a guide,
+agents, and a `.pypirc` credential). A kit item is then a MERGE into
+that content, never an install-over — and the ignore must take the
+template's ALLOW-LIST form, because the allow-list is what keeps
+credentials under `.claude/` structurally uncommittable. The adoption
+gate reading such a fork as `not-adopted` is correct, not a bug: the
+gate's markers absent means the kit CONTRACT is absent, whatever else
+the directory holds.
+
 ## Item classes
 
 - **verbatim** — byte-copy targets. If the fork's copy differs

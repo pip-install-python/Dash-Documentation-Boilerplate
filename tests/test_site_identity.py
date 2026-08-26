@@ -282,3 +282,31 @@ def test_code_examples_keep_the_placeholder_syntax_verbatim():
     assert substitute_versions(fenced) == fenced
     inline = "write `{{VERSION:dash}}` in prose"
     assert substitute_versions(inline) == inline
+
+
+def test_both_content_lanes_run_the_versions_pipeline():
+    """home.py and markdown.py agree on the content pipeline.
+
+    /llms.txt serves home.md's text, so a {{VERSION:...}} token there ships
+    raw on the most-read machine surface unless home.py runs the same
+    substitute_versions the docs pages get (batch-1 finding, 2026-08-25:
+    older forks skipped home). The wire check two tests up is vacuous the
+    day home.md happens to carry no token; this source pin is not.
+
+    AST, not grep — the marker-in-comment trap cuts both ways: a comment
+    naming the call would satisfy a grep on a file that never runs it.
+    """
+    import ast
+
+    for rel in ("pages/home.py", "pages/markdown.py"):
+        tree = ast.parse((REPO_ROOT / rel).read_text(encoding="utf-8"))
+        called = any(
+            isinstance(node, ast.Call)
+            and "substitute_versions"
+            in (getattr(node.func, "id", ""), getattr(node.func, "attr", ""))
+            for node in ast.walk(tree)
+        )
+        assert called, (
+            f"{rel} never calls substitute_versions — its lane serves "
+            "version tokens raw"
+        )

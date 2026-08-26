@@ -119,10 +119,13 @@ detect: CMD is shell-form with the port DEFAULTED AT THE POINT OF
   expands env; a bare ${PORT} collapses the bind when the var is
   set empty)
 acceptance: CI's docker boot/battery green
-notes: emojimart + muischeduler have no HEALTHCHECK at all — for
-  them this item ADDS the template's block (curl in apt for the
-  probe, or a python-urllib probe like clerkhook's; either way
-  ${PORT:-8550}, never a hardcoded port).
+notes: any fork that predates 1.6.14 may have no HEALTHCHECK at all
+  — the detect decides, the fork list does not (emojimart,
+  muischeduler, then email in batch-1; the list kept growing, which
+  is why it stops being one). Where absent this item ADDS the
+  template's block (curl in apt for the probe, or a python-urllib
+  probe like clerkhook's; either way ${PORT:-8550}, never a
+  hardcoded port).
 
 ### 6. The .claude development kit (1.6.15 1638528)
 class: contract
@@ -134,8 +137,11 @@ contract: skills + kit test byte-verbatim; CLAUDE.md's contract and
   the fork's CLAUDE.md is its own guide (the F1 pilots' correction);
   settings.json host-swapped to THIS fork's domain (the pin derives
   it from lib/constants.BASE_URL), hub entries and "model": "opus"
-  kept; .gitignore gains the .claude allow-list + session-document
-  ignores (X402-SYNC-REPORT.md, HANDOFF-*.md, KICKOFF-*.md) — `git
+  kept; .gitignore gains the template's .claude allow-list +
+  session-document block VERBATIM (X402-SYNC-REPORT.md, HANDOFF-*.md,
+  KICKOFF-*.md, kickoff/ — the template's block is the source of
+  truth: this list omitted kickoff/ once and read as complete;
+  batch-1 correction, 2026-08-25) — `git
   rm --cached` anything of that class currently tracked, and move
   any .git/info/exclude rules into .gitignore (per-clone excludes
   protect one checkout and no fork); DIVERGENCES.md written
@@ -148,16 +154,25 @@ notes: `.claude/settings.json` is PERMISSION-CLASSED — a session may
   around it. Stage the exact content in the scratchpad and hand the
   owner a one-line `!` copy command; the orchestrator verifies the
   staged content before the copy (emojimart's F2 run set the
-  precedent). The kit test's sync-spec pin skips on forks (no sync/
-  directory — forks consume specs; only the template authors them).
+  precedent). Batch-1 additions (2026-08-25): a seat's write-guard
+  may cover MORE of .claude/ than settings.json (email's covered
+  skills/ too; excalidraw's covered settings.local.json and skills/)
+  — stage + owner-copy applies to whatever the guard covers: probe,
+  don't assume. And hand-off copy commands must fit ONE terminal
+  line — zsh executed excalidraw's wrapped fragments as paths. The
+  kit test's sync-spec pin skips on forks (no sync/ directory —
+  forks consume specs; only the template authors them).
 
 ### 7. smoke_live urlopens carry the SSL context (1.6.16 ceb0d50)
 class: verbatim
-files: tests/test_auth_wiring.py (the source pin sweeping EVERY
-  urlopen — this is the half that ports everywhere); scripts/
-  smoke_live.py where a post()/urlopen lacks context=SSL_CONTEXT
-  (a fork without post() has nothing to fix there — emojimart's
-  note; the pin ships regardless as the net)
+files: the fork's smoke-live source-pin home (upstream:
+  tests/test_auth_wiring.py — the pin is not auth-specific; it lives
+  in the auth file upstream only because that is where the incident
+  surfaced. Batch-1 correction, 2026-08-25: pannellum and excalidraw
+  carry it in tests/test_smoke_live.py, and that satisfies this
+  item); scripts/smoke_live.py where a post()/urlopen lacks
+  context=SSL_CONTEXT (a fork without post() has nothing to fix
+  there — emojimart's note; the pin ships regardless as the net)
 detect: the source pin exists and passes
 acceptance: source pin green; on macOS, the live auth probe returns
   401/200 instead of 0
@@ -168,7 +183,10 @@ notes: CI (Linux) is blind to the defect and wired tests monkeypatch
   (1.6.16 ceb0d50)
 class: contract
 files: lib/page_visibility.py (published_name), pages/markdown.py
-  (call site)
+  (call site) — the template's shape, not a requirement: the detect
+  is shape-independent (batch-1 correction, 2026-08-25 — pannellum's
+  hand-written home satisfies the contract with no published_name
+  and no call site)
 detect: the machine-lane home serves ONE h1 equal to the site
   brand, and the llms preamble matches the injected header
 contract: whatever name dimll will inject is the name the llms doc

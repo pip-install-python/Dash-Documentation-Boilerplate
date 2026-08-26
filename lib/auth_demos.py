@@ -10,9 +10,12 @@ imported — and their callbacks already registered — when pages/markdown.py
 parses the docs at startup. Only one layout (gate card OR full docs) renders
 per request, so sharing the component instances never duplicates IDs.
 
-The table ships EMPTY in the template: entries are site-specific dotted
-paths, so each satellite fills in its own hero example (one entry is plenty —
-this is a funnel, not a gallery).
+The table ships with ONE working entry in the template — the pattern, live —
+and each satellite swaps in its own hero example (one entry is plenty; this
+is a funnel, not a gallery). An empty table is legitimate too: cards render
+without the demo block. Either way tests/test_auth_demos.py holds the line —
+every entry that IS here must resolve on THIS site, because build_demo below
+degrades silently by design.
 
 Entries:
     endpoint -> {

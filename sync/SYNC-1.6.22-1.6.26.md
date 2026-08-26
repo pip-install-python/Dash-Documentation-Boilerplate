@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.24 (template @ 1.6.24)
+# SYNC 1.6.22 → 1.6.26 (template @ 1.6.26)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -8,6 +8,10 @@ workflow, and two repo settings only an owner can flip. Read
 `sync/README.md` for the format and `DIVERGENCES.md` (yours) first.
 (1.6.25 amendment: the auto-merge half of that sentence is RETIRED —
 see item 1's tail; the block no longer carries the workflow.)
+(1.6.26 extends the range with batch-1's two template-class findings
+— items 3 and 4 — and the block gains item 3's test. This file was
+`SYNC-1.6.22-1.6.24.md` until 1.6.26; one rolling document per
+consumption round, renamed as its range grows.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -16,6 +20,7 @@ design; do not read those as the floor.
 ```yaml sync-verbatim
 # requires: .claude/CLAUDE.md
 # requires: .claude/settings.json
+# requires: lib/auth_demos.py
 # The four standing kit files (their bytes at 1.6.25 carry the 1.6.22
 # byte-owned skip and the 1.6.23 `# requires:` validation) plus the
 # 1.6.24 dependabot.yml rewrite. dependabot.yml has said "satellites
@@ -23,11 +28,18 @@ design; do not read those as the floor.
 # ecosystem entry, which is the point, not an accident. (1.6.25
 # removed dependabot-automerge.yml from this list — item 1 is
 # RETIRED; a fork that already copied the workflow must delete it.)
+# (1.6.26 adds tests/test_auth_demos.py — item 3's detect — and the
+# lib/auth_demos.py gate above: the test imports it, and every fork
+# has carried the gate stack since the flip round. EXPECT this test
+# RED wherever DEMOS still holds the template's entry — that red IS
+# item 3's detect firing; fix DEMOS in the same change, do not skip
+# the test.)
 - .claude/skills/wire-verify/SKILL.md
 - .claude/skills/sync-template/SKILL.md
 - .claude/skills/report/SKILL.md
 - tests/test_claude_kit.py
 - .github/dependabot.yml
+- tests/test_auth_demos.py
 ```
 
 ### 1. Auto-merge is two repo settings away (1.6.24) — RETIRED (1.6.25)
@@ -94,6 +106,61 @@ acceptance: pip-branch PR count is zero and each close carries a
   reason
 notes: fleet total at the 2026-08-25 reading was 18 pip floor-raises
   across the ten public forks; your count is in your own PR list.
+
+### 3. Every DEMOS entry resolves (1.6.26; found by excalidraw)
+class: contract
+files: lib/auth_demos.py (the entry — site judgment),
+  tests/test_auth_demos.py (the detect — byte-verbatim, rides the
+  block)
+detect: tests/test_auth_demos.py present and green — every DEMOS
+  endpoint is a registered page on THIS site AND its module imports
+  and exposes a module-level `component`
+contract: the sign-in card must never point at a demo the site
+  cannot render. The template ships one working entry
+  (/examples/visualization → docs.data-visualization.basic_chart);
+  it resolves in the template and in NO fork — and `build_demo`
+  swallows the import error BY DESIGN (a broken example must never
+  take down the funnel) while its warning only fires when that
+  endpoint's card renders, which never happens when the endpoint is
+  not a page there. Every fork's gate cards have rendered demo-less
+  since fork time, silently; this test is the only loud surface.
+acceptance: the test green against the fork's own DEMOS + registry;
+  if the table is non-empty, a browser look at that endpoint's
+  sign-in card shows the live demo above the "Authentication
+  required" copy
+notes: the fork picks its OWN entry — excalidraw chose /ai-agent
+  with the basic canvas; never a module that calls paid models from
+  an unauthenticated card. An EMPTY table passes (deleting the dead
+  template entry is the fastest green; choosing a real hero example
+  is the funnel work, and it is judgment, not sync). The block
+  fan-out will land this test red wherever the dead entry survives —
+  that red is the detect firing, not breakage to route around.
+
+### 4. home.py and markdown.py agree on the content pipeline (1.6.26)
+class: contract
+files: pages/home.py (upstream shape: substitute_versions on
+  home.md's text at load). The pin lives in
+  tests/test_site_identity.py upstream and is session-class, NOT
+  block cargo: it presumes lib/versions.py, which forks predating
+  the {{VERSION:...}} mechanism (template df2a8e0) do not have.
+detect: the source pin — BOTH pages/home.py and pages/markdown.py
+  call substitute_versions, checked by AST, not grep (the
+  marker-in-comment trap cuts both ways: a comment naming the call
+  satisfies a grep on a file that never runs it)
+contract: whatever the docs lane substitutes, the home lane
+  substitutes too. /llms.txt serves home.md's text, so a
+  {{VERSION:...}} token there ships raw on the most-read machine
+  surface when home.py skips the call. The wire check (no "{{" token
+  on /llms.txt) is VACUOUS on the day home.md happens to carry no
+  token — the source pin is not; run both. A fork without
+  lib/versions.py at all first ports the mechanism or records in
+  DIVERGENCES.md why it states versions some other way.
+acceptance: the pin green; GET /llms.txt carries no {{VERSION: or
+  {{DIMLL_VERSION}} token
+notes: class ruling — contract, not verbatim: batch-1's own evidence
+  (pannellum's hand-written home, item 8's correction in
+  SYNC-1.6.10-1.6.16) proves home.py is not whole-file verbatim
+  across the population; a byte-copy would clobber fork branding.
 
 ## Reporting
 

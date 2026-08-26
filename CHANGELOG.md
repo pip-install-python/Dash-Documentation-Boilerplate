@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.26] - 2026-08-25
+
+Batch-1 adoption feedback folds back into the specs: four corrections
+where the retro-spec described the template's shape as a requirement,
+one consumer precedent, and two new template-class items the round
+surfaced — a gate-card demo table whose one entry resolved on no fork
+(silently, by design), and a home lane that skipped the versions
+pipeline the docs lane ran. Sources: excalidraw 76a9112, pannellum
+97d1cba, email 9bcd32a, all wire-verified by the ops seat.
+
+### Added
+
+- **`tests/test_auth_demos.py`** — every DEMOS endpoint must be a
+  registered page on THIS site and its module must import and expose
+  `component`. `build_demo` degrades silently BY DESIGN (a broken
+  example must never take down the sign-in funnel) and its warning
+  only fires when the endpoint's card renders — which never happens
+  when the endpoint is not a page there, so every fork's gate cards
+  have rendered demo-less since fork time without a line of log.
+  This test is the one loud surface. Byte-verbatim: it rides the
+  sync-verbatim block, gated on `lib/auth_demos.py`, and is EXPECTED
+  red on a fork until that fork picks its own entry (or empties the
+  table) — the red is the detect firing.
+- **A source pin in `tests/test_site_identity.py`**: both
+  `pages/home.py` and `pages/markdown.py` call
+  `substitute_versions` — /llms.txt serves home.md's text, so a
+  `{{VERSION:…}}` token there ships raw on the most-read machine
+  surface when home skips the call. AST, not grep (the
+  marker-in-comment trap cuts both ways). Session-class, not block
+  cargo: it presumes `lib/versions.py`, which pre-`{{VERSION}}`
+  forks don't have.
+- **Spec items 3–4** in the rolling spec, which extends its range
+  and is renamed `SYNC-1.6.22-1.6.24.md` → `SYNC-1.6.22-1.6.26.md`.
+  Item 3 (DEMOS resolution) is contract-class with the block-carried
+  test as detect; item 4 (the content-pipeline agreement) is ruled
+  contract, not verbatim — batch-1's own evidence (pannellum's
+  hand-written home) proves home.py is not whole-file verbatim in
+  the population.
+
+### Fixed
+
+- **Four SYNC-1.6.10-1.6.16 corrections** (each marked "batch-1
+  correction, 2026-08-25" in place, emojimart's precedent): item 7's
+  `files:` no longer claims `tests/test_auth_wiring.py` "ports
+  everywhere" — the pin's home is fork-shaped and the pin is not
+  auth-specific; item 8's `files:` is labeled the template's shape,
+  not a requirement (the detect is shape-independent); item 6's
+  .gitignore list omitted `kickoff/` while reading as complete — the
+  template's block is now named the source of truth — and its notes
+  gain the write-guard-scope (probe, don't assume) and
+  one-terminal-line copy-command lessons; item 5's no-HEALTHCHECK
+  note generalizes from a fork list to "any fork predating 1.6.14 —
+  the detect decides".
+- **`sync/README.md` consumer precedent**: a fork may carry a
+  blanket-ignored `.claude/` with its own content — a kit item is
+  then a MERGE, not an install-over; the allow-list ignore form is
+  what keeps credentials under `.claude/` structurally
+  uncommittable; and the adoption gate reading that fork
+  `not-adopted` is correct, not a bug.
+- **`lib/auth_demos.py` docstring** no longer claims the table
+  "ships EMPTY in the template" — it has carried one working entry
+  since the pattern shipped; the docstring now says so and points at
+  the new test.
+
 ## [1.6.25] - 2026-08-25
 
 The bot actor comes off main; the build-match wait learns to say
