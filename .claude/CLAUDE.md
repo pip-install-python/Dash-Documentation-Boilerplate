@@ -152,3 +152,14 @@ they win.
   build a descendant of the wanted sha, via the compare API)
   instead of going red at timeout, and the remedy is policy —
   actions PRs: human merge when green; never a bot actor on main.
+- Anonymous api.github.com is 60 requests/hour. With no `gh` and no
+  token, read a run ONCE after CI's own jobs report complete — a
+  blind 20 s poll loop spends the whole budget reading rate-limit
+  bodies as "not done yet" (modelviewer, 2026-08-26).
+- A GitHub API JSON body WITHOUT the field you asked for
+  (`workflow_runs` absent, not empty) is a rate-limit error body,
+  never an empty result — check the field exists before trusting
+  the answer.
+- `git fetch` before any audit: the fan-out pushes to these repos
+  now, and a checkout current yesterday is 2–3 merges behind
+  origin/main today (three pilot sessions, same day, 2026-08-26).

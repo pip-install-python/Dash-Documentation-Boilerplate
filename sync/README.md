@@ -18,7 +18,24 @@ pilots proved necessary.
 3. Apply by class (below), run each item's **acceptance**, then the
    fork's full suite, push, CD green, `/wire-verify`, and report
    per-item dispositions: `applied` / `ported-as-contract` /
-   `already-present` / `not-applicable-because` (+ evidence).
+   `already-present` / `not-applicable-because` / `open`
+   (+ evidence). `open` (1.6.28): the detect fires but the item is
+   deliberately out of this session's scope — name it and who acts;
+   do not invent a sixth word, the orchestrator reads these five.
+
+Specs are NOT vendored into consumers (1.6.28, decided over scoping
+the pins to the authoring repo). A fork copies the kit and the
+block's cargo, never `sync/` itself: the kit test validates every
+`sync/SYNC-*.md` at HEAD — each `- path` must exist — so a vendored
+spec wakes those pins against a tree that legitimately lacks the
+template's newest files and goes red on arrival (emojimart, whose
+copy listed tests/test_auth_demos.py before receiving it).
+Traceability lives in the fork's DIVERGENCES.md or changelog
+("consumed SYNC-x at template <sha>"), not in a copy. Why not the
+other option: an authoring-repo predicate inside the byte-verbatim
+kit test would itself be a fork-divergent seam, and a silently
+vacuous pin on vendored specs would hide exactly the staleness that
+vendoring creates.
 
 Batch-1 precedent (2026-08-25): a fork may already carry a
 blanket-ignored `.claude/` with its OWN content (excalidraw: a
@@ -54,10 +71,10 @@ whole files the F3b fan-out workflow may byte-copy into a fork.
 Prose stays the contract; the block is what the machine consumes:
 
     ```yaml sync-verbatim
-    # requires: .claude/CLAUDE.md
-    # requires: .claude/settings.json
+    # requires-contract: .claude/CLAUDE.md :: Check the prompt against this tree
     - .claude/skills/wire-verify/SKILL.md
     - tests/test_claude_kit.py
+    - tests/test_auth_demos.py  # requires: lib/auth_demos.py
     ```
 
 Rules:
@@ -72,18 +89,33 @@ Rules:
   test are the precedent) while its adapted halves stay out.
 - Paths are repo-relative, no `..`, one per line, `#` comments
   allowed.
-- **`# requires: <repo-relative path>`** — zero or more lines inside
-  the fence. Each names a file that must ALREADY exist in the
-  consuming fork for the block to apply at all. A fork missing any
-  of them receives NOTHING from the block and is flagged for a
-  session (`not-adopted`) — its next step is the contract item the
-  cargo assumes, not the cargo (the machine must not do a session's
-  job badly: six fleet forks predate the kit, and ungated cargo
-  would have dropped a failing kit test into each). Any block
-  carrying kit files or the kit test requires the kit's own markers,
-  `.claude/CLAUDE.md` and `.claude/settings.json`. Required paths
-  must also exist at template HEAD — anything else is a typo, and
-  the pin fails it.
+- **Adoption gates** — zero or more gate lines inside the fence.
+  A fork failing a block-level gate receives NOTHING from the block
+  and is flagged for a session — its next step is the contract item
+  the cargo assumes, not the cargo (the machine must not do a
+  session's job badly: six fleet forks predate the kit, and ungated
+  cargo would have dropped a failing kit test into each). Three
+  forms, all validated against template HEAD by the kit test — a
+  typo'd gate gates nothing:
+  - `# requires: <repo-relative path>` (1.6.23) — the file must
+    already exist in the consuming fork. ONLY for paths no
+    pre-existing file can occupy.
+  - `# requires-contract: <path> :: <clause>` (1.6.28) — the file
+    must exist AND contain the clause. **A gate names a contract,
+    never a path, whenever a pre-existing file can occupy the
+    path**: flows carried a tracked `.claude/CLAUDE.md` since March
+    2026 — the component library's own guide, none of the kit — and
+    a path gate read it as kit-adopted (the third fork where "no
+    .claude/" was wrong). Any block carrying kit files or the kit
+    test gates on the kit CONTRACT — one of the five clauses the
+    kit test greps in `.claude/CLAUDE.md` — never on kit paths.
+  - `- <path>  # requires: <other-path>` (1.6.28) — per-file gate:
+    the fan-out skips this ONE copy where the named file is absent
+    in the fork, instead of gating the whole block (clerkhook: a
+    lockdown fork legitimately has no lib/auth_demos.py and must
+    still receive the rest). The gate is the whole trailing
+    comment, `requires:` from its first character; prose comments
+    stay prose.
 - A spec with no whole-file verbatims ships an EMPTY block —
   present, so the absence is a statement, not an omission.
 - A fork's recorded divergence on a listed path wins: the workflow

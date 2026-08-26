@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.27 (template @ 1.6.27)
+# SYNC 1.6.22 → 1.6.28 (template @ 1.6.28)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -15,15 +15,37 @@ consumption round, renamed as its range grows. 1.6.27 adds item 5 —
 one fleet Python — conditional on the fork having a Dockerfile, and
 nothing new rides the block: every file the item touches is
 fork-divergent or presumes files not every fork carries.)
+(1.6.28 is the batch-2/3 corrections release, spec and gate grammar
+only, no runtime change: the block's gate moves from PATHS to the kit
+CONTRACT — see the fence and sync/README.md's gate rule — item 5
+gains its `runtime:` branch, the site-vs-package Python split and the
+absence-is-not-adopted detect; items 6–7 are new; and
+scripts/smoke_live.py rides the block. Three forks (flows,
+muischeduler, clerkhook) filed item 5's runtime correction
+INDEPENDENTLY in the batch-2/3 round — convergence adjudicated and
+accepted by the ops seat, 2026-08-26.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
 design; do not read those as the floor.
 
 ```yaml sync-verbatim
-# requires: .claude/CLAUDE.md
-# requires: .claude/settings.json
-# requires: lib/auth_demos.py
+# requires-contract: .claude/CLAUDE.md :: Check the prompt against this tree
+# The gate names the kit CONTRACT, never a kit path (1.6.28; the
+# rule is in sync/README.md): flows carried a tracked
+# .claude/CLAUDE.md since March 2026 — the component library's own
+# guide, none of the kit — and a path gate read it as kit-adopted.
+# The clause is one of the five the kit test greps; present means
+# the contract section is really there. The old
+# `# requires: .claude/settings.json` line is subsumed — settings
+# ride the same adoption, and a pre-existing settings.json is
+# exactly as possible as a pre-existing CLAUDE.md.
+# SEQUENCING (ops seat): fanout.py must implement
+# `# requires-contract:` and the per-file `# requires:` BEFORE the
+# next round — an older parser reads the first as a plain comment
+# (block UNGATED: kit cargo would ship to non-kit forks) and the
+# second not at all (tests/test_auth_demos.py would land red on
+# lockdown forks).
 # The four standing kit files (their bytes at 1.6.25 carry the 1.6.22
 # byte-owned skip and the 1.6.23 `# requires:` validation) plus the
 # 1.6.24 dependabot.yml rewrite. dependabot.yml has said "satellites
@@ -31,18 +53,24 @@ design; do not read those as the floor.
 # ecosystem entry, which is the point, not an accident. (1.6.25
 # removed dependabot-automerge.yml from this list — item 1 is
 # RETIRED; a fork that already copied the workflow must delete it.)
-# (1.6.26 adds tests/test_auth_demos.py — item 3's detect — and the
-# lib/auth_demos.py gate above: the test imports it, and every fork
-# has carried the gate stack since the flip round. EXPECT this test
-# RED wherever DEMOS still holds the template's entry — that red IS
-# item 3's detect firing; fix DEMOS in the same change, do not skip
-# the test.)
+# (1.6.26 adds tests/test_auth_demos.py — item 3's detect. EXPECT
+# this test RED wherever DEMOS still holds the template's entry —
+# that red IS item 3's detect firing; fix DEMOS in the same change,
+# do not skip the test.) (1.6.28 moves its lib/auth_demos.py gate
+# from the block level to the cargo line below: a lockdown fork has
+# no demo gate and no such file LEGITIMATELY — clerkhook, forks=all
+# dry run 32991971564 — and must still receive the rest of the
+# block; the per-file gate skips just that one copy. 1.6.28 also
+# adds scripts/smoke_live.py — item 6: fork-invariant by
+# construction, host from argv, knobs from env — while muischeduler
+# certified CD with a 1.2.4-vintage copy: no wake loop, no retries.)
 - .claude/skills/wire-verify/SKILL.md
 - .claude/skills/sync-template/SKILL.md
 - .claude/skills/report/SKILL.md
 - tests/test_claude_kit.py
 - .github/dependabot.yml
-- tests/test_auth_demos.py
+- tests/test_auth_demos.py  # requires: lib/auth_demos.py
+- scripts/smoke_live.py
 ```
 
 ### 1. Auto-merge is two repo settings away (1.6.24) — RETIRED (1.6.25)
@@ -165,11 +193,11 @@ notes: class ruling — contract, not verbatim: batch-1's own evidence
   SYNC-1.6.10-1.6.16) proves home.py is not whole-file verbatim
   across the population; a byte-copy would clobber fork branding.
 
-### 5. One fleet Python — image, matrix, render.yaml, healthz agree (1.6.27)
+### 5. One fleet Python — image, matrix, render.yaml, healthz agree (1.6.27; amended 1.6.28)
 class: conditional (predicate: the fork has a Dockerfile) + contract
 files: Dockerfile (FROM python:3.14-slim — MINOR tag, never a patch
-  pin), render.yaml PYTHON_VERSION (full X.Y.Z, Render's encoding —
-  minor must match), ci.yml matrix main + singleton jobs + cd.yml
+  pin), render.yaml PYTHON_VERSION (BRANCHES on `runtime:` — see
+  contract), ci.yml matrix main + singleton jobs + cd.yml
   verify, lib/health.py + lib/asgi_routes.py (the `python` healthz
   field, one builder both backends), scripts/network_smoke.py (the
   `python_matches_declared` battery check), tests/
@@ -182,22 +210,49 @@ detect: `grep ^FROM Dockerfile` — the tag must be the fleet minor
   patch-pinned 3.11.8 image, a 3.12 matrix and a 3.12.0 render.yaml
   simultaneously, and no battery could see it (ops-seat finding,
   2026-08-25 — read in the tree, invisible on the wire by
-  construction).
-contract: ONE Python per fork, everywhere it is encoded. The fleet
-  Python is 3.14, decided by evidence, not preference: the full
-  suite and the docker boot/battery ran green on python:3.14-slim
-  (template evidence run + CI matrix, 2026-08-25) with dash 4.4.1,
-  dash-improve-my-llms ≥2.7.1, cryptography ≥50 all importing. The
-  patch pin is the security bug — a `3.X.Y-slim` FROM never
-  receives 3.X fix releases; the minor tag tracks them through the
-  registry. render.yaml keeps a full X.Y.Z because Render's native
-  runtime requires it — its minor is what must agree, its patch is
-  a human bump. A fork whose platform runtime (dashboard
-  PYTHON_VERSION) lags the repo declaration will fail the battery's
-  python_matches_declared check — that red is the detect firing;
-  the fix is the platform side, not the check.
+  construction). A MISSING `python` field on healthz is NOT-ADOPTED,
+  never not-applicable (1.6.28): emojimart's image moved to 3.14 via
+  dependabot alone, so the cheap half of this detect passed while
+  the expensive half failed invisibly — absence counts as a fail.
+contract: ONE Python per fork, everywhere it is encoded — and the
+  Python in scope is the SITE's, not any package's (1.6.28, filed
+  independently by flows and clerkhook): a fork's ci.yml may carry
+  PACKAGE matrices testing a wheel's `requires-python` claim
+  (3.9–3.13 is normal) beside the SITE lane. Those are the package's
+  business and outside this item. The pins hold the SITE lane — the
+  jobs that install the site's requirements file (requirements.txt
+  here, requirements-docs.txt on component forks) and boot/serve the
+  docs app — to the image's minor; name the lane in the test so a
+  session can tell which of the two Pythons any pin is reading. The
+  fleet Python is 3.14, decided by evidence, not preference: the
+  full suite and the docker boot/battery ran green on
+  python:3.14-slim (template evidence run + CI matrix, 2026-08-25)
+  with dash 4.4.1, dash-improve-my-llms ≥2.7.1, cryptography ≥50
+  all importing. The patch pin is the security bug — a `3.X.Y-slim`
+  FROM never receives 3.X fix releases; the minor tag tracks them
+  through the registry. render.yaml BRANCHES ON THE SERVICE RUNTIME
+  (1.6.28, filed independently by flows, muischeduler and clerkhook
+  — adopted): `runtime: python` → PYTHON_VERSION is REQUIRED, full
+  X.Y.Z because Render's native runtime demands that encoding,
+  minor pinned to the fleet Python, patch a human bump.
+  `runtime: docker` → PYTHON_VERSION must be ABSENT: nothing reads
+  it there, and a string that reads like the platform's setting and
+  can never be true is this item's own defect class arriving
+  through the fix. Any other runtime fails the test loudly — extend
+  the branch deliberately. tests/test_python_version.py upstream
+  carries BOTH branches as the reference implementation, not just
+  the template's own service type. A fork whose platform runtime
+  (dashboard PYTHON_VERSION) lags the repo declaration will fail
+  the battery's python_matches_declared check — that red is the
+  detect firing; the fix is the platform side, not the check. On a
+  host whose DIVERGENCES.md declares a MINIMAL healthz payload
+  (clerkhook's recorded divergence), python_matches_declared must
+  SKIP-WITH-NOTICE, never fail (1.6.28): the fork proves its
+  interpreter in-image in CI instead, and F4 reads the skip as
+  declared divergence rather than drift.
 acceptance: CI docker boot/battery green on the fork's own image;
-  healthz on the wire carries `python` with the fleet minor;
+  healthz on the wire carries `python` with the fleet minor (or the
+  recorded minimal-payload divergence plus the in-image CI proof);
   tests/test_python_version.py green where adopted
 notes: the eight open dependabot docker PRs (python:3.12-slim →
   3.14-slim, 2026-08-25) are the ops seat's triage, not the fork
@@ -208,9 +263,70 @@ notes: the eight open dependabot docker PRs (python:3.12-slim →
   — port them as contract; the agreement test then pins render.yaml
   against ci.yml with no image lane.
 
+### 6. scripts/smoke_live.py is versioned cargo, not folklore (1.6.28)
+class: verbatim (rides the block)
+files: scripts/smoke_live.py
+detect: the fork's copy is byte-identical to the template's. For a
+  fork whose CD certifies with a DIFFERENT live tool (a recorded
+  divergence — clerkhook's lockdown_smoke.py), the contract detect
+  instead: the cold-start wake loop present (`SMOKE_WAKE_ATTEMPTS`),
+  fetch retries present (`SMOKE_FETCH_RETRIES`), and an explicit SSL
+  context on EVERY urlopen — the GET fetch and the auth POST both.
+contract: (the divergent-tool case) whatever live tool a CD run
+  certifies with must carry the wake loop, the retry ladder and the
+  certifi-backed SSL context. The file had no spec item, so it
+  drifted exactly as unversioned copies do: muischeduler ran a
+  1.2.4-vintage copy — no wake loop, no env knobs — against a
+  free-tier host in CD; clerkhook's lockdown_smoke.py had no SSL
+  context while being that host's ONLY deploy proof (flexlayout
+  filed the same class earlier — the POST half, pinned upstream in
+  tests/test_auth_wiring.py). The template's file is fork-invariant
+  by construction — host from argv, knobs from env, the brand token
+  imported with a fallback — which is what makes verbatim the class.
+acceptance: the F3b fan-out dry run flags no smoke_live.py
+  mention-divergence on any fork after one round (ops-seat check);
+  the fork's next CD log shows the wake ladder running.
+notes: byte-copy IS the fix for stale copies. A fork that replaced
+  the tool records the divergence and ports the contract half; the
+  block's copy landing beside it is inert unless cd.yml invokes it.
+
+### 7. The battery must see the CONFIGURED gate page (1.6.28; found by clerkhook)
+class: conditional + contract
+predicate: the fork serves a sign-in gate or lockdown page — any
+  page whose rendering changes when auth/lockdown secrets are
+  present
+files: the fork's gate/lock page module + its test suite (shapes
+  differ per fork; no byte target)
+detect: a test renders the gate/lock page with a FAKE, non-empty
+  config (a dummy publishable key is enough — never a real secret)
+  and asserts the CONFIGURED branch actually rendered — a marker
+  only that branch emits, so the assertion is non-vacuous — with
+  the marker/stripping rules IMPORTED from the live tool's own
+  module by path, never duplicated into the test.
+contract: every fleet battery boots zero-secret, so any page that
+  renders differently once secrets are present has its configured
+  branch certified by NOTHING — the battery tests the wrong page.
+  Observed end-to-end on clerkhook: no test had ever rendered the
+  lock page's ClerkJS bootstrap branch, and the first live run of
+  lockdown_smoke.py produced 220 false "leaks" (the package's own
+  RECONCILE_MARK string), a traceback on a chunked short read, and
+  a verdict on a partial body — fork-local fixes in clerkhook
+  5c5e9ea; the CLASS is fleet-wide. Importing the tool's rules is
+  what keeps test and tool from drifting apart again.
+acceptance: the test green in the fork's suite; the fork's live
+  gate tool runs against production without false leaks.
+notes: THE TEMPLATE'S OWN ADOPTION IS OPEN — conftest.py blanks
+  every Clerk secret before any import, so this suite renders the
+  sign-in gate cards zero-secret only; the detect fires here too.
+  Recorded as `open` in the 1.6.28 report, queued for the next
+  template runtime pass (this release is spec-only by design).
+
 ## Reporting
 
 Per-item disposition table (applied / ported-as-contract /
-already-present / not-applicable-because, each with evidence), any
-DIVERGENCES.md changes, full suite + CD + `/wire-verify` output, and
-corrections to THIS SPEC where it mismatched your tree.
+already-present / not-applicable-because / open, each with
+evidence), any DIVERGENCES.md changes, full suite + CD +
+`/wire-verify` output, and corrections to THIS SPEC where it
+mismatched your tree. `open` (1.6.28): the detect fires but the
+item is deliberately out of this session's scope — name it and who
+acts; do not invent another word.

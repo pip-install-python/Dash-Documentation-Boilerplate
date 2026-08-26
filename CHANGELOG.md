@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.28] - 2026-08-26
+
+Batch-2/3 corrections release — spec text, gate grammar and reference
+pins only; no runtime change. Five forks consumed the 1.6.27 spec at
+`055363e`; three (flows, muischeduler, clerkhook) filed the SAME
+correction to item 5 independently, two filed the same `# requires:`
+gap — independent convergence, adjudicated by the ops seat.
+
+### Changed
+- Sync spec renamed `SYNC-1.6.22-1.6.27.md` → `SYNC-1.6.22-1.6.28.md`.
+  Item 5 amended: render.yaml BRANCHES on `runtime:` (`python` →
+  PYTHON_VERSION required, minor-pinned; `docker` → must be ABSENT —
+  nothing reads it there, and a string that reads like the platform's
+  setting but can never be true is the item's own defect class); the
+  SITE lane's Python split from PACKAGE matrices and both named; a
+  MISSING healthz `python` field is not-adopted, never n/a
+  (emojimart); minimal-payload hosts (clerkhook's recorded
+  divergence) get skip-with-notice from `python_matches_declared`.
+- The sync-verbatim blocks in ALL THREE specs gate on the kit
+  CONTRACT (`# requires-contract: .claude/CLAUDE.md :: Check the
+  prompt against this tree`), never on kit paths — flows' pre-existing
+  non-kit CLAUDE.md read as adopted was the third "no .claude/"
+  misread. `tests/test_auth_demos.py` carries a per-file gate
+  (`# requires: lib/auth_demos.py`) so lockdown forks receive the
+  rest of the block (clerkhook, dry run 32991971564). SEQUENCING:
+  fanout.py must learn both forms before the next round.
+- `tests/test_claude_kit.py` `_machine_fence` validates the two new
+  gate forms — path + clause real at template HEAD, per-file gate
+  path real — the release's one kit-test change.
+- `tests/test_python_version.py`: the render.yaml pin branches on the
+  service runtime (both branches upstream as the fleet reference);
+  SITE-lane naming in the module and test docstrings.
+- `SYNC-1.6.17-1.6.21.md` item 1 amended: detect wording (`pytest -v`
+  shows PASSED — a SKIP or an absent test is not-ported; emojimart's
+  "6 passed, 1 skipped" read identically for both unported states);
+  the fence question ("is the difference a fork DECISION?" — drift is
+  never fenced; flexlayout/muicharts' behind-1.6.24 dependabot.yml);
+  muicharts fan-out PR #6 cited as the fence's concrete case.
+- `.claude/CLAUDE.md` traps: anonymous api.github.com is 60 req/h —
+  read a run once after CI completes, never poll blind; a JSON body
+  without the asked-for field is a rate-limit error, not an empty
+  list; `git fetch` before any audit.
+- `/report` skill + `sync/README.md` + all three specs' Reporting
+  sections: `open` added to the disposition vocabulary (detect fires,
+  deliberately out of this session's scope).
+
+### Added
+- Spec item 6: `scripts/smoke_live.py` is versioned cargo — verbatim,
+  rides the block (fork-invariant by construction; muischeduler's CD
+  certified with a 1.2.4-vintage copy); contract half for forks whose
+  CD uses a different live tool (wake loop + retries + SSL context).
+- Spec item 7: the battery must see the CONFIGURED gate/lock page —
+  fake config in a test, non-vacuous configured-branch assertion,
+  marker/stripping rules imported from the live tool by path
+  (clerkhook 5c5e9ea; class fleet-wide). The template's own adoption
+  is recorded `open` — this suite blanks every Clerk secret before
+  import.
+- `sync/README.md`: the gate rule (a gate names a contract, never a
+  path, wherever a pre-existing file can occupy the path; three gate
+  forms documented) and the vendoring rule (specs are NOT vendored
+  into consumers — decided over scoping the pins to the authoring
+  repo).
+
 ## [1.6.27] - 2026-08-25
 
 One Python for the fleet. The repo declared three (Dockerfile

@@ -13,8 +13,12 @@ requirements.txt and run.py retains every older rung by design —
 do not read those as the floor.
 
 ```yaml sync-verbatim
-# requires: .claude/CLAUDE.md
-# requires: .claude/settings.json
+# requires-contract: .claude/CLAUDE.md :: Check the prompt against this tree
+# (Gate converted 1.6.28: a path gate read flows' pre-existing,
+# non-kit .claude/CLAUDE.md as kit-adopted — a gate names a
+# CONTRACT, never a path, wherever a pre-existing file can occupy
+# the path; sync/README.md. The settings.json path gate is subsumed
+# by the same adoption.)
 # Whole-file byte-copy targets for the F3b fan-out (sync/README.md).
 # These are item 6's byte-verbatim halves; its adapted halves
 # (CLAUDE.md, settings.json, DIVERGENCES.md, .gitignore) and the
@@ -211,7 +215,9 @@ acceptance: the rendered card copy is honest; string-level check
 ## Reporting
 
 Per-item disposition table (applied / ported-as-contract /
-already-present / not-applicable-because, each with evidence), any
-DIVERGENCES.md changes, full suite + CD + `/wire-verify` output, and
-corrections to THIS SPEC where it mismatched your tree — the spec is
-subject to the same contract as any prompt.
+already-present / not-applicable-because / open, each with
+evidence — `open`, 1.6.28: the detect fires but the item is
+deliberately out of this session's scope; name it and who acts),
+any DIVERGENCES.md changes, full suite + CD + `/wire-verify`
+output, and corrections to THIS SPEC where it mismatched your tree
+— the spec is subject to the same contract as any prompt.
