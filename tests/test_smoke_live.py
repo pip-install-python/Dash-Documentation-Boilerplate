@@ -106,6 +106,36 @@ def test_smoke_script_passes_against_this_app(wired, capsys):
     assert "checks passed" in output
 
 
+def test_the_home_page_is_checked_once_per_section(wired, smoke, capsys):
+    """`/` is in the sitemap AND prepended to every per-page loop.
+
+    Every section that walks pages does `[f"{base}/"] + page_urls[:N]`, and
+    this fleet's sitemap lists `/` first — so before 1.6.31 the home page was
+    fetched twice in sections 2, 3 and 3c. The waste is minor; the reason this
+    is pinned is that two checks emitted the SAME label, so a real failure on
+    `/` printed twice and read as two broken pages (flexlayout, 2026-08-26).
+
+    Non-vacuous by construction: the assertion below is preceded by proof that
+    the sitemap really does list the home page, so a fork whose sitemap omits
+    it cannot pass this test by having nothing to deduplicate.
+    """
+    sitemap = wired.fetch(f"{BASE}/sitemap.xml")[1]
+    locs = [u for u in wired.re.findall(r"<loc>([^<]+)</loc>", sitemap)]
+    assert any(u.rstrip("/") == BASE.rstrip("/") for u in locs), (
+        "this app's sitemap does not list the home page — the duplicate this "
+        "test guards against cannot occur, and the test would pass vacuously"
+    )
+
+    assert wired.main(BASE) == 0
+    out = capsys.readouterr().out
+    for label in ("canonical on /", "real content on /"):
+        hits = [
+            line for line in out.splitlines()
+            if line.split(None, 1)[1:] and line.split(None, 1)[1].strip() == label
+        ]
+        assert len(hits) == 1, f"{label!r} emitted {len(hits)} times: {hits}"
+
+
 def test_smoke_script_detects_a_stub_body(wired, smoke, monkeypatch, capsys):
     """The check that matters most must actually fire when it should."""
     original = smoke.fetch

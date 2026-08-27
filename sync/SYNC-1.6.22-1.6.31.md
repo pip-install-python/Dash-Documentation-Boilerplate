@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.30 (template @ 1.6.30)
+# SYNC 1.6.22 → 1.6.31 (template @ 1.6.31)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -51,6 +51,27 @@ and 9 are new: browser/crawler head parity, which measured wrong on
 six of seven audited hosts, and the machine-readable POSTURE fence in
 DIVERGENCES.md that moves the hub's seeded table into the repos that
 can keep it true.)
+(1.6.31 is the round's own lesson, and three of its four changes
+arrived as fork PUSHBACK the ops seat adjudicated. Item 6 stops
+recommending a byte copy: flexlayout, leaflet and muischeduler each
+showed the premise false — their smoke_live.py carries fork-owned
+CHECKS, so a copy deletes measured guards silently (green, because a
+deleted check does not fail) or asserts a posture the host does not
+have (muischeduler's deliberate `block_ai_training=False` fails on
+the byte-identical file). Diff and port; a copy is only safe when the
+diff is empty both ways. Item 8 gains tests/test_social_card.py in
+its `files:` — pannellum and modelviewer independently landed a red
+there that the item's prose predicted and its scope line did not.
+Item 10 is new: /healthz declares the fleet's SHAPE, after a
+thirteen-host read found one fork answering `dash` where the battery
+asks for `dash_version` while reporting item 5 green — correctly, the
+round could not see it. Nothing new rides the block and no cargo
+file's bytes change this round: both new template tests
+(tests/test_healthz_shape.py, tests/test_gate_configured.py) CALL
+INTO fork-owned modules — lib/health.py, lib/access.py,
+lib/gate_layouts.py — so the mirror rule makes them contract, not
+cargo. `.claude/CLAUDE.md`'s two trap rewrites port by the authoring
+rule, as always: traps verbatim, everything above them adapted.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -67,12 +88,15 @@ design; do not read those as the floor.
 # `# requires: .claude/settings.json` line is subsumed — settings
 # ride the same adoption, and a pre-existing settings.json is
 # exactly as possible as a pre-existing CLAUDE.md.
-# SEQUENCING (ops seat): fanout.py must implement
-# `# requires-contract:` and the per-file `# requires:` BEFORE the
-# next round — an older parser reads the first as a plain comment
-# (block UNGATED: kit cargo would ship to non-kit forks) and the
-# second not at all (tests/test_auth_demos.py would land red on
-# lockdown forks).
+# PARSER SUPPORT (was a SEQUENCING blocker until 1.6.31, and had
+# been satisfied for two rounds while this note still said
+# otherwise): the ops seat's scripts/fanout.py implements all three
+# gate forms as of 2026-08-26 — `# requires-contract:`, the
+# per-file `# requires:`, the `gated-skip` disposition and the
+# `gated_skips` summary field, with five tests pinning the forms,
+# the malformed-gate refusal, and per-file skip vs block gate. The
+# forks=all dry run (32991971564) and both live rounds (33000661276,
+# 33015477174) ran on that parser. A spec may use all three freely.
 # The four standing kit files (their bytes at 1.6.25 carry the 1.6.22
 # byte-owned skip and the 1.6.23 `# requires:` validation) plus the
 # 1.6.24 dependabot.yml rewrite. dependabot.yml has said "satellites
@@ -387,13 +411,33 @@ contract: whatever live tool a CD run certifies with must carry the
   fork-owned, fork-specific test that can never be cargo — so the
   class is contract, per sync/README.md's who-stubs-this rule. A
   session ports the behaviour and updates its stubs IN THE SAME
-  TOUCH. Byte-copying the template's current file remains the
-  recommended port — since 1.6.29 its wake() probes tolerantly
-  (falls back to `fetch(url)` when a legacy stub rejects the
-  kwargs; pinned by test_wake_survives_a_legacy_fetch_stub
-  upstream), so a copy landing ahead of the stub update degrades to
-  the fork's old red checks instead of a suite-wide TypeError. The
-  stub update is still the port's second half, not optional.
+  TOUCH.
+  DIFF, DO NOT COPY (1.6.31 — this replaces "byte-copying the
+  template's current file remains the recommended port", which three
+  forks contradicted independently in one round, with two different
+  failure modes). Diff your copy against the template's and port what
+  is MISSING; your own blocks stay. A copy is safe in exactly one
+  case: the diff is empty in both directions, where copy and port are
+  the same act. The premise the old sentence rested on — "the bytes
+  are fork-invariant, only the INTERFACE is fork-owned" — is false on
+  at least three hosts: flexlayout's copy carries six check blocks the
+  template's has never had (healthz build / app identity / geo
+  diagnostic, the browser-lane prerender block, /api/agent-key closed
+  to anonymous, machine surfaces stay open), each added for a defect
+  measured on that host; leaflet's lines 192–230 assert its
+  open-training posture (its divergence 4). A byte copy deletes those
+  and CD STAYS GREEN — a deleted check does not fail, it stops being
+  true and says nothing. muischeduler is the same class from the other
+  side and louder: the template's copy asserts
+  `ClaudeBot -> Disallow: /` while that host runs
+  `block_ai_training=False` deliberately, so the byte-identical file
+  FAILS on a correctly-configured site.
+  The tolerant wake() (1.6.29; pinned by
+  test_wake_survives_a_legacy_fetch_stub upstream) still earns its
+  keep — state what it buys and no more: it degrades a stale-stub
+  landing from a suite-wide TypeError into the fork's old red checks.
+  It does not make a copy safe. The stub update is still the port's
+  second half, not optional.
   THE QUIET HALF (1.6.30, emojimart and muicharts). 1.6.29 diagnosed
   the LOUD failure — a legacy stub TypeErrors and the fork's suite
   goes red, which at least tells somebody. The quiet one is a fork
@@ -430,6 +474,20 @@ notes: a fork that replaced the tool records the divergence and
   has no such test either and runs a divergent tool — run the detect
   on lockdown_smoke.py. Where this round's evidence cannot say which
   state a fork is in, the detect is the first step, not the last.
+  THE FENCE IS THE DURABLE PROTECTION, AND IT IS NOT BEING WRITTEN
+  (1.6.31). Class protects this file only while it stays
+  contract-class; the byte-owned fence in your DIVERGENCES.md
+  protects it across the next reclass, which is the one nobody will
+  remember. Measured by the ops seat across eleven public forks'
+  DIVERGENCES.md, 2026-08-27: flexlayout, flows and muischeduler
+  fence scripts/smoke_live.py; LEAFLET DOES NOT, while reporting
+  exactly the same fork-owned content. Nothing is at risk today —
+  the item is contract-class and the fan-out no longer carries the
+  path. The rule: if you ported rather than copied because your copy
+  has fork-owned content, that path goes in the byte-owned fence in
+  the SAME touch. The fence's grammar is documented in
+  sync/README.md from 1.6.31 (it never was before; flows had to read
+  it off the kit test).
 
 ### 7. The battery must see the CONFIGURED gate page (1.6.28; found by clerkhook)
 class: conditional + contract
@@ -456,17 +514,40 @@ contract: every fleet battery boots zero-secret, so any page that
   what keeps test and tool from drifting apart again.
 acceptance: the test green in the fork's suite; the fork's live
   gate tool runs against production without false leaks.
-notes: THE TEMPLATE'S OWN ADOPTION IS OPEN — conftest.py blanks
-  every Clerk secret before any import, so this suite renders the
-  sign-in gate cards zero-secret only; the detect fires here too.
-  Recorded as `open` in the 1.6.28 report, queued for the next
-  template runtime pass (this release is spec-only by design).
+notes: THE TEMPLATE'S OWN ADOPTION LANDED IN 1.6.31 —
+  tests/test_gate_configured.py is the reference shape; adapt it,
+  do not copy it (it imports lib.access, lib.auth, lib.gate_layouts
+  and lib.page_visibility, all fork-owned). It was `open` here for
+  three releases while four forks (leaflet, excalidraw, modelviewer,
+  muischeduler) reported it `open` for the same reason and correctly
+  declined to invent a shape — the template owed this one, and an
+  item whose own author has not adopted it cannot close anywhere.
+  What the reference does, in this tree's terms: conftest.py blanks
+  every Clerk secret before any import and STAYS THAT WAY (every
+  fail-closed assertion in test_access.py depends on it), so the
+  test sets three FAKE non-empty `CLERK_*` values with monkeypatch
+  at call time — `clerk_enabled()` reads the environment per call,
+  so no second fixture and no change to conftest was needed. It then
+  pins a real registered page to `auth` through the control board's
+  own writer, renders the page's actual registered layout, and
+  asserts the sign-in card's ids — READ OFF lib/gate_layouts by
+  rendering its own card, never re-typed — are present. Its second
+  test is the non-vacuity control: same page, same tier, zero-secret,
+  renders the CONTENT (the documented fall-open), so the first test
+  cannot pass by accident of the tier override. Its third pins the
+  direction that must not depend on a credential existing: `admin`
+  stays closed in both postures. A fork whose gate is a lockdown page
+  rather than a card ports the three questions, not the ids.
 
 ### 8. The two heads declare the same identity (1.6.30; measured by emojimart)
 class: contract
 files: templates/index.html (the BROWSER head), run.py's
-  `configure_seo(icons=..., ...)` (the CRAWLER head), and the pin —
-  tests/test_seo_icons.py. Contract, not cargo, and by the mirror
+  `configure_seo(icons=..., ...)` (the CRAWLER head), the pin —
+  tests/test_seo_icons.py — AND tests/test_social_card.py (1.6.31),
+  where the fork's "no static duplicate of a Dash-emitted meta" sweep
+  lives: adding the static `name="twitter:card"` this item requires
+  trips that sweep, so the file is in this item's scope whether or not
+  you touch it deliberately. Contract, not cargo, and by the mirror
   rule in sync/README.md: the pin CALLS INTO run.py, a fork-owned
   file, so it must land as behaviour a fork can satisfy in its own
   shape.
@@ -511,6 +592,18 @@ notes: CHECK THE TEMPLATE'S OWN index.html FIRST — the instruction
   link onto the declared path. A fork whose two heads disagree fixes
   the BROWSER side by default — the declaration in run.py is what
   autodiscovery agrees with and what the crawler reads.
+  EXPECT ONE RED IN tests/test_social_card.py, AND THAT RED IS THIS
+  ITEM WORKING (1.6.31; pannellum and modelviewer landed it
+  independently, same as 1.6.26's DEMOS red). The static
+  `name="twitter:card"` you add beside Dash's `property=` tag is a
+  deliberate duplicate; your no-static-duplicate sweep will flag it.
+  Fix it by writing the EXEMPTION into that test — `twitter:card`
+  exempt, and both forms pinned at exactly one occurrence each — not
+  by deleting the tag you just added. A session that reads `files:`
+  as the scope statement and finds an unannounced red does the
+  cheapest thing, which is revert; that is why the file is named in
+  `files:` now. `files:` IS a scope statement, and one that omits a
+  file the body requires teaches sessions to distrust it.
 
 ### 9. DIVERGENCES.md declares this host's POSTURE (1.6.30; F4)
 class: contract
@@ -547,6 +640,59 @@ notes: re-measure when you change what the host serves — a stale 403
   GPTBot alike (a browser UA gets 200 on all three) — the agent
   surface stays open while the browser document is refused, which is
   the posture and is invisible from a browser.
+
+### 10. /healthz declares the fleet's SHAPE, not just its build (1.6.31; seat-measured)
+class: contract
+files: the fork's healthz builder (lib/health.py, or wherever run.py
+  assembles the payload) + a new tests/test_healthz_shape.py. The
+  template's is the reference shape and is NOT cargo — it calls into
+  lib/health.py, a fork-owned module, which is the mirror rule.
+detect: `GET /healthz` and compare KEYS, not values, against the
+  fleet set — {app, backend, build, dash_version, geo, ok, python}.
+  Extra keys are a fork's business and always fine (flexlayout's
+  `version`, the reporting block). A MISSING key is the item; a
+  RENAMED key is the failure mode this item exists for, because it
+  is invisible to every check that reads the value rather than the
+  key. `build` is the one environment-dependent member: it comes
+  from RENDER_GIT_COMMIT, so offline it is absent legitimately —
+  test it by SETTING the variable and asserting the key appears.
+contract: the hub's hourly sweep, the F4 battery, cd.yml's
+  build-match wait and scripts/network_smoke.py all read this
+  payload BY KEY NAME. A fork may ADD; it may not rename or omit. A
+  genuinely absent capability is RECORDED, not silent — clerkhook
+  has no geo layer and that is a divergence with a name (the
+  `healthz: minimal` posture key, item 9), not a missing field.
+  Measured across all thirteen hosts by the ops seat, 2026-08-27,
+  against the template's own key set:
+    flows      missing backend, dash_version — it renamed
+               `dash_version` to `dash` (extras: dash, reporting,
+               version)
+    clerkhook  missing backend, dash_version, geo, python
+    llms       missing python
+    the other ten complete, extras only.
+  flows reported item 5 GREEN and it IS green — `python` is there —
+  so nothing in the round could see this: the battery reads
+  `dash_version`, a renamed key reads as absent, and 1.6.28's rule
+  says absence is NOT-ADOPTED, never not-applicable. One fork in
+  twelve silently answers a different document than the battery asks
+  for, and every reader of it was correct.
+acceptance: the shape test green in the fork's suite, AND the fork's
+  live /healthz carrying all seven keys — pasted in the report. The
+  offline test cannot see a typed response model or a proxy that
+  strips a field, which is why the template's reference also fetches
+  the route, not just the builder.
+notes: remedies for the three reds — flows: rename `dash` back to
+  `dash_version` and add `backend`; keep `dash` beside it if
+  anything of yours reads it, an extra costs nothing and a substitute
+  costs the fleet. clerkhook: item 5's `python` plus `backend` and
+  `dash_version`; `geo` is its recorded lockdown divergence, so
+  declare `healthz: minimal` in the posture fence and say so rather
+  than leaving four keys missing. llms: the kit is not adopted there
+  at all and its drop is open — this item arrives with that one.
+  The template's reference test also pins the values shallowly (ok
+  is True, backend echoes its argument, python is this interpreter)
+  because seven correctly-named empty strings pass a key check and
+  tell the fleet nothing.
 
 ## Reporting
 

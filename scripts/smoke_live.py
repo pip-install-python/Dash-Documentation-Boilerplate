@@ -367,6 +367,18 @@ def main(base: str) -> int:
     foreign = [u for u in page_urls if urlparse(u).netloc != host]
     check("/sitemap.xml stays on this host", not foreign, f"foreign URLs: {foreign[:3]}")
 
+    # The home page is checked EXPLICITLY by every section below (`[f"{base}/"]
+    # + page_urls[:N]`), and every sitemap this fleet generates lists `/` as its
+    # first entry — so leaving it here fetched it twice per section and, worse,
+    # emitted the same check label twice. A failure on `/` then printed two
+    # identical FAIL lines, which reads as two broken pages instead of one
+    # (flexlayout reported it for section 3c; it was all three). Filtered ONCE,
+    # here, rather than at each call site: three call sites is three chances for
+    # the next section to forget. The foreign-host check above deliberately runs
+    # over the unfiltered list — the home entry's host is exactly as worth
+    # checking as any other.
+    page_urls = [u for u in page_urls if urlparse(u).path not in ("", "/")]
+
     status, health, _ = fetch(f"{base}/healthz")
     check("/healthz responds 200", status == 200, f"got {status}")
 
@@ -515,8 +527,11 @@ def main(base: str) -> int:
         "the viewer chrome reached an agent",
     )
 
+    # `/` is already out of page_urls (filtered at the sitemap parse), so any
+    # entry here is a real page — the root's own llms.txt is a different
+    # document and is checked above.
     page_doc = next(
-        (f"{u.rstrip('/')}/llms.txt" for u in page_urls if urlparse(u).path not in ("", "/")),
+        (f"{u.rstrip('/')}/llms.txt" for u in page_urls),
         f"{base}/llms.txt",
     )
 

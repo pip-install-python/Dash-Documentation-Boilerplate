@@ -138,7 +138,23 @@ they win.
 - `/healthz` build == HEAD is the deploy proof; a missing geo block
   on dimll ≥2.7 means the cache trap fired (unless DIVERGENCES.md
   says this host's healthz is deliberately minimal).
-- Probe with GET, not HEAD — HEAD responses omit the Link headers.
+- Always GET, never HEAD. Whether HEAD carries the `Link` discovery
+  headers is decided by the BACKEND, not by the host: the ops seat's
+  sweep of twelve public hosts (2026-08-27) found all ten Flask
+  hosts serving them on HEAD and both FastAPI hosts dropping them.
+  You usually do not know which backend answers a given domain, and
+  a missing header reads exactly like a broken discovery chain, so
+  GET is the rule — it is never wrong, which is the whole reason to
+  have one. Do NOT "verify" the trap on one host and conclude HEAD
+  is fine (excalidraw did, measured twice, and was right about its
+  own host): the counter-example is a different fork of this same
+  template. WHERE the asymmetry lives is still open — this repo's
+  own in-process probe (Starlette TestClient and the Werkzeug
+  client, template at 2bcf9d5) gets the two `Link` headers on HEAD
+  on BOTH backends, so the app code is not where they are lost;
+  suspect the serving stack or the proxy in front of it. That the
+  discovery chain is thinner on the wire for a HEAD-then-GET client
+  on two forks is a defect worth someone's pass, not a divergence.
 - Run-watchers keyed on a commit sha can match Dependabot's runs on
   the same sha — key on the workflow path (cd.yml) instead.
 - The browser lane and the machine lane are different documents;
@@ -192,7 +208,12 @@ they win.
   classification, not by the absence of a UA: on the template
   today, curl's default `curl/8.x` receives the SAME crawler
   document as Googlebot (18,779 bytes, byte-identical) while a
-  Chrome UA gets the 148 KB app shell — and muicharts observed a
-  UA-less probe classified the other way. Either lane can be the
-  one you did not mean to test, so send `-A "<a real crawler UA>"`
-  and confirm from the body which document came back.
+  Chrome UA gets the 148 KB app shell. One host (muicharts) reported
+  a UA-less probe classified the other way; treat that as
+  UNCONFIRMED — muischeduler filed the same observation and then
+  RETRACTED it (its report had the two documents swapped), leaving
+  one unreproduced sighting, and a trap carrying an unreproducible
+  fact spends somebody's afternoon. The advice does not depend on
+  it: either lane can be the one you did not mean to test, so send
+  `-A "<a real crawler UA>"` and confirm from the body which
+  document came back.

@@ -156,6 +156,55 @@ Rules:
   session-side write guard — the F2 settings-write friction closes
   here), so it must be deliberate, never incidental.
 
+## The fork's own fences (`DIVERGENCES.md`)
+
+A spec's block says what the template SENDS. Two fences in the fork's
+own `DIVERGENCES.md` say what the fork KEEPS and what it IS — both
+validated for shape by `tests/test_claude_kit.py`, both SKIPPING on
+absence so a fork that has not ported them keeps its CI green and
+receives the contract item instead of a red. This section existed
+nowhere until 1.6.31: every fork's fence was empty, so the format had
+never been exercised, and flows — the first fork to put a real path in
+one — had to derive the grammar from the test.
+
+    ```yaml byte-owned
+    # this fork's copy wins; the fan-out skips these paths
+    - scripts/smoke_live.py
+    ```
+
+Grammar, identical to `sync-verbatim`: `- path` list items, one per
+line, repo-relative, no `..`, `#` comments allowed. A missing fence
+means "no fence" and drops the fan-out back to the mention heuristic,
+which over-flags and never restores; an EMPTY fence means "the
+template owns every sync-verbatim path here" — a statement, not an
+omission. A prose mention is NOT a fence: muicharts' host-pin nuance
+names `tests/test_claude_kit.py` in prose while its bytes are
+template-owned, and that false positive recurred every release until
+the fence answered the question mechanically.
+
+**What belongs in it (1.6.31, and this is the durable half of item 6's
+lesson):** if you PORTED a file rather than copying it — because your
+copy carries checks the template's does not, or asserts a posture the
+template's copy contradicts — that path belongs in the byte-owned
+fence in the SAME touch. Three forks reported exactly that content in
+the F4 round and only two had fenced it. Class protects a file for as
+long as it stays contract-class; the fence protects it across the next
+reclass, which is the one nobody will remember.
+
+    ```yaml posture
+    ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
+    healthz: full
+    runtime: python
+    ```
+
+The second fence (1.6.30) declares what this host SERVES, measured
+with a real vendor UA: `key: value` lines, known keys only (`ai_bots`,
+`healthz` ∈ {minimal, full}, `runtime` ∈ {docker, python}), statuses
+as integers. The test validates shape plus the one value the repo can
+contradict by itself — `runtime:` against render.yaml. Nothing but a
+probe can validate a status, so re-measure when you change what the
+host serves and paste the probe in your report.
+
 ## Authoring rules (earned, not invented)
 
 - **Floors are stated by `LLMS_PKG_FLOOR` semantics, never by

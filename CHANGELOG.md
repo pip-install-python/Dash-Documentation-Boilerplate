@@ -5,6 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.31] - 2026-08-27
+
+What the F4 round taught, most of it arriving as fork pushback the ops
+seat adjudicated and accepted. The headline is a retirement: "byte-copy
+the template's current file" stops being the recommended port for
+`scripts/smoke_live.py`, because three forks contradicted its premise
+independently — the file's CONTENT is fork-owned on at least three
+hosts, not just its interface. A copy deletes measured checks silently
+(green: a deleted check does not fail, it stops being true) or asserts
+a posture the host deliberately does not have. Diff and port; copying
+is safe only when the diff is empty in both directions.
+
+Two more things this release stops being able to hide. `/healthz` is
+read by four different machines BY KEY NAME, and a thirteen-host read
+found one fork answering `dash` where the battery asks for
+`dash_version` — reporting the Python item green, correctly, while
+being invisible to every reader. And spec item 7, the configured gate
+page, has been `open` here for three releases while four forks
+reported it `open` for the same reason and rightly declined to invent
+a shape; the template owed the reference and now has one.
+
+### Added
+- `tests/test_healthz_shape.py` — the payload's KEY SET is a fleet
+  contract (`app backend build dash_version geo ok python`). Extras
+  are always fine; a rename is the failure this pins, because it is
+  invisible to every check that reads a value rather than a key.
+  Checks the builder AND the live route (a typed response model that
+  drops a field leaves the builder green), and `build` the only
+  honest way: set `RENDER_GIT_COMMIT`, assert the key appears.
+- `tests/test_gate_configured.py` — spec item 7 adopted here at last.
+  Renders a real registered page, pinned to `auth` through the control
+  board's own writer, with three FAKE non-empty `CLERK_*` values, and
+  asserts the sign-in card rendered — the branch production serves and
+  no test had ever reached, since every battery in this fleet boots
+  zero-secret. The card's markers are read off `lib/gate_layouts.py`
+  by rendering its own card, never re-typed. Its second test is the
+  non-vacuity control (same page, zero-secret, serves the CONTENT —
+  the documented fall-open); its third pins `admin` closed in both
+  postures. `conftest.py` is unchanged: `clerk_enabled()` reads the
+  environment per call, so `monkeypatch.setenv` was enough.
+- Spec item 10 — `/healthz` declares the fleet's shape, with the
+  three current reds and each one's remedy.
+- `sync/README.md` gains a section on the fork's OWN fences
+  (`byte-owned`, `posture`): grammar, absence-vs-empty, and the rule
+  that content you ported rather than copied goes in the byte-owned
+  fence in the same touch. The fence had been validated by the kit
+  test since 1.6.22 and documented nowhere — every fork's was empty,
+  so nothing had ever exercised the format until flows put a path in
+  one (flows).
+
+### Changed
+- Sync spec renamed `SYNC-1.6.22-1.6.30.md` → `SYNC-1.6.22-1.6.31.md`.
+  Nothing new rides the block and no cargo file's bytes change: both
+  new tests call into fork-owned modules, which the mirror rule makes
+  contract, not cargo.
+- Spec item 6's contract: **diff, do not copy**, with the three
+  contradicting hosts named — flexlayout (six fork-added check blocks
+  a copy would delete), leaflet (its open-training posture, same
+  shape, unfenced), muischeduler (the template's `ClaudeBot ->
+  Disallow: /` assertion FAILS on its deliberate
+  `block_ai_training=False`). The tolerant `wake()` stays and its
+  claim is narrowed to what it buys: a stale-stub landing degrades to
+  the fork's old red checks instead of a suite-wide TypeError. Its
+  notes gain the fence rule and the measurement behind it — three of
+  the four forks with fork-owned content fence the path; leaflet does
+  not (ops seat, eleven public forks, 2026-08-27).
+- Spec item 8's `files:` names `tests/test_social_card.py`, and its
+  notes name the expected red the way 1.6.26 named the DEMOS red:
+  the static `name="twitter:card"` trips the fork's own
+  no-static-duplicate sweep, and the fix is writing the exemption
+  into that test, never deleting the tag you just added (pannellum
+  and modelviewer, independently). `files:` is a scope statement; one
+  that omits a file the body requires teaches sessions to distrust it.
+- The block's SEQUENCING note is struck. `scripts/fanout.py`
+  implemented all three gate forms on 2026-08-26 — before the last
+  round ran — while the note kept telling every fork session the
+  fan-out was unsafe.
+- `.claude/CLAUDE.md`, two traps. "GET, not HEAD" is now stated as
+  what it is: a BACKEND-level divergence (ten Flask hosts serve the
+  `Link` headers on HEAD, both FastAPI hosts drop them), so verifying
+  it false on one host proves nothing — excalidraw was right about
+  its own host and wrong about the rule. Where the loss happens is
+  recorded as still open: this repo's in-process probe gets both
+  `Link` headers on HEAD on both backends, so the app code is not it.
+  And the UA-less-curl counter-observation is marked unconfirmed —
+  muischeduler filed the same note and retracted it.
+
+### Fixed
+- `scripts/smoke_live.py` fetched the home page twice in sections 2,
+  3 and 3c: every loop prepends `/` and this fleet's sitemap lists
+  `/` first. Filtered once at the sitemap parse rather than at three
+  call sites. The waste was minor; the reason it is pinned is that
+  two checks emitted the SAME label, so one failing home page printed
+  two identical FAIL lines and read as two broken pages (flexlayout
+  reported 3c; it was all three).
+
 ## [1.6.30] - 2026-08-27
 
 The F4 battery's first round, closed by two §A fork sessions
