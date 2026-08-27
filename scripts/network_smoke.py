@@ -212,6 +212,26 @@ def satellite_checks(base: str) -> None:
         expect(status == 200, f"/healthz {status}")
         expect(json.loads(text).get("ok") is True, f"unexpected body {text[:120]!r}")
 
+    def head_healthz_matches_get():
+        # HTTP requires HEAD wherever GET is served. Werkzeug derives a HEAD
+        # rule from every GET rule; Starlette does not, so a fork on the ASGI
+        # lane answers 405 to the method most uptime monitoring probes with —
+        # measured on both FastAPI hosts, every route, 2026-08-27.
+        #
+        # This does NOT weaken "probe with GET, never HEAD". That rule is
+        # about how a session READS a site, and it exists precisely because
+        # HEAD can answer for reasons that have nothing to do with the
+        # document. This check asks the other question — does HEAD work — and
+        # it is the one thing that would have caught the defect on the first
+        # CD run after either fork switched backends.
+        status, _, _ = get("/healthz")
+        expect(status == 200, f"GET /healthz {status} — nothing to compare")
+        head_status, _, _ = get("/healthz", method="HEAD")
+        expect(head_status == status,
+               f"HEAD /healthz {head_status} vs GET {status}"
+               + (" — the router has no HEAD rule for its GET routes"
+                  if head_status == 405 else ""))
+
     def python_matches_declared():
         # WHICH interpreter serves, versus the one this repo declares. Three
         # Pythons coexisted for months (image 3.11.8, matrix 3.12,
@@ -328,6 +348,7 @@ def satellite_checks(base: str) -> None:
 
     for name, fn in (
         ("healthz_ok", healthz_ok),
+        ("head_healthz_matches_get", head_healthz_matches_get),
         ("python_matches_declared", python_matches_declared),
         ("llms_txt_identity", llms_txt_identity),
         ("llms_txt_names_the_hub", llms_txt_names_the_hub),

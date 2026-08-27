@@ -104,6 +104,7 @@ def fetch(
     accept: Optional[str] = None,
     retries: Optional[int] = None,
     timeout: float = TIMEOUT,
+    method: str = "GET",
 ) -> Tuple[int, str, Dict[str, str]]:
     """Returns (status, body, headers).
 
@@ -127,11 +128,19 @@ def fetch(
     surrogateescape round-trips exactly through
     `body.encode("utf-8", "surrogateescape")`, and behaves identically to a
     plain decode for text.
+
+    `method` exists for ONE check (`HEAD /healthz` answers what `GET`
+    answers, 1.6.32) and every other call site keeps GET — probing a site
+    with HEAD tells you about its router's method table and not about its
+    documents, which is the standing rule and the reason that check has to
+    exist. Adding a keyword here is the wake() hazard from 1.6.29 again: a
+    fork whose tests stub `fetch` with a fixed signature must add `method`
+    to the stub in the same touch.
     """
     headers = {"User-Agent": user_agent}
     if accept is not None:
         headers["Accept"] = accept
-    request = urllib.request.Request(url, headers=headers)
+    request = urllib.request.Request(url, headers=headers, method=method)
     attempts = RETRIES if retries is None else max(1, retries)
     last: Tuple[int, str, Dict[str, str]] = (0, "no attempt was made", {})
     for attempt in range(attempts):
@@ -381,6 +390,20 @@ def main(base: str) -> int:
 
     status, health, _ = fetch(f"{base}/healthz")
     check("/healthz responds 200", status == 200, f"got {status}")
+
+    # HTTP requires HEAD wherever GET is served. Werkzeug derives it from
+    # every GET rule; Starlette does not, so a fork on the ASGI lane answers
+    # 405 to the method most uptime monitoring probes with — measured on both
+    # FastAPI hosts, every route, 2026-08-27. One request, against the route
+    # whose 405 reads as "the site is down" while the site is healthy.
+    head_status, _, _ = fetch(f"{base}/healthz", method="HEAD")
+    check(
+        "HEAD /healthz answers what GET answers",
+        head_status == status,
+        f"HEAD got {head_status}, GET got {status}"
+        + (" — this host's router has no HEAD rule for its GET routes"
+           if head_status == 405 else ""),
+    )
 
     # --- 2. Canonical host — the failure that deindexes a satellite --------
     print("\nCanonical tags")

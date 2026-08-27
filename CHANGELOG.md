@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.32] - 2026-08-27
+
+A defect release, and one this template shipped to two forks itself.
+**`HEAD` returned 405 on every route of both FastAPI hosts** —
+pannellum and muischeduler, measured on the wire — `/healthz`,
+`/robots.txt` and `/sitemap.xml` included. Werkzeug derives a HEAD
+rule from every GET rule; Starlette does not, so every route declared
+`@router.get(...)` answered "method not allowed" to the method most
+uptime monitoring probes with, against the two hosts whose deploy
+proof IS `/healthz`. Neither fork did anything wrong: they inherited
+it by choosing the backend this template ships.
+
+It hid perfectly. CI never issued a HEAD, both live tools GET (which
+is the standing rule, and this defect is why the rule exists), and a
+browser never sends HEAD for a document. The one in-process probe that
+did run HEAD — 1.6.31's, checking whether the ASGI lane lost the
+`Link` headers — ran it against `/`, which is the single route that
+answers, because the package's prerender middleware replies before the
+request reaches the router at all. True observation, wrong conclusion,
+twice over: a 405 carries no `Link` header either.
+
+### Added
+- `lib/asgi_middleware.py` — `HeadAsGetMiddleware`, pure ASGI, added
+  last so Starlette runs it outermost: a HEAD request is re-dispatched
+  as GET and answered with the same status and headers and an empty
+  body. Middleware rather than `methods=["GET", "HEAD"]` on the
+  declarations because this tree declares only two of the affected
+  routes — `/llms.txt`, `/<page>/llms.txt`, `/robots.txt`,
+  `/sitemap.xml` and the policy panel come from
+  dash-improve-my-llms' own FastAPI adapter (GET-only; only the root
+  icon paths declare HEAD) and `/` from Dash's page catch-all. Fixing
+  what we declare would have left three of the four crawler-facing
+  surfaces 405ing.
+- `tests/test_head_method.py` — status, `content-type` and `Link`
+  parity between HEAD and GET on all five core routes, both UAs, per
+  backend. Proven the only way it can be: with the middleware removed
+  the FastAPI leg fails 9 of 11 and the Flask and Quart legs pass. A
+  pin that is green on all three before the fix is testing the test
+  client, not the router.
+- One check in each live tool — `HEAD /healthz` answers what `GET
+  /healthz` answers. One request, and the check that would have caught
+  this on the first CD run after either fork switched backends.
+- `Client.head()` / `Client.open()` in `tests/conftest.py`, so the
+  method is a first-class question across all three test clients.
+
+### Changed
+- `scripts/smoke_live.py`'s `fetch` grows a `method` keyword — used by
+  exactly one call site, and every other one still GETs. This is
+  1.6.29's wake() hazard verbatim: twelve fixed-signature `fetch`
+  stubs in `tests/test_smoke_live.py` had to grow `method` in the same
+  commit, and `tests/test_network_smoke.py`'s stub asserted
+  `method == "GET"` outright — it now names the one path allowed to
+  differ rather than dropping the guard. Forks port the check and the
+  stubs together.
+- `.claude/CLAUDE.md`: the HEAD trap now carries the measured
+  mechanism (nothing answers HEAD on the ASGI lane) in place of the
+  1.6.31 text (the ASGI hosts drop the `Link` headers, cause open),
+  and warns off both false verifications — one Flask host, and
+  `HEAD /` with a crawler UA. A second trap generalises the certifi
+  habit: any throwaway probe a session writes against production needs
+  the SSL context and a retry guard, because fixing the shipped tools
+  does not cover the next ad-hoc script.
+- `sync/SYNC-1.6.22-1.6.31.md` → `sync/SYNC-1.6.22-1.6.32.md`, gaining
+  item 11 (HEAD answers wherever GET answers; conditional on a
+  non-Flask backend, `already-present` on a Flask fork — run the
+  detect anyway, the answer records which lane the fork is on).
+
+### Fixed
+- Quart was measured, not assumed, and needs nothing: all five core
+  routes answer HEAD 200 there. Its test client returns the body where
+  Werkzeug's and Starlette's strip it, which is the client — h11,
+  under uvicorn and hypercorn both, frames a HEAD response as
+  content-length 0 and never writes those bytes.
+
 ## [1.6.31] - 2026-08-27
 
 What the F4 round taught, most of it arriving as fork pushback the ops

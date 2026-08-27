@@ -164,12 +164,26 @@ class Client:
         self._loop = loop
 
     def get(self, path: str, user_agent: str = BROWSER_UA, accept: str = None) -> Response:
+        return self.open(path, "GET", user_agent=user_agent, accept=accept)
+
+    def head(self, path: str, user_agent: str = BROWSER_UA, accept: str = None) -> Response:
+        """The same request as `.get()`, by the method HTTP pairs with it.
+
+        Its own method rather than a flag because what it pins is a
+        backend difference: Werkzeug derives a HEAD rule from every GET
+        one, Starlette does not, and tests/test_head_method.py is where
+        that stops being invisible.
+        """
+        return self.open(path, "HEAD", user_agent=user_agent, accept=accept)
+
+    def open(self, path: str, method: str = "GET", user_agent: str = BROWSER_UA,
+             accept: str = None) -> Response:
         headers = {"User-Agent": user_agent}
         if accept is not None:
             headers["Accept"] = accept
 
         if self._kind == "werkzeug":
-            r = self._raw.get(path, headers=headers)
+            r = self._raw.open(path, method=method, headers=headers)
             # errors="replace", not `as_text=True`: the latter decodes strictly
             # and raises UnicodeDecodeError on any binary response, so a test
             # that merely checks a favicon or a manifest icon RESOLVES would
@@ -180,7 +194,7 @@ class Client:
 
         if self._kind == "quart":
             async def fetch():
-                r = await self._raw.get(path, headers=headers)
+                r = await self._raw.open(path, method=method, headers=headers)
                 # Same lenient decode as the werkzeug branch above, and for the
                 # same reason — this branch was simply missed when that one was
                 # fixed. Quart's `get_data(as_text=True)` decodes strictly, so
@@ -193,7 +207,7 @@ class Client:
 
             return Response(*self._loop.run_until_complete(fetch()))
 
-        r = self._raw.get(path, headers=headers)
+        r = self._raw.request(method, path, headers=headers)
         return Response(r.status_code, r.text, dict(r.headers))
 
 

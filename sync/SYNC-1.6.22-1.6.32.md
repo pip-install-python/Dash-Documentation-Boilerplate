@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.31 (template @ 1.6.31)
+# SYNC 1.6.22 → 1.6.32 (template @ 1.6.32)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -72,6 +72,23 @@ INTO fork-owned modules — lib/health.py, lib/access.py,
 lib/gate_layouts.py — so the mirror rule makes them contract, not
 cargo. `.claude/CLAUDE.md`'s two trap rewrites port by the authoring
 rule, as always: traps verbatim, everything above them adapted.)
+(1.6.32 is a DEFECT release and item 11 is the only new item. HEAD
+returns 405 on every route of both FastAPI forks — pannellum and
+muischeduler, measured on the wire 2026-08-27, `/healthz` and
+`/robots.txt` and `/sitemap.xml` included — because Werkzeug derives
+a HEAD rule from every GET rule and Starlette does not. It is not a
+fork's mistake: both hosts inherited it by choosing the backend the
+template ships, and nothing in the contract could see it, because CI
+never issued a HEAD and both live tools GET. The template's fix is
+one ASGI middleware, its pin runs per backend, and both live tools
+gain one request. Also here: 1.6.31's HEAD trap is CORRECTED in
+`.claude/CLAUDE.md` — it said the ASGI hosts drop the `Link` headers
+on HEAD, which was a true observation of a 405 and a wrong diagnosis
+— and a new trap line makes the certifi/retry habit general, which
+arrived as this seat's own pushback. Nothing new rides the block:
+tests/test_head_method.py calls into the app run.py builds, and
+`scripts/smoke_live.py` has been contract-class since 1.6.29 — this
+round it grows a keyword, which is precisely why.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -693,6 +710,93 @@ notes: remedies for the three reds — flows: rename `dash` back to
   is True, backend echoes its argument, python is this interpreter)
   because seven correctly-named empty strings pass a key check and
   tell the fleet nothing.
+
+### 11. HEAD answers wherever GET answers (1.6.32; seat-measured on the wire)
+class: conditional (predicate: the fork serves a non-Flask backend) +
+  contract
+files: wherever the fork registers ASGI middleware (template:
+  lib/asgi_middleware.py + its one line in run.py) + a new
+  tests/test_head_method.py + one check in EACH live tool
+  (scripts/smoke_live.py, scripts/network_smoke.py). None of it is
+  cargo: the test calls into the app run.py builds, and both tools
+  have been contract-class since 1.6.29.
+detect: `HEAD /healthz` and `HEAD /robots.txt` return the same status
+  as their `GET`. On a Flask fork this passes for free and the item
+  is `already-present` — run the detect anyway and PASTE it, because
+  the answer is what records which lane this fork is on. Do not
+  detect on `HEAD /` alone with a crawler UA: that one case succeeds
+  on a fully broken host (see notes).
+contract: HTTP requires HEAD wherever GET is served. Werkzeug derives
+  a HEAD rule from every GET rule, so Flask and Quart get it for
+  free; Starlette does not, so a route declared `@router.get(...)`
+  answers 405. A fork that chose the ASGI lane inherited a 405 on
+  every route and cannot see it from any surface the contract reads:
+  CI never issues a HEAD, both live tools GET, and a browser never
+  sends HEAD for a document. What must be true afterwards is the
+  BEHAVIOUR — same status, same `Link` and `content-type`, empty
+  body — not any particular mechanism.
+acceptance: the per-backend pin green in the fork's suite, and
+  `HEAD /healthz` == `GET /healthz` on the fork's live host, pasted.
+  The pin must FAIL on the ASGI leg with the fix removed and PASS on
+  the Flask leg — show both. A pin that is green on all backends
+  before the fix is testing the test client, not the router, which is
+  the exact trap that hid this defect for the whole life of the ASGI
+  lane.
+notes: the two affected forks are **pannellum** and **muischeduler**,
+  both measured 405 on every route on 2026-08-27. The single
+  exception, `HEAD /` with a crawler UA answering 200, is the
+  package's prerender middleware replying before the request reaches
+  the router at all — a session that probes only that case will
+  conclude the host is fine. (It is also how the template's own
+  1.6.31 in-process probe cleared the app code: it ran HEAD against
+  `/`, the one route that worked.)
+
+  MIDDLEWARE, NOT THE DECLARATIONS, and the reason is measurable in
+  your own tree: `methods=["GET", "HEAD"]` on the routes you declare
+  fixes `/healthz` and `/api/*` and nothing else. `/llms.txt`,
+  `/<page>/llms.txt`, `/robots.txt`, `/sitemap.xml` and the policy
+  panel are registered GET-only by dash-improve-my-llms' own FastAPI
+  adapter (`_fastapi_adapter.py`, 2.7.1 — only the root icon paths
+  declare HEAD), and `/` by Dash's page catch-all. A declarations-only
+  fix leaves three of the four crawler-facing surfaces 405ing. The
+  template's shape: a pure-ASGI middleware, added LAST so Starlette
+  runs it outermost, that re-dispatches the scope as GET and sends
+  one empty final body message. Pure ASGI rather than
+  `BaseHTTPMiddleware` so it neither buffers nor breaks streaming.
+
+  QUART NEEDS NOTHING, and this was measured, not assumed: all five
+  core routes answer HEAD 200 in-process on Quart, whose routing is
+  Werkzeug-descended. Its test client hands back the full body where
+  Werkzeug's and Starlette's strip it — that is the client, not the
+  app: h11, under uvicorn and hypercorn both, frames a HEAD response
+  as content-length 0 and never writes those bytes
+  (`h11/_connection.py::_body_framing`). So the template's pin
+  asserts the empty body on the two backends where a layer under test
+  performs the strip, and says why on the third rather than asserting
+  loosely.
+
+  THE LIVE-TOOL CHECK COSTS A KEYWORD (1.6.29's hazard, again). Both
+  tools now need `HEAD`, and `scripts/smoke_live.py`'s `fetch` had no
+  `method` parameter. Adding one is the wake() failure verbatim: the
+  template's own tests/test_smoke_live.py stubs `fetch` with a fixed
+  signature in TWELVE places and every one of them had to grow
+  `method` in the same commit. Yours will too — and
+  tests/test_network_smoke.py's stub asserted `method == "GET"`
+  outright, which now names the one path allowed to differ instead of
+  dropping the guard. Port the check and the stubs together or the
+  suite goes red on a keyword rather than on a defect.
+
+  This does NOT weaken "probe with GET, never HEAD" (kit trap, and it
+  stands). That rule is about how a session READS a site: HEAD tells
+  you about the router's method table and never about the document —
+  which is exactly what this item measures. The rule exists because
+  of this defect; the check is the defect's own detector.
+
+  UPSTREAM, not in scope for a fork: the package's FastAPI adapter
+  declares its own routes GET-only. Every ASGI fork papers over it
+  with the middleware today; the durable fix is
+  `methods=["GET", "HEAD"]` in dash-improve-my-llms itself. Owner /
+  hook-repo item.
 
 ## Reporting
 

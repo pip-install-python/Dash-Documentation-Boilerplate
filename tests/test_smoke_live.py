@@ -60,10 +60,15 @@ def wired(smoke, client, monkeypatch):
     the network from a unit test would make the suite depend on eleven other
     deployments being up.
     """
-    def fetch(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def fetch(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        # `method` arrived with the script's HEAD /healthz check (1.6.32) and
+        # this stub is the reason that keyword is a hazard, not a detail: a
+        # fixed-signature stub meeting a new keyword is exactly how the
+        # wake() port went red on 7 of 12 forks in 1.6.29.
         if url.startswith(BASE):
             path = url[len(BASE):] or "/"
-            response = client.get(path, user_agent=user_agent, accept=accept)
+            response = client.open(path, method, user_agent=user_agent,
+                                   accept=accept)
             # urllib — what the real script fetches with — follows redirects;
             # the test client does not. The root icon paths 302 to /assets
             # from dash-improve-my-llms 2.5 on, so follow same-host hops here
@@ -74,7 +79,8 @@ def wired(smoke, client, monkeypatch):
                 if location.startswith("http") and not location.startswith(BASE):
                     break
                 path = location[len(BASE):] if location.startswith(BASE) else location
-                response = client.get(path, user_agent=user_agent, accept=accept)
+                response = client.open(path, method, user_agent=user_agent,
+                                       accept=accept)
                 hops += 1
             return response.status, response.text, response.headers
         if url == OG_IMAGE_URL:
@@ -140,8 +146,8 @@ def test_smoke_script_detects_a_stub_body(wired, smoke, monkeypatch, capsys):
     """The check that matters most must actually fire when it should."""
     original = smoke.fetch
 
-    def stubbed(url, user_agent=smoke.BROWSER_UA, accept=None):
-        status, body, headers = original(url, user_agent, accept)
+    def stubbed(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        status, body, headers = original(url, user_agent, accept, method)
         if user_agent == smoke.CRAWLER_UA:
             body = f"<main><p>{smoke.STUB_MARKER}</p></main>"
         return status, body, headers
@@ -164,8 +170,8 @@ def test_smoke_script_detects_a_foreign_canonical(wired, smoke, monkeypatch, cap
     """
     original = smoke.fetch
 
-    def rehosted(url, user_agent=smoke.BROWSER_UA, accept=None):
-        status, body, headers = original(url, user_agent, accept)
+    def rehosted(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        status, body, headers = original(url, user_agent, accept, method)
         needle = f'rel="canonical" href="{BASE}'
         rewritten = body.replace(
             needle,
@@ -194,8 +200,8 @@ def test_smoke_script_detects_viewer_chrome_leaking_to_agents(
     """
     original = smoke.fetch
 
-    def leaky(url, user_agent=smoke.BROWSER_UA, accept=None):
-        status, body, headers = original(url, user_agent, accept)
+    def leaky(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        status, body, headers = original(url, user_agent, accept, method)
         if url.endswith("/llms.txt") and accept is None:
             body = '<!DOCTYPE html><div class="dv-banner">chrome</div>' + body
         return status, body, headers
@@ -230,8 +236,8 @@ def test_smoke_script_detects_a_missing_vary_header(wired, smoke, monkeypatch, c
     everyone — the one failure that only appears in front of a real cache."""
     original = smoke.fetch
 
-    def unvaried(url, user_agent=smoke.BROWSER_UA, accept=None):
-        status, body, headers = original(url, user_agent, accept)
+    def unvaried(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        status, body, headers = original(url, user_agent, accept, method)
         return status, body, {k: v for k, v in headers.items() if k.lower() != "vary"}
 
     monkeypatch.setattr(smoke, "fetch", unvaried)
@@ -252,7 +258,7 @@ def test_smoke_script_rejects_a_peer_serving_its_spa_shell(
     """
     original = smoke.fetch
 
-    def spa_shell(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def spa_shell(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
         # The CDN-hosted card is off-host too, but it is not a peer. Leaving it
         # to the stub would fail the (correctly fatal) card checks and this
         # test would pass or fail for a reason unrelated to its name.
@@ -260,7 +266,7 @@ def test_smoke_script_rejects_a_peer_serving_its_spa_shell(
             return 200, "<!DOCTYPE html><html><body>app</body></html>", {
                 "Content-Type": "text/html; charset=utf-8"
             }
-        return original(url, user_agent, accept)
+        return original(url, user_agent, accept, method)
 
     monkeypatch.setattr(smoke, "fetch", spa_shell)
     # Reported, but NOT fatal: this is somebody else's host. See `check()`.
@@ -285,12 +291,12 @@ def test_a_dead_peer_is_reported_but_does_not_fail_the_deploy(
     """
     original = smoke.fetch
 
-    def dead_peers(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def dead_peers(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
         # Peers only — the card is off-host but is this deployment's own
         # responsibility, and its checks are fatal on purpose.
         if not url.startswith(BASE) and url != OG_IMAGE_URL:
             return 404, "", {}
-        return original(url, user_agent, accept)
+        return original(url, user_agent, accept, method)
 
     monkeypatch.setattr(smoke, "fetch", dead_peers)
     assert wired.main(BASE) == 0
@@ -311,10 +317,10 @@ def test_a_reshaped_card_on_the_cdn_fails_the_deploy(wired, smoke, monkeypatch, 
     """
     original = smoke.fetch
 
-    def reshaped(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def reshaped(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
         if url == OG_IMAGE_URL:
             return 200, _png_bytes(600, 600), {"Content-Type": "image/png"}
-        return original(url, user_agent, accept)
+        return original(url, user_agent, accept, method)
 
     monkeypatch.setattr(smoke, "fetch", reshaped)
     assert wired.main(BASE) > 0
@@ -333,8 +339,8 @@ def test_an_empty_og_image_fails_the_deploy(wired, smoke, monkeypatch, capsys):
     """
     original = smoke.fetch
 
-    def blanked(url, user_agent=smoke.BROWSER_UA, accept=None):
-        status, body, headers = original(url, user_agent, accept)
+    def blanked(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
+        status, body, headers = original(url, user_agent, accept, method)
         if url.rstrip("/") == BASE.rstrip("/"):
             body = body.replace(f'property="og:image" content="{OG_IMAGE_URL}"',
                                 'property="og:image" content=""')
@@ -473,7 +479,8 @@ def test_a_cold_host_wakes_and_the_probe_requires_ok_true(smoke, monkeypatch, ca
         (200, '{"backend":"flask","ok":true}', {}),
     ]
 
-    def fetch(url, user_agent=smoke.BROWSER_UA, accept=None, retries=None, timeout=None):
+    def fetch(url, user_agent=smoke.BROWSER_UA, accept=None, retries=None,
+              timeout=None, method="GET"):
         assert url.endswith("/healthz")
         assert retries == 1, "the wake loop is the ladder; fetch must not stack one"
         return probes.pop(0)
@@ -498,7 +505,7 @@ def test_wake_survives_a_legacy_fetch_stub(smoke, monkeypatch, capsys):
     """
     monkeypatch.setattr(smoke, "time", _FakeTime())
 
-    def legacy(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def legacy(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
         assert url.endswith("/healthz")
         return 200, '{"backend":"flask","ok":true}', {}
 
@@ -517,7 +524,8 @@ def test_a_host_that_never_wakes_is_one_failure_not_a_cascade(
     monkeypatch.setattr(smoke, "warnings", [])
     monkeypatch.setattr(smoke, "checks_run", 0)
 
-    def asleep(url, user_agent=smoke.BROWSER_UA, accept=None, retries=None, timeout=None):
+    def asleep(url, user_agent=smoke.BROWSER_UA, accept=None, retries=None,
+               timeout=None, method="GET"):
         return 502, "<html>Render is loading…</html>", {}
 
     monkeypatch.setattr(smoke, "fetch", asleep)
@@ -539,10 +547,10 @@ def test_a_broken_local_surface_still_fails_the_deploy(
     """
     original = smoke.fetch
 
-    def no_sitemap(url, user_agent=smoke.BROWSER_UA, accept=None):
+    def no_sitemap(url, user_agent=smoke.BROWSER_UA, accept=None, method="GET"):
         if url.startswith(BASE) and url.endswith("/sitemap.xml"):
             return 500, "", {}
-        return original(url, user_agent, accept)
+        return original(url, user_agent, accept, method)
 
     monkeypatch.setattr(smoke, "fetch", no_sitemap)
     assert wired.main(BASE) > 0
