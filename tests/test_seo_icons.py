@@ -14,6 +14,18 @@ Two contracts land with the 2.6.0 floor:
    verbatim from frontmatter `lastmod:` and omitted when unset. No date in
    the sitemap may exist that no page declared — the invented daily "today"
    is the exact lie 2.6.0 exists to end.
+
+3. **HEAD PARITY (1.6.30).** The BROWSER head — templates/index.html's static
+   links plus Dash's own — declares the same icons as `configure_seo(icons=)`,
+   which is what the CRAWLER head carries. Measured across the fleet in
+   2026-08 (emojimart, re-spot-checked by the ops seat): six of seven audited
+   hosts disagreed on icons, and the browser side was the poor one — usually
+   missing 512x512 and often 192x192, the sizes Google prefers. One inherited
+   edit, six hosts. smoke_live.py compares the two heads ON THE WIRE, but by
+   the SET OF SIZES, so an .ico href pointing at a different path than the
+   declaration is invisible there (an .ico declares no size); this offline pin
+   compares (rel, href, sizes) triples and is the half that can see it. It
+   caught exactly that on the template itself.
 """
 
 from __future__ import annotations
@@ -47,6 +59,55 @@ def test_discovery_agrees_with_the_declared_icons(app):
         f"discovered only: {sorted(discovered - declared)}\n"
         "If a favicon file was added/renamed, update run.py's icons list — "
         "or if discovery's patterns changed upstream, this is the canary."
+    )
+
+
+def _head_icons(html: str) -> set:
+    """(rel, href, sizes) triples from a served <head>.
+
+    Query strings are stripped: Dash injects its own favicon link with a
+    cache-busting `?m=<mtime>` (the `{%favicon%}` placeholder), and that one
+    link is not a declaration anybody authored — under this normalization it
+    collapses onto whichever .ico the app already declares instead of
+    reading as a phantom eighth icon.
+    """
+    out = set()
+    for link in re.findall(r'<link[^>]+rel="(?:icon|apple-touch-icon)"[^>]*>', html):
+        rel = re.search(r'rel="([^"]+)"', link).group(1)
+        href = re.search(r'href="([^"]+)"', link).group(1).split("?")[0]
+        sizes = re.search(r'sizes="([^"]+)"', link)
+        out.add((rel, href, sizes.group(1) if sizes else None))
+    return out
+
+
+def test_the_browser_head_declares_the_configured_icons(client):
+    """Head parity, offline (1.6.30).
+
+    `configure_seo(icons=)` is the CRAWLER head's icon set — the static
+    document dash-improve-my-llms serves a bot. templates/index.html is the
+    BROWSER head's. Nothing but this pin holds them together, and across the
+    fleet they had drifted on six of seven audited hosts: the browser head
+    lacking 512x512, often 192x192 too, while the crawler head declared
+    both. A browser that never sees the big square gets the small one
+    upscaled on a home screen; a fork that trusted the wire-side parity
+    check saw nothing, because it compares sizes and the difference here can
+    be a bare href.
+    """
+    from dash_improve_my_llms.seo import _config
+
+    declared = _normalize(_config.icons or [])
+    served = _head_icons(client.get("/").text)
+
+    assert declared, "configure_seo(icons=) is no longer declared in run.py?"
+    assert served, "the browser head declares no icons at all"
+    assert served == declared, (
+        "The browser head and the crawler head declare different icons.\n"
+        f"browser only: {sorted(served - declared)}\n"
+        f"crawler only: {sorted(declared - served)}\n"
+        "Both heads are edited by hand in different files — templates/"
+        "index.html and run.py's configure_seo(icons=). Make the hrefs "
+        "agree exactly; a byte-identical file at another path is still a "
+        "different declaration."
     )
 
 

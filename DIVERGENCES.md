@@ -41,3 +41,38 @@ mention heuristic (over-flags, never restores).
 
 ```yaml byte-owned
 ```
+
+## Posture
+
+What this host ANSWERS, as measured — never as intended. The hub's F4
+battery seeded these per-host postures from its own table, which is a
+copy of a measurement somebody took once; this block homes them in the
+repo that can keep them true, and the hub reads it instead.
+
+Three keys, all optional. An EMPTY block means "the template defaults" —
+present, so the absence is a statement. `tests/test_claude_kit.py`
+validates the shape (and holds `runtime:` against render.yaml, where the
+repo declares one); nothing validates the numbers but a probe, so
+re-measure when you change what this host serves:
+
+    ai_bots   the status an AI-crawler UA receives per path, measured
+              with a real vendor UA (ClaudeBot, GPTBot — NOT a UA-less
+              curl, which is classified separately). A blocked vendor
+              gets 403 on the browser document while the agent surfaces
+              stay open — that asymmetry is the posture, and it is
+              invisible from a browser.
+    healthz   `full` (the fleet payload: app, backend, build, geo,
+              python, …) or `minimal` (a deliberately reduced body — see
+              clerkhook's recorded divergence; the battery's
+              python_matches_declared skips with notice there).
+    runtime   `docker` or `python` — the Render service runtime, which
+              decides whether PYTHON_VERSION is required or forbidden
+              (sync spec item 5).
+
+Measured on boilerplate.2plot.dev, 2026-08-27, build 5589318:
+
+```yaml posture
+ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
+healthz: full
+runtime: python
+```

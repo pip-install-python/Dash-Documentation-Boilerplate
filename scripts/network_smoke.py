@@ -37,6 +37,7 @@ import argparse
 import json
 import os
 import re
+import ssl
 import sys
 import time
 import urllib.error
@@ -51,6 +52,29 @@ except Exception:  # running outside a repo checkout — keep the token intact
     _INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
 UA = _INTERNAL_UA + " network-smoke"
 CRAWLER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1) " + _INTERNAL_UA
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Verify certificates via certifi when available.
+
+    The same fix smoke_live.py and audit_links.py carry, arriving here late
+    (1.6.30, muicharts): CI runs this battery against http://localhost, where
+    TLS never comes up, so the omission was invisible for the CI seat — and
+    Linux runners have an OS trust store anyway. A Mac running it against a
+    production https host got CERTIFICATE_VERIFY_FAILED on every check, 0/12,
+    which reads as "the site is down" rather than "this laptop has no CA
+    bundle". Verification stays ON either way; certifi only supplies the
+    bundle. Both live tools a CD run can certify with now carry it.
+    """
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
+SSL_CONTEXT = _ssl_context()
 
 # The body dash-improve-my-llms serves when a page has no prose registered.
 # Matched in full, deliberately: this app's own <noscript> block legitimately
@@ -113,7 +137,9 @@ def fetch(url: str, ua: str = UA, method: str = "GET",
         for k, v in (headers or {}).items():
             req.add_header(k, v)
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as r:
+            with urllib.request.urlopen(
+                req, timeout=timeout, context=SSL_CONTEXT
+            ) as r:
                 return (r.status, {k.lower(): v for k, v in r.headers.items()},
                         r.read().decode("utf-8", "replace"))
         except urllib.error.HTTPError as e:

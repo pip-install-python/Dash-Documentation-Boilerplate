@@ -5,6 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.30] - 2026-08-27
+
+The F4 battery's first round, closed by two §A fork sessions
+(emojimart f6da429, muicharts 9c4985e) that corrected the ops seat's
+diagnosis the same way and found fleet-class gaps on the way. Two
+lessons carry: a green suite proves nothing about a file NOTHING
+exercises — where 1.6.29 diagnosed the loud failure (a legacy stub
+TypeErrors), the quiet one is a fork with no `tests/test_smoke_live.py`
+at all, where the byte copy landed green and CD against production
+was the first thing ever to run the script — and identity that is
+authored twice drifts, which is why the browser head and the crawler
+head disagreed on six of seven audited hosts.
+
+### Changed
+- Sync spec renamed `SYNC-1.6.22-1.6.29.md` → `SYNC-1.6.22-1.6.30.md`.
+  Nothing new rides the block; what changes is what the items ask.
+- Spec item 6 now names **both** live tools (`scripts/smoke_live.py`
+  and `scripts/network_smoke.py`) and grows a fourth detect question:
+  does `tests/test_smoke_live.py` exist at all? Absence is
+  NOT-ADOPTED, never not-applicable. Its 1.6.29 note claiming
+  emojimart and muicharts "matched signatures" was wrong — neither had
+  the test — and the item now names, per state, what each fork that
+  already took the copy must do.
+- Spec item 5 corrected three ways: the site lane is declared by JOB
+  NAME (not by file), the compat window is *the fleet minor, one
+  adjacent minor, and the site's declared floor where it is lower*
+  (emojimart's 3.10 leg and muicharts' narrowing are both right), and
+  the render.yaml pin compares the MINOR because Render resolves the
+  patch itself (muicharts asked 3.14.7, was served 3.14.3).
+- Spec item 3's `files:` line now names the 1.6.26 docstring paragraph
+  in `lib/auth_demos.py` alongside the entry (pannellum): a fork whose
+  copy still says the table "ships EMPTY" describes a template that
+  stopped existing at 1.6.26.
+- Spec item 1's retirement note: the SUPERSESSION class is not retired
+  with the item — dispatch lag and two pushes in one window reach the
+  same state with no bot anywhere. Same correction in the kit
+  CLAUDE.md trap.
+- `sync/README.md`: the who-stubs-this rule gains its mirror — **what
+  does this call into?** — and a new rule, that a file LEAVING the
+  block must be accompanied by the forks it already landed on and what
+  each must do (removal stops the next fan-out and undoes nothing).
+- `.claude/skills/wire-verify/SKILL.md` step 3 names a crawler UA
+  instead of relying on curl's default. Which lane answers is the
+  package's UA classification, not the absence of a UA.
+- Kit CLAUDE.md gains four traps: a failed STEP in a
+  `continue-on-error` job is not a failed RUN; never round-trip JSON
+  through zsh `echo`; repeated HTTP headers survive only if you keep
+  them (`dict(resp.headers)` and a dict comprehension over `.items()`
+  both drop all but the last); name the crawler UA when probing the
+  machine lane.
+
+### Added
+- Spec item 8 — **the two heads declare the same identity.** New pin
+  `test_the_browser_head_declares_the_configured_icons`: the browser
+  head's icon links equal `configure_seo(icons=)` as unordered
+  (rel, href, sizes) triples, query strings stripped so Dash's
+  cache-busting favicon link is not read as a phantom declaration. It
+  caught the template itself — `templates/index.html` declared
+  `/assets/favicon.ico` while run.py declared
+  `/assets/favicon/favicon.ico`, byte-identical files at different
+  paths, invisible to the wire-side parity check because that one
+  compares the set of SIZES and an .ico declares none. The browser
+  link now points at the declared path.
+- `test_the_twitter_card_is_a_large_image` tightened to pin both forms
+  at exactly one occurrence each. Dash emits `property=`, which
+  Twitter's parser does not read; the static `name=` tag is the only
+  declaration a scraper sees, which is why it is the standing
+  exception to the no-static-duplicate rule — an exception that decays
+  in both directions unless pinned on both sides.
+- Spec item 9 — **DIVERGENCES.md declares this host's POSTURE.** A
+  second machine fence (```yaml posture) with `ai_bots` (path →
+  status, measured with a real vendor UA), `healthz`
+  (`minimal`|`full`) and `runtime` (`docker`|`python`). The kit test
+  validates shape (one fence, known keys, enum values, integer
+  statuses) and holds `runtime:` against render.yaml; absence skips,
+  empty means template defaults. The hub reads this instead of its own
+  seeded table. Measured here 2026-08-27:
+  `{"/": 403, "/llms.txt": 200, "/healthz": 403}` for ClaudeBot and
+  GPTBot, 200 on all three for a browser.
+
+### Fixed
+- `scripts/network_smoke.py` had no SSL context — CI runs it against
+  `http://localhost`, so TLS never came up and the omission was
+  invisible for six months of releases. From a Mac against a
+  production https host it returned 0/12,
+  indistinguishable from the site being down (muicharts). Same
+  certifi-backed `_ssl_context()` as smoke_live.py and audit_links.py;
+  verification stays on either way.
+- `tests/test_python_version.py` is job-scoped: `SITE_LANE_JOBS` /
+  `PACKAGE_LANE_JOBS` classify every job, the pins read site-lane job
+  bodies only, and a new guard fails loudly on any job that declares a
+  Python literal and sits in neither set. Until now the greps read the
+  whole file while the docstring promised the site lane only — the
+  first fork with a package matrix failed on the lane the item
+  disclaims. The window rule follows item 5's correction, and
+  `SITE_PYTHON_FLOOR` (3.12 here) is pinned against the README's own
+  promise so a floor cannot be invented inside the test.
+
 ## [1.6.29] - 2026-08-26
 
 The 1.6.28 corrections' own correction, one round later. The LIVE

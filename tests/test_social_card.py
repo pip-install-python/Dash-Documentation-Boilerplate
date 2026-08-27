@@ -171,13 +171,30 @@ def test_the_declared_ratio_suits_a_large_image_card():
 
 
 def test_the_twitter_card_is_a_large_image(client):
+    """Both forms, one occurrence each (tightened 1.6.30 — emojimart's shape).
+
+    Twitter's parser predates the OG convention and reads `name=`, never
+    `property=`; Dash emits the whole twitter:* set with `property=`. So this
+    one tag is the deliberate exception to the no-static-duplicate rule below
+    — and the exception has to be pinned on BOTH sides, or it decays in
+    either direction: delete index.html's line and no scraper sees a card at
+    all, add a second one and the duplicate class is back inside its own
+    exemption. `>= 1` was all the old assertion could tell you.
+    """
     html = client.get("/").text
-    # Every declaration agrees on the value, and the one Twitter can read is
-    # present: its parser predates the OG convention and reads name=, never
-    # property=. Dash's property= copy is unavoidable dead weight; the name=
-    # tag in index.html is the functional declaration.
+    body = _visible(html)
     assert set(_meta(html, "twitter:card")) == {"summary_large_image"}
-    assert 'name="twitter:card"' in html
+    for form in ('name="twitter:card"', 'property="twitter:card"'):
+        found = re.findall(
+            rf'<meta[^>]*{re.escape(form)}[^>]*>',
+            re.sub(r'<meta[^>]*data-dimll-prerender[^>]*>', "", body),
+        )
+        assert len(found) == 1, (
+            f"{form} appears {len(found)} times: {found}. Exactly one of "
+            "each: the name= tag (templates/index.html) is the only "
+            "declaration a scraper reads, the property= tag is Dash's and "
+            "cannot be removed."
+        )
 
 
 def test_no_meta_tag_dash_emits_is_also_declared_statically(client):

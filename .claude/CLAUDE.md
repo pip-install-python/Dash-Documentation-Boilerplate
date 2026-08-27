@@ -143,15 +143,22 @@ they win.
   the same sha — key on the workflow path (cd.yml) instead.
 - The browser lane and the machine lane are different documents;
   a fix proven on one is unproven on the other.
-- A bot-merged PR — any GITHUB_TOKEN merge — lands with ZERO
-  workflow runs on the merge sha (anti-recursion) yet still reaches
-  production: the deploy hook builds branch HEAD, so an in-flight
-  CD run ships the merge while its own build-match wait holds out
-  for the superseded release sha. Observed live on 4a1d430
-  (2026-08-25). Since 1.6.25 the wait fails FAST on this (live
-  build a descendant of the wanted sha, via the compare API)
-  instead of going red at timeout, and the remedy is policy —
-  actions PRs: human merge when green; never a bot actor on main.
+- SUPERSESSION: cd.yml's build-match wait cannot tell "not deployed
+  yet" from "already replaced" — both look like a live build that
+  is not the sha it wants. A bot-merged PR (any GITHUB_TOKEN merge)
+  is one road in: it lands with ZERO workflow runs on the merge sha
+  (anti-recursion) yet still reaches production, because the deploy
+  hook builds branch HEAD — so an in-flight CD run ships the merge
+  while its own wait holds out for the superseded release sha
+  (observed live on 4a1d430, 2026-08-25). It is NOT the only road,
+  and taking the bot actor off main does not close the class: two
+  human pushes inside one deploy window, or hook dispatch lag,
+  produce exactly the same state. Since 1.6.25 the wait fails FAST
+  when the live build is a DESCENDANT of the wanted sha (compare
+  API) instead of going red at timeout — that is the diagnosis, and
+  it works whoever merged. The policy — actions PRs: human merge
+  when green, never a bot actor on main — removes the most common
+  road, not the trap.
 - Anonymous api.github.com is 60 requests/hour. With no `gh` and no
   token, read a run ONCE after CI's own jobs report complete — a
   blind 20 s poll loop spends the whole budget reading rate-limit
@@ -163,3 +170,29 @@ they win.
 - `git fetch` before any audit: the fan-out pushes to these repos
   now, and a checkout current yesterday is 2–3 merges behind
   origin/main today (three pilot sessions, same day, 2026-08-26).
+- A failed STEP is not a failed RUN. A job with
+  `continue-on-error: true` (pip-audit here) reports its step red
+  and the RUN still concludes `success`; the reverse also bites —
+  a green-looking job list under a run whose conclusion is
+  `failure`. Read the run's `conclusion`, then the annotations;
+  never infer either one from the other.
+- Never round-trip JSON through zsh `echo` — it interprets the
+  `\n` inside a multi-line commit message and hands the parser
+  real control characters (a broken API read on the template, then
+  the same hour on the ops seat). Pipe curl straight into
+  `python3`, or use `printf '%s'`.
+- Repeated HTTP headers survive only if you keep them: both
+  `dict(resp.headers)` and `{k: v for k, v in resp.headers.items()}`
+  keep the LAST value per name, and dimll emits several `Link`
+  headers (muicharts, 2026-08-26). Iterate the items, or ask for
+  `resp.headers.get_all(name)`; in curl, `-D -` and read the raw
+  block.
+- Name the crawler UA when you probe the machine lane. Which
+  document a host serves is decided by the package's UA
+  classification, not by the absence of a UA: on the template
+  today, curl's default `curl/8.x` receives the SAME crawler
+  document as Googlebot (18,779 bytes, byte-identical) while a
+  Chrome UA gets the 148 KB app shell — and muicharts observed a
+  UA-less probe classified the other way. Either lane can be the
+  one you did not mean to test, so send `-A "<a real crawler UA>"`
+  and confirm from the body which document came back.

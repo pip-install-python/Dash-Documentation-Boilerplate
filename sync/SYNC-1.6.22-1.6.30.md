@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.29 (template @ 1.6.29)
+# SYNC 1.6.22 → 1.6.30 (template @ 1.6.30)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -36,6 +36,21 @@ exercises the interface; ask "who stubs this?" — is in
 sync/README.md. The template's wake() is also stub-tolerant since
 1.6.29, so a byte-copy port no longer detonates a not-yet-updated
 legacy stub.)
+(1.6.30 is the F4-battery round, closed by the two §A fork sessions
+— emojimart f6da429, muicharts 9c4985e. Nothing new rides the block;
+what changes is what the items ASK. Item 6 grows the QUIET half of
+its failure mode — a fork with no tests/test_smoke_live.py at all,
+where the byte copy landed green because nothing offline exercised
+it and CD against production was the first thing to run the script —
+and names BOTH live tools, network_smoke.py having shipped without
+an SSL context until now. Item 5's window rule is corrected (the
+fleet minor, one adjacent minor, and the site's declared floor where
+it is lower) and its reference test is job-scoped, so a fork with a
+package matrix stops failing on a lane the item disclaims. Items 8
+and 9 are new: browser/crawler head parity, which measured wrong on
+six of seven audited hosts, and the machine-readable POSTURE fence in
+DIVERGENCES.md that moves the hub's seeded table into the repos that
+can keep it true.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -113,6 +128,15 @@ notes: VERIFICATION TRAP, observed live on the template within
   release's CD red on build-match, wire build == the merge sha. The
   remedy (as adjusted at retirement) is policy, not diagnosis —
   actions PRs: human merge when green; never a bot actor on main.
+  THE CLASS IS NOT RETIRED WITH THE ITEM (1.6.30): the trap is
+  SUPERSESSION — the wait cannot distinguish "not deployed yet" from
+  "already replaced" — and auto-merge was only its most reliable
+  road. Two human pushes inside one deploy window, or deploy-hook
+  dispatch lag, reach the same state with no bot anywhere. Read this
+  item as "the bot actor is off main", never as "this host is
+  immune"; the standing diagnosis is 1.6.25's fast-fail on a live
+  build that is a DESCENDANT of the wanted sha, which does not care
+  who merged.
   SEQUENCING,
   observed the same way: copying dependabot.yml makes dependabot
   rebase your open actions PRs within seconds, and the workflow then
@@ -156,7 +180,13 @@ notes: fleet total at the 2026-08-25 reading was 18 pip floor-raises
 
 ### 3. Every DEMOS entry resolves (1.6.26; found by excalidraw)
 class: contract
-files: lib/auth_demos.py (the entry — site judgment),
+files: lib/auth_demos.py — TWO things in it, not one (1.6.30, found
+  by pannellum): the entry (site judgment) AND the module docstring's
+  1.6.26 paragraph, the one beginning "The table ships with ONE
+  working entry in the template". A fork whose copy still reads "The
+  table ships EMPTY in the template" is describing a template that
+  stopped existing at 1.6.26, and the next reader picks the wrong
+  default. Port the paragraph with the entry —
   tests/test_auth_demos.py (the detect — byte-verbatim, rides the
   block)
 detect: tests/test_auth_demos.py present and green — every DEMOS
@@ -216,7 +246,7 @@ notes: class ruling — contract, not verbatim: batch-1's own evidence
   SYNC-1.6.10-1.6.16) proves home.py is not whole-file verbatim
   across the population; a byte-copy would clobber fork branding.
 
-### 5. One fleet Python — image, matrix, render.yaml, healthz agree (1.6.27; amended 1.6.28)
+### 5. One fleet Python — image, matrix, render.yaml, healthz agree (1.6.27; amended 1.6.28, 1.6.30)
 class: conditional (predicate: the fork has a Dockerfile) + contract
 files: Dockerfile (FROM python:3.14-slim — MINOR tag, never a patch
   pin), render.yaml PYTHON_VERSION (BRANCHES on `runtime:` — see
@@ -226,7 +256,9 @@ files: Dockerfile (FROM python:3.14-slim — MINOR tag, never a patch
   `python_matches_declared` battery check), tests/
   test_python_version.py (the encodings-agreement pins — session-
   class, NOT block cargo: it presumes Dockerfile and render.yaml,
-  which the predicate says not every fork carries)
+  which the predicate says not every fork carries; JOB-SCOPED since
+  1.6.30, and a fork adapts exactly three things in it —
+  `SITE_LANE_JOBS`, `PACKAGE_LANE_JOBS`, `SITE_PYTHON_FLOOR`)
 detect: `grep ^FROM Dockerfile` — the tag must be the fleet minor
   and minor-only — AND healthz `python` on the wire reporting the
   same minor. Either alone can lie: the template itself carried a
@@ -273,6 +305,32 @@ contract: ONE Python per fork, everywhere it is encoded — and the
   SKIP-WITH-NOTICE, never fail (1.6.28): the fork proves its
   interpreter in-image in CI instead, and F4 reads the skip as
   declared divergence rather than drift.
+  THREE 1.6.30 CORRECTIONS, all from §A sessions running the 1.6.28
+  text against real forks:
+  (a) THE SITE LANE IS DECLARED BY JOB NAME, not by file. Until
+  1.6.30 the reference test's greps read the whole ci.yml while its
+  docstring promised the site lane only — so the first fork with a
+  package matrix failed on the lane this item explicitly disclaims.
+  The shape to port (emojimart's): parse `jobs:`, classify every job
+  into `SITE_LANE_JOBS` or `PACKAGE_LANE_JOBS`, read site-lane job
+  bodies only, and carry the GUARD — a job that declares a Python
+  literal and sits in neither set fails loudly. Scoping without the
+  guard turns a red into a silence, which is the worse of the two.
+  (b) THE WINDOW IS the fleet minor, ONE adjacent minor, and the
+  SITE'S DECLARED FLOOR where it is lower — not a contiguous
+  three-wide window. emojimart legitimately keeps a 3.10 leg
+  (python-frontmatter needs typing.TypeGuard, so 3.10 is its real
+  floor, four minors under the fleet Python); muicharts legitimately
+  narrowed to 3.13/3.12. Breadth is a CEILING here, never a quota.
+  The floor is a promise the README makes, so pin the two together —
+  a floor declared only inside the test widens the window on nothing.
+  (c) PINS COMPARE THE MINOR — say it in the item, because the patch
+  is not yours to assert. Render RESOLVES the patch: muicharts asked
+  for 3.14.7 and was served 3.14.3, which is the platform doing what
+  it documents. A patch-level assertion against a native runtime is a
+  test that fails on correct behaviour; the minor is the contract,
+  and `python_matches_declared` on the wire holds the running
+  interpreter to it.
 acceptance: CI docker boot/battery green on the fork's own image;
   healthz on the wire carries `python` with the fleet minor (or the
   recorded minimal-payload divergence plus the in-image CI proof);
@@ -286,16 +344,31 @@ notes: the eight open dependabot docker PRs (python:3.12-slim →
   — port them as contract; the agreement test then pins render.yaml
   against ci.yml with no image lane.
 
-### 6. smoke_live.py: wake loop, retry ladder, SSL context (1.6.28; reclassed contract 1.6.29)
+### 6. The live tools: wake loop, retry ladder, SSL context (1.6.28; reclassed contract 1.6.29; both tools + the quiet failure mode 1.6.30)
 class: contract
-files: scripts/smoke_live.py (or the fork's recorded divergent tool),
-  tests/test_smoke_live.py (fork-OWNED and never cargo: BASE, the
-  canonical host and the og:image URL inside it are per-fork)
-detect: the cold-start wake loop present (`SMOKE_WAKE_ATTEMPTS`),
-  fetch retries present (`SMOKE_FETCH_RETRIES`), and an explicit SSL
-  context on EVERY urlopen — the GET fetch and the auth POST both.
-  This is now THE detect for every fork, not just divergent-tool
-  ones.
+files: BOTH live tools (1.6.30) — scripts/smoke_live.py AND
+  scripts/network_smoke.py, or the fork's recorded divergent
+  equivalent of either. The contract sentence always said "whatever
+  live tool a CD run certifies with"; the files: line named one, and
+  the unnamed one shipped without an SSL context to the whole fleet.
+  Plus tests/test_smoke_live.py — fork-OWNED, never cargo, but PORTABLE:
+  the template's copy indirects every fork-specific value through
+  lib.constants (BASE_URL, OG_IMAGE_*), so the body ships unchanged
+  and only the fork's own stubs and divergences are local. It stays
+  out of the block because tool and test move as ONE port, not
+  because its bytes differ (1.6.30 correction — the 1.6.29 text said
+  "BASE, the canonical host and the og:image URL inside it are
+  per-fork", which describes the values, not the file).
+detect: FOUR questions, and the fourth is the one 1.6.29 missed —
+  (1) the cold-start wake loop present (`SMOKE_WAKE_ATTEMPTS`),
+  (2) fetch retries present (`SMOKE_FETCH_RETRIES`),
+  (3) an explicit SSL context on EVERY urlopen in EVERY live tool —
+  the GET fetch and the auth POST both, in smoke_live.py and in
+  network_smoke.py,
+  (4) DOES tests/test_smoke_live.py EXIST AT ALL? Absence is
+  NOT-ADOPTED, never not-applicable — the item-5 absent-field rule,
+  arriving here for the same reason. This is THE detect for every
+  fork, not just divergent-tool ones.
 contract: whatever live tool a CD run certifies with must carry the
   wake loop, the retry ladder and the certifi-backed SSL context.
   The file had no spec item, so it drifted exactly as unversioned
@@ -321,15 +394,42 @@ contract: whatever live tool a CD run certifies with must carry the
   upstream), so a copy landing ahead of the stub update degrades to
   the fork's old red checks instead of a suite-wide TypeError. The
   stub update is still the port's second half, not optional.
-acceptance: the fork's own tests/test_smoke_live.py green against
-  its own copy; the fork's next CD log shows the wake ladder
-  running.
+  THE QUIET HALF (1.6.30, emojimart and muicharts). 1.6.29 diagnosed
+  the LOUD failure — a legacy stub TypeErrors and the fork's suite
+  goes red, which at least tells somebody. The quiet one is a fork
+  with NO tests/test_smoke_live.py: the byte copy lands, CI is green
+  because nothing offline exercises the script, and the first thing
+  ever to run it is CD against production. Both §A forks were in
+  that state, and green told nobody. Where the test is absent the
+  port CREATES it from the template's reference — the body ships
+  unchanged (everything fork-specific is indirected through
+  lib.constants) — and only then is the tool's behaviour ported.
+  Test first, tool second, both in the same touch.
+  network_smoke.py's own gap is the same shape (1.6.30, muicharts):
+  no SSL context, invisible for the CI seat because CI runs it
+  against http://localhost where TLS never comes up. Run from a Mac
+  against a production https host it returned 0/12 —
+  indistinguishable from the site being down, and the fleet standard
+  in scripts/audit_links.py and smoke_live.py already had the fix.
+  Both tools carry the certifi-backed context upstream from 1.6.30.
+acceptance: the fork's own tests/test_smoke_live.py EXISTS and is
+  green against its own copy; the fork's next CD log shows the wake
+  ladder running; both live tools import and use an SSL context.
 notes: a fork that replaced the tool records the divergence and
   ports the contract half; a template copy landing beside it is
-  inert unless cd.yml invokes it. Green in the 1.6.28 round proved
-  only stub-compatibility, not currency: emojimart, muicharts and
-  pipdocs matched signatures, clerkhook has no such test — run the
-  detect there anyway.
+  inert unless cd.yml invokes it. THE 1.6.28 ROUND'S GREENS WERE NOT
+  ONE THING (corrected 1.6.30, and the correction matters because
+  the file has since LEFT the block — removal stops the next
+  fan-out and undoes nothing, so every fork that took the copy still
+  has it): 7 of 12 went red on legacy stubs — port both halves and
+  the red goes away. pipdocs matched signatures — currency still
+  unproven, run the detect. emojimart and muicharts had NO
+  tests/test_smoke_live.py at all, which is why they were green;
+  1.6.29's note claiming they "matched signatures" was wrong, and
+  their remedy is detect question 4, not a stub update. clerkhook
+  has no such test either and runs a divergent tool — run the detect
+  on lockdown_smoke.py. Where this round's evidence cannot say which
+  state a fork is in, the detect is the first step, not the last.
 
 ### 7. The battery must see the CONFIGURED gate page (1.6.28; found by clerkhook)
 class: conditional + contract
@@ -361,6 +461,92 @@ notes: THE TEMPLATE'S OWN ADOPTION IS OPEN — conftest.py blanks
   sign-in gate cards zero-secret only; the detect fires here too.
   Recorded as `open` in the 1.6.28 report, queued for the next
   template runtime pass (this release is spec-only by design).
+
+### 8. The two heads declare the same identity (1.6.30; measured by emojimart)
+class: contract
+files: templates/index.html (the BROWSER head), run.py's
+  `configure_seo(icons=..., ...)` (the CRAWLER head), and the pin —
+  tests/test_seo_icons.py. Contract, not cargo, and by the mirror
+  rule in sync/README.md: the pin CALLS INTO run.py, a fork-owned
+  file, so it must land as behaviour a fork can satisfy in its own
+  shape.
+detect: two questions, offline, both cheap —
+  (1) the browser head's `<link rel=icon|apple-touch-icon>` set,
+  compared to `configure_seo(icons=)` as unordered (rel, href,
+  sizes) triples with query strings stripped (Dash injects one
+  cache-busting favicon link that is nobody's declaration), is EQUAL;
+  (2) `twitter:card` appears exactly once as `name=` and exactly
+  once as `property=`.
+contract: content may differ between the crawler document and the
+  browser document — that is what the prerender is for. IDENTITY MAY
+  NOT, and the two heads are edited by hand in two different files,
+  so nothing but a pin holds them together. Measured on the wire by
+  emojimart and re-spot-checked by the ops seat, they had drifted on
+  SIX OF SEVEN audited hosts: leaflet on the card; flows, email and
+  muischeduler on icons; modelviewer and pannellum on both. The
+  browser side was the poor one — usually missing 512x512, often
+  192x192 too, the sizes Google prefers — and six of the seven share
+  the boilerplate icon set, so this is one inherited edit reaching
+  six hosts, not six mistakes. Two template-class facts underneath:
+  (a) Dash emits the whole twitter:* set with `property=`, while the
+  card spec wants `name=`; the static `name="twitter:card"` beside
+  Dash's tag is therefore CORRECT and is the deliberate exception to
+  "no static duplicate of a Dash-emitted meta" — the exemption must
+  be written into that test explicitly and both forms pinned at one
+  occurrence each, or the exception decays in either direction.
+  (b) smoke_live.py's wire-side parity block was RIGHT on both hosts
+  and is not a substitute: it compares the SET OF SIZES, so a bare
+  .ico href pointing somewhere the other head never names is
+  invisible to it. Offline triples see it; the template's own copy
+  was wrong exactly there.
+acceptance: tests/test_seo_icons.py green (both pins) in the fork's
+  suite, and the fork's next live smoke run green on the
+  crawler/browser identity parity block.
+notes: CHECK THE TEMPLATE'S OWN index.html FIRST — the instruction
+  earned itself. At 1.6.29 the boilerplate declared
+  `/assets/favicon.ico` in the browser head and
+  `/assets/favicon/favicon.ico` in the crawler head: byte-identical
+  files, different paths, one extra browser-only declaration, and
+  four passing icon tests. Fixed in 1.6.30 by moving the browser
+  link onto the declared path. A fork whose two heads disagree fixes
+  the BROWSER side by default — the declaration in run.py is what
+  autodiscovery agrees with and what the crawler reads.
+
+### 9. DIVERGENCES.md declares this host's POSTURE (1.6.30; F4)
+class: contract
+files: DIVERGENCES.md (the `yaml posture` fence),
+  tests/test_claude_kit.py (the shape validator — byte-verbatim,
+  rides the block)
+detect: DIVERGENCES.md carries a second fenced block, ```yaml
+  posture, alongside the byte-owned one; the kit test's
+  posture pin is present and not skipping.
+contract: the hub's F4 battery seeds each host's declared posture
+  from its own table — which is a copy of a measurement somebody
+  took once, aging in the one repo that cannot observe the host.
+  Home the posture where it can be kept true. Three optional keys:
+  `ai_bots` (a JSON object of path → status as measured with a REAL
+  vendor UA — ClaudeBot, GPTBot; not a UA-less curl, which is
+  classified separately and may land in either lane), `healthz`
+  (`minimal` | `full` — the clerkhook divergence has a name here
+  now), `runtime` (`docker` | `python`, the same value item 5
+  branches on). FROM MEASUREMENT, NOT FROM INTENT: nothing but a
+  probe can validate a status, so the test validates the SHAPE —
+  one fence, known keys only, enum values, statuses that are
+  integers — plus the one value the repo can contradict by itself,
+  `runtime:` against render.yaml. An EMPTY fence means "the template
+  defaults", present so the absence is a statement; absence of the
+  fence SKIPS, like byte-owned, so a fork that has not ported this
+  keeps its CI green and receives the item instead of a red.
+acceptance: the kit test's posture pin green (not skipped) in the
+  fork's suite, and every declared number reproduced by a probe
+  pasted in the fork's report.
+notes: re-measure when you change what the host serves — a stale 403
+  in this fence is exactly the hub-table problem moved one repo
+  closer. Template's measurement, 2026-08-27, build 5589318:
+  `{"/": 403, "/llms.txt": 200, "/healthz": 403}` for ClaudeBot and
+  GPTBot alike (a browser UA gets 200 on all three) — the agent
+  surface stays open while the browser document is refused, which is
+  the posture and is invisible from a browser.
 
 ## Reporting
 

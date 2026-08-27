@@ -165,8 +165,15 @@
          Generate favicons at: https://realfavicongenerator.net/
          ======================================================================== -->
 
-    <!-- Standard favicon (32x32 or 16x16) -->
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <!-- Standard favicon (32x32 or 16x16). The href is the assets/favicon/
+         copy, NOT the loose /assets/favicon.ico beside it: run.py's
+         configure_seo(icons=[...]) declares that path (it is what 2.6.0's
+         autodiscovery finds), and the two heads must agree href-for-href,
+         not merely file-for-file — tests/test_seo_icons.py pins it. Until
+         1.6.30 this line pointed one directory up at a byte-identical copy,
+         which the on-the-wire parity check could not see (it compares the
+         SET of declared sizes, and an .ico declares none). -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon/favicon.ico">
 
     <!-- The full icon set ships in assets/favicon/. These were commented out
          while it did not, with a note saying the files were missing — that

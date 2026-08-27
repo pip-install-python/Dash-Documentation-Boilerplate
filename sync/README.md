@@ -91,7 +91,14 @@ Rules:
   exercises its interface** (1.6.29) — if `tests/` in a fork calls
   into it with a signature the fork wrote, the file is contract-class
   no matter how invariant its bytes are. Ask the question for every
-  cargo candidate: who stubs this? The case: scripts/smoke_live.py
+  cargo candidate: who stubs this? **And its mirror: what does this
+  call into?** (1.6.30) — cargo that CALLS a fork-owned seam is the
+  same hazard from the other side. tests/test_auth_demos.py is the
+  standing example: nothing stubs it, but it reads DEMOS's shape
+  (`spec["module"]`, so dict values) and conftest's `app_module`
+  fixture. Both are fleet-uniform today, which is why it stays in the
+  block — uniform is a fact you check per round, not a property. The
+  case: scripts/smoke_live.py
   rode the block for exactly one round (1.6.28) — byte-invariant by
   construction, host from argv, knobs from env — but every fork's own
   tests/test_smoke_live.py (BASE, canonical host, og:image are all
@@ -100,6 +107,15 @@ Rules:
   on 7 of 12 forks: wake()'s new kwargs meeting stubs written for the
   pre-1.6.2x signature. Green on the other four proved
   stub-compatibility, not safety.
+- **When a file LEAVES the block, the release notes name the forks it
+  already landed on and what they must do** (1.6.30). Removal stops
+  the NEXT fan-out and undoes nothing: every fork that took the copy
+  still has it, in whatever state the round left it — green, red, or
+  green-because-nothing-exercised-it. A removal that says only "no
+  longer cargo" hands twelve sessions the job of working out whether
+  they are one of the twelve. Name them, and name the remedy per
+  state; where the round's own evidence cannot say (a fork with no
+  test either way), say that too and make the detect the first step.
 - Paths are repo-relative, no `..`, one per line, `#` comments
   allowed.
 - **Adoption gates** — zero or more gate lines inside the fence.
