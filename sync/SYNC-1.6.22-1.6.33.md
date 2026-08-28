@@ -753,7 +753,7 @@ notes: remedies for the three reds — flows: rename `dash` back to
   pipdocs newly measured. Trust the dated table for what it measured
   and re-measure both hosts before treating either as settled.
 
-### 11. HEAD answers wherever GET answers (1.6.32; seat-measured on the wire)
+### 11. HEAD answers wherever GET answers (1.6.32; mechanism and population corrected 1.6.33)
 class: conditional (predicate: the fork serves a non-Flask backend) +
   contract
 files: wherever the fork registers ASGI middleware (template:
