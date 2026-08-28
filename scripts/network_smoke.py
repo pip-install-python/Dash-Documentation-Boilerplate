@@ -214,7 +214,7 @@ def satellite_checks(base: str) -> None:
 
     def head_healthz_matches_get():
         # HTTP requires HEAD wherever GET is served. Werkzeug derives a HEAD
-        # rule from every GET rule; Starlette does not, so a fork on the ASGI
+        # rule from every GET rule; FastAPI's APIRoute does not, so an ASGI
         # lane answers 405 to the method most uptime monitoring probes with —
         # measured on both FastAPI hosts, every route, 2026-08-27.
         #

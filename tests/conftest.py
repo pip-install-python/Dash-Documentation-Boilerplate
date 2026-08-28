@@ -171,7 +171,7 @@ class Client:
 
         Its own method rather than a flag because what it pins is a
         backend difference: Werkzeug derives a HEAD rule from every GET
-        one, Starlette does not, and tests/test_head_method.py is where
+        one, FastAPI's ``APIRoute`` does not, and test_head_method.py is where
         that stops being invisible.
         """
         return self.open(path, "HEAD", user_agent=user_agent, accept=accept)

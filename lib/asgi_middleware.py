@@ -17,7 +17,7 @@ class HeadAsGetMiddleware:
     """Answer ``HEAD`` wherever ``GET`` is served (1.6.32).
 
     HTTP requires it, Werkzeug derives it from every ``GET`` rule for free,
-    and Starlette does not: a FastAPI route declared ``@router.get(...)``
+    and FastAPI does not: a route declared ``@router.get(...)``
     answers ``405 Method Not Allowed`` to ``HEAD``. On the wire that meant
     **every route of both FastAPI forks 405'd on HEAD** — measured on
     pannellum and muischeduler, 2026-08-27 — including ``/healthz``, which
@@ -34,6 +34,18 @@ class HeadAsGetMiddleware:
     fix has to sit above the router. Pure ASGI rather than
     ``BaseHTTPMiddleware`` so it neither buffers the response nor breaks
     streaming.
+
+    DO NOT REMOVE THIS WHEN THE PACKAGE FLOOR REACHES 2.7.2 (1.6.33).
+    dash-improve-my-llms 2.7.2 declares ``["GET", "HEAD"]`` on its own doc
+    routes, which removes one reason for this middleware and not the
+    others. ``/`` is Dash's page catch-all, and *every* Dash route is a
+    FastAPI ``APIRoute``: ``dash/backends/_fastapi.py::add_url_rule`` calls
+    ``add_api_route(..., methods=methods or ["GET"])``. Measured here with
+    this middleware removed, ``HEAD /`` answers 405 to a browser UA and 200
+    to a crawler UA — the 200 being the package's prerender replying before
+    the router, which is the shadow that hid this defect three times.
+    Nothing in this repo or in the package can declare methods on Dash's
+    routes; this is the only thing standing in front of them.
 
     The re-dispatch is a full ``GET``: same status, same headers, same work.
     The body is dropped here so the response is empty at every layer under

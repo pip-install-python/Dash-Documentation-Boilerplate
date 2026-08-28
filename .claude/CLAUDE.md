@@ -141,10 +141,16 @@ they win.
 - Always GET, never HEAD — and the mechanism, measured 2026-08-27
   after two rounds of wrong diagnoses: on the ASGI backends HEAD is
   answered by NOTHING AT ALL. Werkzeug derives a HEAD rule from
-  every GET rule; Starlette does not, so a FastAPI route declared
-  `@router.get(...)` returns 405, and both FastAPI hosts were
-  405ing HEAD on every route — `/healthz`, `/robots.txt`,
-  `/sitemap.xml` included. A HEAD probe therefore tells you about
+  every GET rule; FastAPI's `APIRoute` does not, so a route declared
+  `@router.get(...)` returns 405, and every ASGI host in the network
+  was 405ing HEAD on every route — `/healthz`, `/robots.txt`,
+  `/sitemap.xml` included. Get the LAYER right (corrected 1.6.33,
+  after this text and two seats' drops all said "Starlette", and
+  three probes went looking in the wrong package):
+  `starlette.routing.Route` DOES add HEAD wherever GET is present —
+  `self.methods.add("HEAD")`, the same courtesy Werkzeug does — and
+  FastAPI's `APIRoute` is the one that takes `methods` literally.
+  A HEAD probe therefore tells you about
   the router's method table and never about the document. GET is
   never wrong, which is the whole reason to have one rule.
   Do NOT "verify" the trap on one host and conclude HEAD is fine:
@@ -157,8 +163,13 @@ they win.
   DROP the `Link` headers on HEAD: a 405 carries no `Link`, so the
   observation was true and the diagnosis was not. Fixed in the
   template at 1.6.32 (a HEAD→GET ASGI middleware, because the
-  package's own adapter declares its routes GET-only); the two
-  forks consume it as spec item 11.
+  package's own adapter declares its routes GET-only); the fleet's
+  two ASGI forks consume it as spec item 11, and the hub plus four
+  second-ring hosts had the same defect — if you serve a non-Flask
+  backend, assume you have it until you have probed a route that is
+  NOT `/`. The middleware stays after dimll 2.7.2 fixes the
+  package's own routes: `/` is Dash's page catch-all and every Dash
+  route is an `APIRoute` too.
 - Any throwaway Python probe a session writes against a production
   host needs the certifi SSL context AND a retry guard. Fixing the
   shipped tools does not cover the next ad-hoc script: the template

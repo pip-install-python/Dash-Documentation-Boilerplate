@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.32 (template @ 1.6.32)
+# SYNC 1.6.22 → 1.6.33 (template @ 1.6.33)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -76,7 +76,9 @@ rule, as always: traps verbatim, everything above them adapted.)
 returns 405 on every route of both FastAPI forks — pannellum and
 muischeduler, measured on the wire 2026-08-27, `/healthz` and
 `/robots.txt` and `/sitemap.xml` included — because Werkzeug derives
-a HEAD rule from every GET rule and Starlette does not. It is not a
+a HEAD rule from every GET rule and FastAPI's `APIRoute` does not.
+(That clause said "Starlette" until 1.6.33; Starlette's own `Route`
+adds HEAD — see item 11's contract.) It is not a
 fork's mistake: both hosts inherited it by choosing the backend the
 template ships, and nothing in the contract could see it, because CI
 never issued a HEAD and both live tools GET. The template's fix is
@@ -89,6 +91,22 @@ arrived as this seat's own pushback. Nothing new rides the block:
 tests/test_head_method.py calls into the app run.py builds, and
 `scripts/smoke_live.py` has been contract-class since 1.6.29 — this
 round it grows a keyword, which is precisely why.)
+(1.6.33 is a CORRECTION release — text only, no runtime change, no
+change to the block — and it lands BEFORE the fan-out that carries
+item 11, because that item currently teaches a mechanism that is
+false. Three things. The LAYER: it is FastAPI's `APIRoute`, not
+Starlette; `starlette.routing.Route` adds HEAD to every GET route the
+way Werkzeug does, verified in the installed source of both packages
+here. The POPULATION: seven ASGI hosts, not two — the two fleet forks,
+the hub (which had the defect and has fixed it), and four second-ring
+hosts this spec will never reach mechanically, named anyway. The
+PERMANENCE: dash-improve-my-llms 2.7.2 fixes the package's own seven
+doc routes, and the middleware STAYS regardless, because `/` is Dash's
+page catch-all and every Dash route is an `APIRoute` — measured in
+this tree, not assumed. Item 10 gains the hub as a fourth red and the
+shape lesson behind it: a hand-declared healthz drifts silently, and a
+package floor can make a key impossible rather than absent, which are
+different states with different remedies.)
 
 Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
 remains `(2, 7, 1)`. The rationale ladders retain every older rung by
@@ -711,6 +729,30 @@ notes: remedies for the three reds — flows: rename `dash` back to
   because seven correctly-named empty strings pass a key check and
   tell the fleet nothing.
 
+  A HAND-DECLARED HEALTHZ IS ITS OWN FAILURE MODE (1.6.33). The reds
+  are FOUR, not three: the hub (2plot.ai) carries six keys, missing
+  `geo`, and it was never counted because the hub is not in the
+  fan-out. Its cause is a shape any fork can be in: the hub declares
+  `/healthz` by hand in `lib/asgi_routes.py` instead of building the
+  payload with `lib/health.py`, so it drifts from the fleet shape
+  silently — no test fails, no reader complains, the key is simply
+  never added. AND its `geo` needs dash-improve-my-llms >= 2.7.0 while
+  that host's floor is 2.6.1. Those are two different states and the
+  distinction is the point: **a hand-declared healthz drifts, and a
+  package floor can make a key IMPOSSIBLE rather than merely absent.**
+  Establish which one you are in before recording either as a
+  divergence — "we chose not to" and "our floor cannot" get different
+  remedies, and only the first is a divergence at all.
+
+  Red today per the ops seat, 2026-08-28: **flows** (`dash` for
+  `dash_version`, no `backend`), **clerkhook** (three keys),
+  **pipdocs** (`backend`), **hub** (`geo`, blocked on its own package
+  floor). That list and the 2026-08-27 table above disagree on two
+  rows — the table has `llms` missing `python` and no pipdocs row —
+  and the drop that supplied it does not say whether llms was fixed or
+  pipdocs newly measured. Trust the dated table for what it measured
+  and re-measure both hosts before treating either as settled.
+
 ### 11. HEAD answers wherever GET answers (1.6.32; seat-measured on the wire)
 class: conditional (predicate: the fork serves a non-Flask backend) +
   contract
@@ -728,8 +770,18 @@ detect: `HEAD /healthz` and `HEAD /robots.txt` return the same status
   on a fully broken host (see notes).
 contract: HTTP requires HEAD wherever GET is served. Werkzeug derives
   a HEAD rule from every GET rule, so Flask and Quart get it for
-  free; Starlette does not, so a route declared `@router.get(...)`
-  answers 405. A fork that chose the ASGI lane inherited a 405 on
+  free. **It is FastAPI, not Starlette** (corrected at 1.6.33; 1.6.32
+  said Starlette and was wrong, as did the drop that produced it, as
+  did three separate probes): `starlette.routing.Route.__init__` ends
+  with `if "GET" in self.methods: self.methods.add("HEAD")` — a plain
+  Starlette route extends the same courtesy Werkzeug does.
+  **`fastapi.routing.APIRoute` takes `methods` literally and adds
+  nothing**, so `@router.get(...)`, `add_api_route(...)` and every
+  other FastAPI declaration answers 405 to HEAD. Get the layer right
+  before you look for the fix: a fork that reads "Starlette does not
+  derive HEAD" will search the wrong package, and will conclude a
+  bare-Starlette mount is affected when it is not. A fork that chose
+  the ASGI lane inherited a 405 on
   every route and cannot see it from any surface the contract reads:
   CI never issues a HEAD, both live tools GET, and a browser never
   sends HEAD for a document. What must be true afterwards is the
@@ -742,9 +794,29 @@ acceptance: the per-backend pin green in the fork's suite, and
   before the fix is testing the test client, not the router, which is
   the exact trap that hid this defect for the whole life of the ASGI
   lane.
-notes: the two affected forks are **pannellum** and **muischeduler**,
-  both measured 405 on every route on 2026-08-27. The single
-  exception, `HEAD /` with a crawler UA answering 200, is the
+notes: THE POPULATION IS EVERY ASGI HOST IN THE NETWORK, and it is
+  seven, not the two this item named at 1.6.32. Measured on the wire
+  by the ops seat, 2026-08-27/28, across every host that seat can
+  reach:
+
+    fleet, reached by this fan-out       pannellum, muischeduler
+    hub, reached by its own drop         2plot.ai — HAD the defect,
+                                         already fixed
+    second ring, reached by NEITHER      piratesbargain.com,
+                                         ai-agent.buzz, 2plot.xyz,
+                                         cast.2plot.net
+    Flask hosts (ten) + 2plot.media      200 already, no action
+
+  Two of those rows correct the drop's own earlier text: the hub was
+  never in this item's population and had the defect anyway, and
+  `cast` is a fourth second-ring host that the hub seat had no reason
+  to check. The second ring is NOT in the fan-out and this item will
+  never reach it mechanically — it is named here as **known-affected,
+  reached by a drop rather than by the spec**, because notes that stop
+  at the fan-out's edge read as "these two hosts" when the truth is
+  "every ASGI host, and we know which."
+
+  The single exception, `HEAD /` with a crawler UA answering 200, is the
   package's prerender middleware replying before the request reaches
   the router at all — a session that probes only that case will
   conclude the host is fine. (It is also how the template's own
@@ -773,7 +845,14 @@ notes: the two affected forks are **pannellum** and **muischeduler**,
   (`h11/_connection.py::_body_framing`). So the template's pin
   asserts the empty body on the two backends where a layer under test
   performs the strip, and says why on the third rather than asserting
-  loosely.
+  loosely. Read this item's "empty body" as **the wire is empty**,
+  never as "your adapter empties it": Werkzeug's response object,
+  httpx's ASGI transport and h11 under both servers each drop it, and
+  h11 raises if a server forwards one. The package seat declined to
+  assert emptiness in its own adapters for exactly that reason and was
+  right; status + content-type parity, never-405, and
+  empty-or-identical is the assertable shape when you are not the
+  layer doing the stripping.
 
   THE LIVE-TOOL CHECK COSTS A KEYWORD (1.6.29's hazard, again). Both
   tools now need `HEAD`, and `scripts/smoke_live.py`'s `fetch` had no
@@ -792,11 +871,37 @@ notes: the two affected forks are **pannellum** and **muischeduler**,
   which is exactly what this item measures. The rule exists because
   of this defect; the check is the defect's own detector.
 
-  UPSTREAM, not in scope for a fork: the package's FastAPI adapter
-  declares its own routes GET-only. Every ASGI fork papers over it
-  with the middleware today; the durable fix is
-  `methods=["GET", "HEAD"]` in dash-improve-my-llms itself. Owner /
-  hook-repo item.
+  THE MIDDLEWARE IS THE FLOOR AND STAYS AFTER THE PACKAGE FIX. The
+  package's FastAPI adapter declared its routes GET-only; that is
+  fixed in dash-improve-my-llms 2.7.2 (`DOC_ROUTE_METHODS =
+  ["GET", "HEAD"]` across all three adapters), so when the fleet floor
+  reaches 2.7.2 the package's seven doc routes stop needing help. **Do
+  not remove the middleware when that lands.** It covers routes
+  neither the fork nor the package declares, and this tree measured
+  which, rather than assuming (1.6.33, in-process on fastapi, the
+  middleware removed):
+
+    HEAD /            browser UA   405   ← Dash's page catch-all
+    HEAD /            crawler UA   200   ← the prerender, not the router
+    HEAD /healthz, /llms.txt, /robots.txt, /sitemap.xml    405
+    → 10 of the 11 pins red; the 1 green is the crawler `/` shadow
+
+  `/` is served by Dash itself, and every Dash route is an `APIRoute`:
+  `dash/backends/_fastapi.py::add_url_rule` calls
+  `server.add_api_route(..., methods=methods or ["GET"])`, and the
+  page catch-all is registered `methods=["GET"]` at line 345. That
+  covers `/`, `/_dash-layout`, `/_dash-dependencies`, `/_reload-hash`
+  and the asset routes — nothing in the fork or in
+  dash-improve-my-llms can declare methods on any of them, and a fork
+  that later declares its own route GET-only is covered too. The
+  package fix removes one reason for the middleware; it does not
+  replace it.
+
+  UPSTREAM, not in scope for a fork: Dash's FastAPI backend should add
+  HEAD alongside GET the way its Flask and Quart backends get it from
+  Werkzeug — a one-line change in `add_url_rule`. Owner / upstream
+  item; until then the middleware is the only thing standing in front
+  of Dash's own routes.
 
 ## Reporting
 

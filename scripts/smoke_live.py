@@ -392,7 +392,7 @@ def main(base: str) -> int:
     check("/healthz responds 200", status == 200, f"got {status}")
 
     # HTTP requires HEAD wherever GET is served. Werkzeug derives it from
-    # every GET rule; Starlette does not, so a fork on the ASGI lane answers
+    # every GET rule; FastAPI's APIRoute does not, so an ASGI-lane fork answers
     # 405 to the method most uptime monitoring probes with — measured on both
     # FastAPI hosts, every route, 2026-08-27. One request, against the route
     # whose 405 reads as "the site is down" while the site is healthy.

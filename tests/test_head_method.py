@@ -2,11 +2,15 @@
 
 The defect this pins was live on the wire for the whole life of the ASGI
 lane and invisible to everything the contract reads. Werkzeug derives a
-HEAD rule from every GET rule; Starlette does not, so a FastAPI route
-declared ``@router.get(...)`` answers **405** to HEAD. Both FastAPI forks
-— pannellum and muischeduler — were measured 405ing HEAD on every route
-on 2026-08-27, ``/healthz`` included: the default probe method of most
-uptime monitors, against the two hosts whose deploy proof IS ``/healthz``.
+HEAD rule from every GET rule; **FastAPI's ``APIRoute`` does not**, so a
+route declared ``@router.get(...)`` answers **405** to HEAD. The layer
+matters and cost three probes to locate (corrected 1.6.33):
+``starlette.routing.Route`` adds HEAD wherever GET is present, exactly as
+Werkzeug does — it is FastAPI that takes ``methods`` literally. Seven ASGI
+hosts across the network were measured 405ing HEAD on every route on
+2026-08-27/28 — both FastAPI forks, the hub, four second-ring sites —
+``/healthz`` included: the default probe method of most uptime monitors,
+against hosts whose deploy proof IS ``/healthz``.
 
 Why it hid so well, and what that demands of this file:
 

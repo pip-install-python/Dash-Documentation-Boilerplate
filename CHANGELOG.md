@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.33] - 2026-08-27
+
+A correction release: no behaviour changes, no test changes, no
+change to what the sync block carries. What changes is what the
+documents TEACH, and it lands ahead of the fan-out that carries item
+11, because that item was about to teach two forks a mechanism that is
+false. **Scope note, per the drop that requested this one:** its §4
+asked whether the middleware should survive the package fix, and said
+a code change would be a legitimate expansion. It did not become one —
+the answer is "keep it", so the change is the docstring that says why.
+Comments and docstrings naming the wrong layer were corrected in five
+files; not one line of executable code moved.
+
+**It is FastAPI, not Starlette.** Every document here said Starlette
+registers only the methods a route declares. It does not:
+`starlette.routing.Route.__init__` ends with
+`if "GET" in self.methods: self.methods.add("HEAD")` — the same
+courtesy Werkzeug extends. `fastapi.routing.APIRoute` is the class
+that takes `methods` literally and adds nothing. Both statements
+verified in the installed source (starlette 1.1.0, fastapi 0.141.1).
+Two seats and three probes reached for the wrong layer on this, which
+is reason enough to state the true one precisely once: a fork that
+reads "Starlette does not derive HEAD" searches the wrong package, and
+may conclude a bare-Starlette mount is affected when it is not.
+
+**The population was seven hosts, not two.** Item 11 named pannellum
+and muischeduler. The ops seat's wire sweep of 2026-08-27/28 found the
+hub (2plot.ai) had the defect too — it was never in the item's
+population — plus four second-ring sites the fan-out does not reach:
+piratesbargain.com, ai-agent.buzz, 2plot.xyz and cast.2plot.net. They
+are named in the notes as known-affected-reached-by-a-drop, because
+notes that stop at the fan-out's edge read as "these two hosts" when
+the truth is "every ASGI host in the network, and we know which."
+
+**The middleware stays after the package fix, and this tree measured
+why.** dash-improve-my-llms 2.7.2 declares `["GET", "HEAD"]` on its
+own doc routes, which removes one reason for `HeadAsGetMiddleware` and
+not the others. `/` is served by Dash's page catch-all, and *every*
+Dash route is a FastAPI `APIRoute`:
+`dash/backends/_fastapi.py::add_url_rule` calls
+`add_api_route(..., methods=methods or ["GET"])`, with the catch-all
+registered `methods=["GET"]`. Re-measured in-process with the
+middleware removed: 10 of the 11 pins red, the single green being
+`HEAD /` with a *crawler* UA — the prerender answering before the
+router. The same path with a *browser* UA is 405. Nothing in this repo
+or in the package can declare methods on Dash's routes.
+
+### Changed
+- `sync/SYNC-1.6.22-1.6.32.md` → `sync/SYNC-1.6.22-1.6.33.md`. Item
+  11's `contract:` carries the corrected layer and the reason to get
+  it right; its `notes:` carry the seven-host population, the
+  middleware's permanence with the Dash measurement behind it, and an
+  upstream item that is now Dash's rather than the package's.
+- Item 10's `notes:` gain the hub as a **fourth** red and the shape
+  lesson under it: a hand-declared `/healthz` drifts from the fleet
+  shape silently, and a package floor can make a key *impossible*
+  rather than merely absent. Different states, different remedies,
+  and only one of them is a divergence.
+- `.claude/CLAUDE.md`'s HEAD trap: the layer corrected, the population
+  widened to every ASGI host, and the "keep the middleware" note so
+  the next floor bump does not delete it.
+- Comment/docstring corrections in `lib/asgi_middleware.py`,
+  `tests/conftest.py`, `tests/test_head_method.py`,
+  `scripts/network_smoke.py`, `scripts/smoke_live.py` — the same false
+  sentence, five times, in the files a fork reads while porting.
+
+### Recorded, no change
+- Item 10's red list disagrees with its own dated table on two rows
+  (`llms` missing `python` on 08-27; `pipdocs` missing `backend` on
+  08-28, with no llms row). Both are written down, neither is
+  reconciled here — the spec says to re-measure rather than pick.
+- 1.6.32's "empty body" is read as **the wire is empty**, never as
+  "your adapter empties it": Werkzeug's response, httpx's ASGI
+  transport and h11 under both servers each drop it, and h11 raises if
+  a server forwards one. The package seat declined to assert emptiness
+  in its adapters for that reason and was right.
+
 ## [1.6.32] - 2026-08-27
 
 A defect release, and one this template shipped to two forks itself.
