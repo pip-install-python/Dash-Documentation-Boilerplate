@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 
-import pytest
 
 from dash_improve_my_llms._ledger import EVENT_FIELDS, TIERS
 

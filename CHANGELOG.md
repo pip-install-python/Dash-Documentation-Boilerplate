@@ -95,8 +95,17 @@ host in the fleet reported those numbers.
   day.
 
 ### Fixed
-Nothing — the classifier finding was never a bug by its own lights; it
-is a Changed.
+- (follow-up commit, same version — `de0bcff` went red in CD and Render's
+  autoDeploy shipped it anyway, uncertified.) `tests/test_proxy_scheme.py`'s
+  end-to-end tag test sent NO User-Agent; under 2.8.0 an absent UA is the
+  crawler lane, so it received the crawler document — which has no
+  `twitter:url` at all — and failed on "no tag" on every Flask leg
+  (green on 2.7.1; it passed the template's local 3.11 run only by test
+  ordering). It now names the browser lane. The mirror of the kit's
+  machine-lane trap: either lane can be the one you did not mean to
+  test. Also three flake8 F401s in the new files.
+- Nothing else — the classifier finding was never a bug by its own
+  lights; it is a Changed.
 
 ### Recorded, no change
 - In-process (test client, no client address) the package cannot check

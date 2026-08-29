@@ -14,7 +14,6 @@ import time
 import warnings
 from pathlib import Path
 
-import pytest
 
 from conftest import BROWSER_UA
 

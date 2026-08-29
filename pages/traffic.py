@@ -28,7 +28,6 @@ import dash
 import dash_mantine_components as dmc
 from dash import Input, Output, callback, dcc, html
 
-from lib.analytics_tracker import analytics_path
 from lib.auth import admin_access_open, clerk_enabled, current_user, is_admin_user
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX
 from lib.gate_layouts import forbidden_layout, hidden_layout, sign_in_layout
