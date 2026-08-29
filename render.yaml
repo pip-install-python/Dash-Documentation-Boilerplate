@@ -9,7 +9,11 @@ services:
     runtime: python
     plan: starter
     region: oregon
-    branch: main
+    # `release` is written ONLY by CD (.github/workflows/cd.yml, job
+    # `deploy`: a fast-forward push of the run's sha after the matrix is
+    # green). A push to main is not a deploy. autoDeploy stays unset (on):
+    # Render reacting to this branch IS the mechanism (1.6.35).
+    branch: release
     # Two commands, not one: markdown2dash 0.1.2 declares gunicorn<22 against
     # the CVE-driven gunicorn>=23 floor in requirements.txt, so it is installed
     # without its dependency graph. Same pair as the Dockerfile and CI.

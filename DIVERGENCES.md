@@ -68,6 +68,12 @@ re-measure when you change what this host serves:
     runtime   `docker` or `python` — the Render service runtime, which
               decides whether PYTHON_VERSION is required or forbidden
               (sync spec item 5).
+    deploy    `release-branch` — Render deploys `release`, which only
+              CD writes after a green matrix (1.6.35, sync item 13);
+              `build` on /healthz is HEAD of `release`, and `main`
+              ahead of it is an uncertified push pending. ABSENT reads
+              as `main`: Render watches main and a push deploys before
+              CI has judged it.
 
 Measured on boilerplate.2plot.dev, 2026-08-27, build 5589318:
 
@@ -75,4 +81,5 @@ Measured on boilerplate.2plot.dev, 2026-08-27, build 5589318:
 ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
 healthz: full
 runtime: python
+deploy: release-branch
 ```

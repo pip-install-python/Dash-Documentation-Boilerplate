@@ -9,15 +9,22 @@ pasted output; a claim without the artifact is not verified.
 1. **Resolve identity from the repo, not from memory**: the host from
    `lib/constants.py` `BASE_URL`; the expected app key from the
    fork-point identity in run.py (`SATELLITE_APP_KEY` default); the
-   expected build from `git rev-parse HEAD`. Read `DIVERGENCES.md` —
-   it may change what healthz is allowed to contain.
+   expected build from `git fetch && git rev-parse origin/release`
+   when `DIVERGENCES.md`'s posture fence says `deploy: release-branch`
+   (1.6.35 — Render deploys `release`, only CD writes it), else from
+   `git rev-parse HEAD`. Read `DIVERGENCES.md` — it may change what
+   healthz is allowed to contain.
 
 2. **Healthz**: `curl -s <BASE_URL>/healthz`
    - `app` equals this repo's key (an answer of `boilerplate` on a
      fork means identity fell back to the template's — a defect).
-   - `build` equals HEAD. Mismatch = the deploy hasn't landed or CD
-     verified a different artifact. Missing entirely = the platform
-     variable is absent (check the boot log) — do not shrug it off.
+   - `build` equals the expected build from step 1. On a
+     release-branch host, `main` ahead of `release` is an uncertified
+     push pending (its CD run red or running) — not drift, not a
+     reason to deploy by hand; report it as pending and name the run.
+     Any other mismatch = the deploy hasn't landed or CD verified a
+     different artifact. Missing entirely = the platform variable is
+     absent (check the boot log) — do not shrug it off.
    - `geo` block present on dash-improve-my-llms ≥ 2.7 (counts and
      flags only). ABSENT on ≥2.7 means the Docker dependency-layer
      cache trap fired: the floor moved in text but not in the image

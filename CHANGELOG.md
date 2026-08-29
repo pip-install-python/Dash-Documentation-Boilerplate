@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.35] - 2026-08-29
+
+Pipeline and docs only — no runtime code moves. **Render deploys
+`release`, and only CD writes `release`** (owner decision A of
+2026-08-29, chosen over hook-only and branch protection). The
+measurement: 14:12Z that day, de0bcff was pushed to main; Render,
+watching main, built it within the minute; cd.yml run 33256965081 went
+red at 14:13Z with the deploy job skipped; `/healthz` served the red
+build for ~6 minutes until acc3651. CI could not stop a deploy because
+the platform watched the same branch CI was still judging. Auto-deploy
+stays exactly as it is — it now watches a branch that only ever holds
+certified commits.
+
+### Changed
+- `.github/workflows/cd.yml`: the `deploy` job (still `needs: [test]`
+  — that is the gate) checks out and runs "Promote to release":
+  `git push origin HEAD:refs/heads/release`, the run's own sha,
+  fast-forward, never forced — a non-fast-forward means somebody wrote
+  `release` by hand and the job fails and says so. Job-level
+  `permissions: contents: write` on `deploy` only; the workflow stays
+  `contents: read`. Guarded with `if: github.event_name == 'push' ||
+  inputs.target_url == ''` so a verify-only dispatch against another
+  host never moves the ref (the hook step had no such guard). The
+  build-match wait is unchanged. First run creates the branch.
+- `render.yaml`: `branch: release`, autoDeploy left unset (on).
+- `DIVERGENCES.md` posture fence gains `deploy: release-branch`
+  (absent reads as main); `tests/test_claude_kit.py` `_POSTURE_KEYS`
+  admits it.
+- `.claude/CLAUDE.md`: the trap — `build == HEAD` on `/healthz` means
+  HEAD of `release`; `main` ahead of `release` is an uncertified push
+  pending, never drift, never a hand deploy.
+- `sync/SYNC-1.6.22-1.6.34.md` → `…-1.6.35.md`, item 13 (contract:
+  every fork's cd.yml differs in host, timeouts and comments — 12 of 12
+  measured — so nothing rides the block).
+- Tests: +7, `tests/test_cd_promotes_release.py` — parses cd.yml and
+  render.yaml and pins the structure (needs, the unforced push, the
+  dispatch guard, the job-only write grant, the hook's absence, the
+  branch, the fence).
+
+### Removed
+- The Render deploy-hook step and its secret from cd.yml. A
+  `RENDER_DEPLOY_HOOK_URL` repository secret is now inert and safe to
+  delete (owner; dashboards are out of a session's reach).
+
+### Recorded, no change
+- Owner step, named not assumed: if the Render service is not
+  Blueprint-managed, the dashboard's Branch field is the switch, not
+  render.yaml. The first promoted run cannot distinguish the two from
+  the wire (main and release hold the same sha); the next red push on
+  main can. A `branch` field on `/healthz` from `RENDER_GIT_BRANCH`
+  would make it one read — a runtime change, proposed, not done.
+
 ## [1.6.34] - 2026-08-29
 
 The ledger round — the template half of the network's ledger plan

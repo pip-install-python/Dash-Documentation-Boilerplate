@@ -2,11 +2,22 @@ name: CD
 
 # Deploys boilerplate.2plot.dev, then checks the live site.
 #
-# The deploy step POSTs to a Render deploy hook held in the
-# RENDER_DEPLOY_HOOK_URL secret. Without that secret the step is skipped and
-# the workflow goes straight to verification — useful when Render is already
-# auto-deploying from GitHub on its own, and it means a fork of this template
-# doesn't fail CD on day one for a secret it was never given.
+# THE ROAD (1.6.35, owner decision A of 2026-08-29): Render auto-deploys the
+# `release` branch, and ONLY this workflow writes `release` — a fast-forward
+# push of the run's own sha, after the CI matrix is green. A push to `main`
+# is therefore not a deploy; it is a candidate. Measured reason: at 14:12Z
+# on 2026-08-29 de0bcff was pushed to main, Render (watching main) built it
+# within the minute, its CD run went red at 14:13Z with the deploy job
+# skipped, and /healthz served the red build for ~6 minutes. CI could not
+# stop a deploy because Render watched the same branch CI was still
+# judging. Now it watches a branch that only ever holds certified commits.
+#
+# The Render deploy-hook step is GONE from this file; the repository secret
+# it read (the `…_DEPLOY_HOOK_URL` one) is inert and safe to delete — its
+# name is deliberately not spelled here, because sync item 13's detect
+# greps this file for it. `main` ahead of
+# `release` means an uncertified push is pending (its run red or running)
+# — never "drift", never a reason to deploy by hand (kit trap).
 on:
   push:
     branches: [main]
@@ -49,35 +60,44 @@ jobs:
     environment:
       name: production
       url: https://boilerplate.2plot.dev
-    outputs:
-      deployed: ${{ steps.hook.outputs.deployed }}
+    # `contents: write` on THIS job only — it is the one thing in the
+    # workflow that writes to the repository (the `release` ref). The
+    # workflow-level grant above stays `read`.
+    permissions:
+      contents: write
     steps:
-      - name: Trigger the Render deploy hook
-        id: hook
-        env:
-          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      - uses: actions/checkout@v7
+
+      - name: Promote to release
+        # Only a push to main promotes. A workflow_dispatch that names
+        # another host (target_url) is a verify-only run against that
+        # host and must not move this repo's release ref. (The hook step
+        # this replaced had no such guard; the wait below never did
+        # either, and still spins against whatever SITE_URL says.)
+        if: github.event_name == 'push' || inputs.target_url == ''
         run: |
-          if [ -z "$HOOK" ]; then
-            # ::warning, not ::notice — dash-email's finding (2026-08-23):
-            # with no hook AND a push Render's autoDeploy happened to skip,
-            # nothing deployed at all and the build-match wait below timed
-            # out on a deploy nobody had started. The wait refusing was
-            # honest; the quiet notice was why the cause took a run to see.
-            echo "::warning::RENDER_DEPLOY_HOOK_URL is not set — this push deploys only if render.yaml autoDeploy fires. The build-match wait below still holds for THIS commit either way."
-            echo "deployed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          curl -fsS -X POST "$HOOK" > /dev/null
-          echo "deployed=true" >> "$GITHUB_OUTPUT"
+          # Fast-forward push of the run's own sha. `needs: [test]` is the
+          # gate: a red matrix never reaches this step, so `release` cannot
+          # receive an uncertified commit by construction. On the FIRST run
+          # `release` does not exist yet and this push creates it.
+          #
+          # NOT --force, on purpose: a non-fast-forward means somebody wrote
+          # `release` by hand (a rollback, a hotfix). This job then FAILS
+          # and says so; a force here would silently undo that person.
+          #
+          # GITHUB_TOKEN pushes trigger no workflows — correct: `on:` is
+          # main-only, and it is Render, not Actions, that reacts to
+          # `release` (render.yaml `branch: release`, autoDeploy on).
+          git push origin "HEAD:refs/heads/release"
+          echo "::notice::release → ${GITHUB_SHA} (fast-forward)"
 
       - name: Wait for THIS build to serve traffic
-        # NOT gated on the hook step: with RENDER_DEPLOY_HOOK_URL unset,
-        # Render's own autoDeploy ships the commit minutes after the push —
-        # and the old shape skipped this wait and ran the battery three
-        # seconds later against the PREVIOUS release. That defect was
-        # invisible for the workflow's whole life (the old build always
-        # already passed the old battery) until a new surface made the race
-        # lose — found on muicharts, 2026-08-21, fleet-wide class.
+        # Render deploys `release`, which the step above just set to this
+        # run's sha, so the wait is unchanged: hold until /healthz reports
+        # THIS build. The old shape (pre-2026-08-21) skipped this wait and
+        # ran the battery three seconds later against the PREVIOUS
+        # release; that defect was invisible for the workflow's whole life
+        # until a new surface made the race lose — muicharts, fleet-wide.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -92,10 +112,13 @@ jobs:
           # Fail FAST on supersession (1.6.25; observed live on 4a1d430,
           # 2026-08-25): when a DIFFERENT build serves, one compare-API
           # call per distinct sha classifies it. "ahead" — the live build
-          # is a DESCENDANT of this run's sha — means branch HEAD moved
-          # past us and the hook shipped it; this run's build can never
-          # serve again, so holding the remaining ~25 minutes only turns
-          # a race into a timeout. That commit's own run must certify it.
+          # is a DESCENDANT of this run's sha — means a later run already
+          # promoted past us (two green pushes in one deploy window);
+          # this run's build can never serve again, so holding the
+          # remaining ~25 minutes only turns a race into a timeout. That
+          # commit's own run has certified it. (Pre-1.6.35 the same state
+          # also came from Render building main directly; that road is
+          # closed.)
           # Every other verdict keeps waiting: "behind" is the previous
           # release still serving mid-build (the normal case) or a
           # deliberate rollback — an older build is NOT a descendant and

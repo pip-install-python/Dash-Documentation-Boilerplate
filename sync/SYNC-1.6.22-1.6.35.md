@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.34 (template @ 1.6.34)
+# SYNC 1.6.22 → 1.6.35 (template @ 1.6.35)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -115,6 +115,11 @@ stops classifying and delegates, `run.py` keeps the row as a second
 table in the analytics file, the rollup gains an additive `vendors[]`
 block, and `/admin/traffic` shows the host its own ledger. The block
 gains the two tests that import nothing fork-shaped and drops nothing.)
+(1.6.35 is the RELEASE-BRANCH round — item 13, pipeline and docs only,
+no runtime change: Render deploys `release`, and only CD writes it.
+Nothing new rides the block: every cd.yml in the fleet differs from
+the template's in host, timeouts and comments — 12 of 12 measured
+2026-08-29 — so the item is contract-class by the README's rule.)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -1032,6 +1037,67 @@ notes: REPORTING CONSEQUENCE, say it in your CHANGELOG under Changed:
   (measured on the 2.8.0 wheel). Round 3.3 (the hub fold) and 3.4 (the
   posture flip) are NOT this item; the template's posture fence in
   DIVERGENCES.md is unchanged (`/` still 403 to training UAs).
+
+### 13. Render deploys `release`; only CD writes `release` (1.6.35)
+class: contract. cd.yml is fork-UNIFORM on the hook step (11 of 12
+  local fork checkouts carry it verbatim; dash-hook-my-ai has its own
+  pipeline with no hook step) but NOT byte-uniform: every copy differs
+  from the template's in the host string, the wait's timeout sizing and
+  comments (41–258 differing lines per fork, measured 2026-08-29), so a
+  byte-copy would overwrite a fork's own tuning. Port the CONTRACT.
+files: .github/workflows/cd.yml (job `deploy`: hook step → "Promote to
+  release", job-level `permissions: contents: write`, header comment) ·
+  render.yaml (`branch: release` + two-line comment) · DIVERGENCES.md
+  posture fence (`deploy: release-branch`) · .claude/CLAUDE.md (the
+  build==HEAD-of-release trap; rides the kit) · tests/test_claude_kit.py
+  (`_POSTURE_KEYS` gains `deploy`) · a port of
+  tests/test_cd_promotes_release.py (parses cd.yml + render.yaml with
+  PyYAML, which python-frontmatter already pulls in).
+detect: `grep -c RENDER_DEPLOY_HOOK_URL .github/workflows/cd.yml` ≠ 0
+  ⇒ not adopted. Also `grep -c "branch: release" render.yaml` = 0 ⇒
+  Render still watches main. Paste both.
+contract:
+  (a) cd.yml `deploy` keeps `needs: [test]` — that IS the gate — and
+      replaces the hook step with `git push origin HEAD:refs/heads/release`
+      after an `actions/checkout`: the run's own sha, fast-forward, NOT
+      forced (a non-fast-forward means someone wrote `release` by hand
+      and the job must FAIL and say so). Job-level
+      `permissions: contents: write` on `deploy` only; the workflow
+      stays `contents: read`. Guard the step with
+      `if: github.event_name == 'push' || inputs.target_url == ''` so a
+      verify-only dispatch against another host never moves the ref
+      (the hook step never had this guard — the drop assumed one; the
+      tree had none). GITHUB_TOKEN pushes trigger no workflows, which
+      is correct: `on:` is main-only and Render, not Actions, reacts
+      to `release`. On the first run `release` does not exist and the
+      push creates it. The build-match wait is unchanged. Delete every
+      trace of the hook secret's NAME from the file (the detect greps
+      for it — say "the deploy-hook secret", not its name, in prose).
+  (b) render.yaml `branch: release`; autoDeploy stays unset/on — it is
+      the mechanism.
+  (c) DIVERGENCES.md posture fence gains `deploy: release-branch`
+      (absent reads as main); the kit trap says `build == HEAD` means
+      HEAD of `release` and `main` ahead of `release` is an uncertified
+      push pending, never drift, never a hand deploy.
+acceptance: one green run on main whose `deploy` job ends with
+  `origin/release` == the run's sha, `/healthz build` == that sha (the
+  existing wait proves it), `verify` green; the structural pins green
+  (needs contains test; promote step present and unforced; hook name
+  absent; deploy.permissions.contents == write; workflow-level read;
+  render branch == release; posture fence declares it). Paste
+  `git rev-parse origin/release` next to the healthz build.
+notes: OWNER STEP PER FORK, listed, not done by the session: if the
+  Render service is NOT Blueprint-managed, render.yaml's `branch:` is
+  documentation and the dashboard's Branch field is the switch. The
+  first promoted run cannot tell the two apart from the wire — main
+  and release hold the same sha, so autoDeploy-from-main and
+  autoDeploy-from-release produce the same /healthz. The discriminating
+  observation is the NEXT push that goes red on main: `release` must
+  not move and the wire must not change. Report which the host was.
+  (A `branch` field on /healthz from RENDER_GIT_BRANCH would make it
+  one read; that is a runtime change and not this item — proposed to
+  the ops seat as a follow-up.) For the hub seat: the F4 battery's
+  "HEAD has a green CD run" row compares to `release` after adoption.
 
 ## Reporting
 
