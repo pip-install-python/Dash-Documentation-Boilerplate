@@ -96,6 +96,19 @@ def test_the_deploy_hook_is_gone():
     assert not any("hook" in (s.get("id") or "") for s in _deploy()["steps"])
 
 
+def test_verify_never_runs_on_a_failed_deploy():
+    """Run 33262495272 (747d8b3): the promote step failed, verify ran
+    anyway under `!= 'cancelled' && != 'skipped'` and went GREEN against
+    the previous build. Verify must require success AND check the sha."""
+    verify = _cd()["jobs"]["verify"]
+    assert "deploy" in verify["needs"]
+    assert verify.get("if", "").strip() == "needs.deploy.result == 'success'", verify.get("if")
+    sha_steps = [s for s in verify["steps"] if s.get("name") == "The live build IS this run's sha"]
+    assert len(sha_steps) == 1, "verify must assert /healthz build == github.sha itself"
+    run = sha_steps[0]["run"]
+    assert "/healthz" in run and "GITHUB_SHA" in run and "exit 1" in run
+
+
 def test_render_watches_release():
     doc = yaml.safe_load(RENDER.read_text())
     web = [s for s in doc["services"] if s.get("type") == "web"]

@@ -50,6 +50,13 @@ certified commits.
   delete (owner; dashboards are out of a session's reach).
 
 ### Recorded, no change
+- Fix-forward, same version (ops finding on run 33262495272): `verify
+  the live site` ran and reported GREEN on a run whose promote step had
+  FAILED — its `if: always() && != 'cancelled' && != 'skipped'` admitted
+  `failure`, so it smoke-tested the previous build. Now
+  `if: needs.deploy.result == 'success'`, and verify's first step asserts
+  `/healthz build == github.sha` itself (also catches a promote that
+  succeeded while Render's build did not). Pinned.
 - Fix-forward, same version: the promote checkout is `fetch-depth: 0`.
   Run 33262495272 (747d8b3) failed "Promote to release" in one second —
   a depth-1 clone pushing onto an EXISTING `release` is rejected as
