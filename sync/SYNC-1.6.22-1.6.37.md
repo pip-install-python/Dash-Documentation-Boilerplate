@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.36 (template @ 1.6.36)
+# SYNC 1.6.22 → 1.6.37 (template @ 1.6.37)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -128,6 +128,13 @@ test made v3-agnostic and CHECKED against a pre-v3 fixture in the
 template's own suite; the dead-cargo rule; the `unknown_ai` posture
 key and the headless-browser trap from dimll 2.9.0 (floor stays
 2.8.0); and the one-session-per-tree authoring rule.)
+(1.6.37 is ROUND 3.4 — THE POSTURE FLIP, item 15, one flag and the
+documents around it: training crawlers are ALLOWED by default because
+the ledger now records and reconciles every read. Canary = boilerplate
++ llms; the fleet consumes it as item 15; clerkhook keeps its wall by
+design. Two walls, one order: the app half is this item; the EDGE half
+(the Cloudflare rule) is the owner's, after the seat verifies the app
+half on the wire.)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -1219,6 +1226,57 @@ notes: THE FIXTURE IS THE PROOF for item 12's cargo: the template's
   TREE (README authoring rule): a sub-agent must not edit files its
   parent also edits, and the completion signal is the report, never
   an idle notice — two forks lost time to each in the 1.6.35 round.
+
+### 15. The posture flip — training crawlers allowed by default (1.6.37; Round 3.4)
+class: contract (one flag in run.py + the tests and tools that
+  fingerprinted the old posture + the fence). NOT verbatim: run.py is
+  fork-divergent, and the two live tools are contract-class since
+  1.6.29.
+files: run.py (`RobotsConfig(block_ai_training=False, …)` and the
+  comment block that says why) · tests/test_llms_routes.py (the
+  robots fingerprint: ClaudeBot → `Allow: /`) · scripts/smoke_live.py
+  and scripts/network_smoke.py (same tuple) · DIVERGENCES.md (the
+  posture fence's `ai_bots`, re-measured and re-dated) · CHANGELOG.
+detect: `grep -c "block_ai_training=True" run.py` ≠ 0 ⇒ not flipped.
+  Then the WIRE: ClaudeBot and GPTBot UAs × `/`, `/llms.txt`,
+  `/healthz` — paste all six with the date.
+contract: DEFAULT ALLOW. The owner's decision (2026-08-29): the wall
+  decided by vendor CLASS what nobody could account for; since item 12
+  every corpus read is a ledger row and the hub reconciles it against
+  the wire (boilerplate 534 == 534), so a read is recorded and
+  priceable and the tool is now per-vendor policy —
+  `vendor_policy={"<key>": "block" | "meter"}` for ONE vendor whose
+  rows justify it, never the class. `block_ai_training=False`;
+  `allow_ai_search` / `allow_traditional` unchanged. robots.txt then
+  carries `Allow: /` for GPTBot, ClaudeBot, CCBot, …, and the package
+  middleware stops 403ing the browser document and /healthz for them.
+  A FORK WHOSE POSTURE FENCE DECLARES `ai_bots` 403 BY DESIGN (clerkhook:
+  a locked host) keeps `block_ai_training=True`, keeps its fingerprint
+  lines on `Disallow`, and says so in DIVERGENCES.md — that is a
+  recorded divergence, not drift, and this item is `not-applicable-
+  because` there with the fence as evidence. Forks that ALREADY allow
+  at the app level (leaflet, muischeduler — the ops seat's reading,
+  2026-08-29) report `already-present` with their fence and the six
+  wire lines.
+  TWO WALLS, ONE ORDER: the app wall is this item; the EDGE wall (a
+  Cloudflare rule 403ing these UAs on `/`) is the OWNER's and is
+  narrowed per host only after the app half is verified on the wire.
+  Ship the app half without waiting; measure BEFORE and AFTER, and
+  expect `/` to stay 403 on the wire until the edge edit even though
+  in-process it is 200 — that difference is the edge wall, name it.
+acceptance: in-process ClaudeBot + GPTBot on `/`, `/llms.txt`,
+  `/healthz` → 200 (the crawler document on `/`); robots.txt carries
+  no Disallow for them; the fork's suite green (the fingerprint line
+  flipped, not deleted); on the wire, the six lines pasted and dated
+  in the posture fence — interim (edge still up) and final (200/200/
+  200) as two dated measurements, never one overwritten.
+notes: the 403 you are removing was TWO walls stacked; a session that
+  flips the flag, sees `/` still 403 on the wire and "fixes" it again
+  is chasing the edge. In-process is the app's own answer; the wire
+  minus in-process is the edge's. `/healthz` 403ed for these UAs from
+  the APP (measured in-process at ecc66f8: 403 with the 318-byte
+  denial body), so the wire's /healthz flips with this item and `/`
+  does not — until the owner's edit.
 
 ## Reporting
 

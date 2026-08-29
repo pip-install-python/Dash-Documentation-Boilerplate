@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.37] - 2026-08-29
+
+Round 3.4 — **the posture flip.** Owner decision, 2026-08-29: AI-training
+crawlers are allowed by default, because the ledger now records and
+reconciles every read (boilerplate 534 == 534 against the wire). The
+wall decided by vendor class what nobody could account for; a read
+that is a row is priceable, and the tool from here on is per-vendor
+policy, not the class. Canary: boilerplate + llms; the fleet via sync
+item 15; clerkhook keeps its wall by design.
+
+### Changed
+- `run.py`: `RobotsConfig(block_ai_training=False, …)`; the comment
+  block says why, and shows the per-vendor line
+  (`vendor_policy={"bytespider": "block", "gptbot": "meter"}`) that
+  replaces the class wall.
+- The robots.txt fingerprint of ClaudeBot flips to `Allow: /` in
+  `tests/test_llms_routes.py`, `scripts/smoke_live.py` and
+  `scripts/network_smoke.py` — that line now fingerprints the POSTURE;
+  OAI-SearchBot / Claude-User / Claude-SearchBot still fingerprint the
+  artifact.
+- `DIVERGENCES.md` posture fence: the interim measurement, dated with
+  both UAs (2026-08-29T23:49Z, build ecc66f8: `/` 403, `/llms.txt`
+  200, `/healthz` 403 — identical for ClaudeBot and GPTBot, in-process
+  and on the wire). Two walls produced it: the app's (retired here) and
+  the edge's (a Cloudflare rule on `/`, the owner's, narrowed after
+  this release is verified on the wire). Expected after both:
+  200/200/200; the block is re-measured and re-dated then.
+- `sync/SYNC-1.6.22-1.6.36.md` → `…-1.6.37.md`, item 15.
+
+### Recorded, no change
+- In-process at ecc66f8, `/healthz` 403ed for these UAs from the APP
+  (the 318-byte denial body), so the wire's `/healthz` flips with this
+  release and `/` does not until the edge edit — the difference between
+  in-process and the wire is the edge wall, by construction.
+
 ## [1.6.36] - 2026-08-29
 
 What the first wire round taught the block. Spec, kit test and README;

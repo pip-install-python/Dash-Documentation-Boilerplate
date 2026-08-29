@@ -80,9 +80,22 @@ re-measure when you change what this host serves:
               2.9.0 widened "block" to cover those). Absent reads as
               `allow`, the package default.
 
-Measured on boilerplate.2plot.dev, 2026-08-27, build 5589318:
+Measured on boilerplate.2plot.dev, 2026-08-29T23:49Z, build ecc66f8 —
+the INTERIM reading of Round 3.4 (the posture flip, 1.6.37): this is
+what the wire answered BEFORE this release deployed, with the ClaudeBot
+UA (`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible;
+ClaudeBot/1.0; +claudebot@anthropic.com)`) and the GPTBot UA
+(`…compatible; GPTBot/1.2; +https://openai.com/gptbot`), identical for
+both. Two walls produce it: the APP (block_ai_training, retired in this
+release — in-process the same probe answers 403/200/403 at ecc66f8)
+and the EDGE (a Cloudflare rule 403ing these UAs on `/`, narrowed by
+the owner only after the app half is verified on the wire). Expected
+after both: `{"/": 200, "/llms.txt": 200, "/healthz": 200}` — re-measure
+and re-date this block then; until then the numbers below are true and
+the intent is not what they say.
 
 ```yaml posture
+# interim (2026-08-29T23:49Z, before this release deployed) — see above
 ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
 healthz: full
 runtime: python
