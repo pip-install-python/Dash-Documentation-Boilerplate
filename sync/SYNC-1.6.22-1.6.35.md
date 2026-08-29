@@ -1059,7 +1059,15 @@ detect: `grep -c RENDER_DEPLOY_HOOK_URL .github/workflows/cd.yml` ≠ 0
 contract:
   (a) cd.yml `deploy` keeps `needs: [test]` — that IS the gate — and
       replaces the hook step with `git push origin HEAD:refs/heads/release`
-      after an `actions/checkout`: the run's own sha, fast-forward, NOT
+      after an `actions/checkout` **with `fetch-depth: 0`** — MEASURED on
+      the template's second promote (run 33262495272, 747d8b3,
+      2026-08-29): a depth-1 clone pushing HEAD onto an EXISTING
+      `release` is rejected as non-fast-forward ("fetch first"), because
+      a shallow history cannot show the remote that release's tip is an
+      ancestor; the FIRST promote passes regardless because it creates
+      the branch, so a fork will not see this until its second push.
+      Reproduced locally: depth-1 rejected, `--unshallow` lands. The
+      push is the run's own sha, fast-forward, NOT
       forced (a non-fast-forward means someone wrote `release` by hand
       and the job must FAIL and say so). Job-level
       `permissions: contents: write` on `deploy` only; the workflow
@@ -1075,6 +1083,15 @@ contract:
       for it — say "the deploy-hook secret", not its name, in prose).
   (b) render.yaml `branch: release`; autoDeploy stays unset/on — it is
       the mechanism.
+  (a2) `verify` runs ONLY on `needs.deploy.result == 'success'` — the
+      template's old `always() && != 'cancelled' && != 'skipped'`
+      admitted `failure`, so on that same failed promote `verify` ran
+      and reported GREEN against the PREVIOUS build (ops finding). And
+      verify's first step asserts `/healthz build == github.sha` itself
+      (exit 1 otherwise; skipped only on a dispatch against another
+      host) — the stronger form catches a promote that succeeded while
+      the platform build did not, or a later run promoting past this
+      one. A verify that passes when nothing deployed must not exist.
   (c) DIVERGENCES.md posture fence gains `deploy: release-branch`
       (absent reads as main); the kit trap says `build == HEAD` means
       HEAD of `release` and `main` ahead of `release` is an uncertified
@@ -1082,9 +1099,11 @@ contract:
 acceptance: one green run on main whose `deploy` job ends with
   `origin/release` == the run's sha, `/healthz build` == that sha (the
   existing wait proves it), `verify` green; the structural pins green
-  (needs contains test; promote step present and unforced; hook name
-  absent; deploy.permissions.contents == write; workflow-level read;
-  render branch == release; posture fence declares it). Paste
+  (needs contains test; promote step present and unforced; checkout
+  fetch-depth == 0; hook name absent; deploy.permissions.contents ==
+  write; workflow-level read; verify `if` == deploy success and carries
+  the sha step; render branch == release; posture fence declares it).
+  Then a SECOND push — the first only creates the branch. Paste
   `git rev-parse origin/release` next to the healthz build.
 notes: OWNER STEP PER FORK, listed, not done by the session: if the
   Render service is NOT Blueprint-managed, render.yaml's `branch:` is

@@ -177,7 +177,7 @@ jobs:
     # run 33262495272): the old `!= 'cancelled' && != 'skipped'` admitted
     # 'failure', so when the promote step failed this job ran anyway and
     # reported GREEN — it had smoke-tested the PREVIOUS build. A verify
-    # that passes when nothing deployed must not exist. (muicharts' 2024-08
+    # that passes when nothing deployed must not exist. (muicharts' 2026-08-24
     # `!= 'skipped'` half is subsumed: skipped is not success either.)
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
