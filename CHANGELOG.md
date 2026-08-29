@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.36] - 2026-08-29
+
+What the first wire round taught the block. Spec, kit test and README;
+the only test code that moves is the v4 rollup cargo test, made
+v3-agnostic — no runtime code. Two findings, both clerkhook's
+(2026-08-29, seat-verified): a live fan-out would have dropped
+`tests/test_traffic_rollup_v4.py` and `tests/test_analytics_classifier.py`
+at `tests/` root, where that fork's PACKAGE suite lives (its matrix
+would ERROR, not skip), and the v4 test asserted v3 seams
+(`load_agent_hits`, `bot_visitors`) that the fork — v4 without v3 —
+does not have. The fence grammar could not express "I decline this
+cargo", because the kit test required every fenced path to exist.
+
+### Added
+- `- <path>  # declined: <reason>` in the byte-owned fence
+  (`sync/README.md` fork-fences section): the fork refuses this cargo.
+  The only fence entry that may name a path absent at HEAD; the reason
+  is mandatory; a spec's own block cannot carry one. `_machine_fence`
+  in `tests/test_claude_kit.py` accepts it, and three new cases pin it
+  (declined-missing validates; plain-missing still fails; bare
+  `# declined` fails; a spec block cannot decline). The machine half
+  already existed — `scripts/fanout.py` skips every path DIVERGENCES
+  names; the ops seat adds the declined-entry test there.
+- Posture key `unknown_ai: allow | meter | block` — the host's
+  `default_unknown_ai`; dimll 2.9.0 widened "block" to absent and
+  unrecognised UAs, which makes the value a posture a probe can see.
+  `_POSTURE_KEYS`/`_POSTURE_ENUMS` extended; the template's own fence
+  declares `unknown_ai: allow`.
+- Kit trap: headless browsers are crawler-lane from dimll 2.9.0 —
+  measured on the 2.9.0 wheel: `HeadlessChrome/…` and a Playwright UA
+  classify `lane: crawler, bot_type: monitor, vendor_key: headless`
+  (2.8.0 says browser). A host that screenshots itself for social
+  cards gets the crawler document unless its screenshot service sends
+  a non-headless UA. Item 8's notes point at it.
+- `tests/fixtures/rollup_pre_v3.py` (clerkhook's rollup shape: no
+  `load_agent_hits`, no `agent_visits`, no `bot_visitors`) and
+  `tests/test_rollup_v4_is_v3_agnostic.py`, which runs the cargo test
+  against it in a subprocess (`ROLLUP_V4_MODULE`). Green in this suite
+  means the cargo is safe on every rollup shape the fleet has.
+- `sync/README.md`: the dead-cargo rule (block rules) and the
+  one-session-per-tree authoring rule (a sub-agent must not edit
+  files its parent also edits; the completion signal is the report,
+  never an idle notice).
+- `sync/SYNC-1.6.22-1.6.35.md` → `…-1.6.36.md`, item 14.
+
+### Changed
+- `tests/test_traffic_rollup_v4.py` asserts only v4: `vendors[]`,
+  `reads`, their shapes, and that every non-v4 key is identical with
+  and without reads. `daily_rollup(app, day)` with the ledger in the
+  env is the one call shape every version accepts; the
+  `load_agent_hits` import and the `bot_visitors` assertion are gone.
+- Item 12's fence note corrected: the question was never "does it
+  import anything fork-shaped" but "does it pass against the OLDEST
+  fork's rollup". Grep of the 12 local fork clones: clerkhook is the
+  only pre-v3 fork; the other 11 carry v3.
+- Item 9's key list names `deploy` and `unknown_ai`.
+
+### Recorded, no change
+- Dead cargo, first instance: `scripts/smoke_live.py` on clerkhook —
+  611 lines, referenced by nothing, asserting content IS served on a
+  host whose posture denies every surface (its DIVERGENCES §6 names
+  `scripts/lockdown_smoke.py` as the inversion). Remedy = delete it +
+  a `# declined:` entry; a clerkhook session action (item 14), not
+  done here. Same fork: its site tests already live under
+  `tests/site/`; the two item-12 cargo tests at `tests/` root are to
+  be declined there.
+- The floor stays ≥2.8.0. 2.9.0 is not required this round: nothing
+  here depends on its behaviour — the `unknown_ai` key is a posture
+  declaration and the headless trap is a warning; a host on 2.8.0
+  simply has no headless lane yet. The floor moves when a release
+  needs 2.9.0's routes, not its registry.
+
 ## [1.6.35] - 2026-08-29
 
 Pipeline and docs only — no runtime code moves. **Render deploys

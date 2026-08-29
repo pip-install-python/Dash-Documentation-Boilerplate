@@ -115,9 +115,27 @@ def _machine_fence(kind: str, text: str, where: str) -> None:
         assert _in_repo(path), (
             f"{where} {kind}: {path!r} escapes the repo"
         )
+        # `- <path>  # declined: <reason>` (1.6.36): the fork REFUSES this
+        # cargo — it holds an equivalent elsewhere, or its posture inverts
+        # the file. The path need not exist: it is the one entry that may
+        # name something the fork never had (clerkhook's package suite at
+        # tests/ root cannot take a site test dropped there). A reason is
+        # mandatory; a bare `# declined` declines nothing.
+        declined = re.match(r"\s*declined:\s*(\S.*)$", comment)
+        if declined:
+            assert kind == "byte-owned", (
+                f"{where} {kind}: `# declined:` is a FORK fence entry "
+                "(DIVERGENCES.md byte-owned); a spec cannot decline its own cargo"
+            )
+            continue
+        assert not re.match(r"\s*declined\b", comment), (
+            f"{where} {kind}: {raw!r} — `# declined:` needs a reason"
+        )
         assert (REPO / path).is_file(), (
             f"{where} {kind}: {path!r} does not exist at HEAD "
-            "— the machine would act on nothing or the wrong thing"
+            "— the machine would act on nothing or the wrong thing "
+            "(a fork that never holds this cargo declines it: "
+            "`# declined: <reason>`)"
         )
         # A per-file gate is the WHOLE trailing comment, `requires: <path>`
         # from its first character; prose comments that merely mention the
@@ -136,11 +154,12 @@ def _machine_fence(kind: str, text: str, where: str) -> None:
             )
 
 
-_POSTURE_KEYS = {"ai_bots", "healthz", "runtime", "deploy"}
+_POSTURE_KEYS = {"ai_bots", "healthz", "runtime", "deploy", "unknown_ai"}
 _POSTURE_ENUMS = {
     "healthz": {"minimal", "full"},
     "runtime": {"docker", "python"},
     "deploy": {"release-branch"},
+    "unknown_ai": {"allow", "meter", "block"},
 }
 
 
@@ -346,6 +365,26 @@ def test_divergences_carry_the_byte_owned_block():
             "mention heuristic"
         )
     _machine_fence("byte-owned", text, "DIVERGENCES.md")
+
+
+def test_a_declined_entry_may_name_a_path_the_fork_never_had():
+    """1.6.36: clerkhook's package suite lives at tests/ root, so a site
+    test fanned out there would ERROR its matrix; the fork must be able to
+    decline cargo it does not hold. Only a `# declined: <reason>` entry
+    may be missing at HEAD; a plain missing path still fails, and a bare
+    `# declined` with no reason is not a decline."""
+    import pytest
+
+    fence = "```yaml byte-owned\n- tests/no_such_cargo.py  # declined: package suite at tests/\n```\n"
+    assert not (REPO / "tests/no_such_cargo.py").exists()
+    _machine_fence("byte-owned", fence, "synthetic")           # validates
+
+    with pytest.raises(AssertionError, match="does not exist at HEAD"):
+        _machine_fence("byte-owned", "```yaml byte-owned\n- tests/no_such_cargo.py\n```\n", "synthetic")
+    with pytest.raises(AssertionError, match="needs a reason"):
+        _machine_fence("byte-owned", "```yaml byte-owned\n- tests/no_such_cargo.py  # declined\n```\n", "synthetic")
+    with pytest.raises(AssertionError, match="cannot decline"):
+        _machine_fence("sync-verbatim", "```yaml sync-verbatim\n- tests/no_such_cargo.py  # declined: x\n```\n", "synthetic")
 
 
 def test_divergences_posture_fence_is_wellformed():

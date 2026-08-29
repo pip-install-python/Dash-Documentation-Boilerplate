@@ -150,6 +150,18 @@ Rules:
 - A fork's recorded divergence on a listed path wins: the workflow
   skips it and flags the fork for a session. The author does not
   need to know the fleet's divergences.
+- **Dead cargo (1.6.36).** When a fork's DIVERGENCES records an
+  INVERSION of a cargo file's posture — the fork's equivalent asserts
+  the opposite of what the template's copy asserts — the fork
+  declines the file (`# declined:` in its byte-owned fence, below)
+  and the release notes name every fork already holding the dead
+  copy, with the remedy (delete it + the declined entry). Instance:
+  `scripts/smoke_live.py` on clerkhook — 611 lines, referenced by
+  nothing, asserting content IS served on a host whose posture is
+  that every surface denies (its DIVERGENCES §6 names
+  `scripts/lockdown_smoke.py` as the inversion). A copy that
+  contradicts the host it sits on is not "unused", it is a wrong
+  statement waiting for a session to believe it.
 - The block never carries `.claude/settings.json` unless the spec's
   prose says the release intends a fleet-wide settings change. It
   CAN fan out mechanically (a workflow commit is not bound by the
@@ -172,8 +184,25 @@ one — had to derive the grammar from the test.
     - scripts/smoke_live.py
     ```
 
-Grammar, identical to `sync-verbatim`: `- path` list items, one per
-line, repo-relative, no `..`, `#` comments allowed. A missing fence
+Grammar, identical to `sync-verbatim` plus ONE entry form of its
+own: `- path` list items, one per line, repo-relative, no `..`, `#`
+comments allowed, and (1.6.36) `- <path>  # declined: <reason>` —
+the fork REFUSES this cargo: it holds an equivalent elsewhere, or its
+posture inverts the file. A declined path is the only fence entry
+that need not exist at HEAD (every other listed path must), because
+it is the one way a fork can say no to cargo it never held —
+clerkhook's PACKAGE suite lives at `tests/` root, so a site test
+fanned out there would make its matrix ERROR, not skip; its site
+tests live under `tests/site/`. The reason is mandatory. The
+machine half already existed (`scripts/fanout.py` skips every path
+DIVERGENCES names); only the kit test forbade the entry.
+
+    ```yaml byte-owned
+    - tests/test_analytics_classifier.py  # declined: package suite at tests/, site copy at tests/site/
+    - scripts/smoke_live.py               # declined: lockdown inverts it (DIVERGENCES §6)
+    ```
+
+A missing fence
 means "no fence" and drops the fan-out back to the mention heuristic,
 which over-flags and never restores; an EMPTY fence means "the
 template owns every sync-verbatim path here" — a statement, not an
@@ -199,8 +228,11 @@ reclass, which is the one nobody will remember.
 
 The second fence (1.6.30) declares what this host SERVES, measured
 with a real vendor UA: `key: value` lines, known keys only (`ai_bots`,
-`healthz` ∈ {minimal, full}, `runtime` ∈ {docker, python}), statuses
-as integers. The test validates shape plus the one value the repo can
+`healthz` ∈ {minimal, full}, `runtime` ∈ {docker, python}, `deploy` ∈
+{release-branch} (1.6.35), `unknown_ai` ∈ {allow, meter, block}
+(1.6.36 — the host's `default_unknown_ai`; dimll 2.9.0 widened
+"block" to absent and unrecognised UAs, so the value is now a posture
+a probe can see)), statuses as integers. The test validates shape plus the one value the repo can
 contradict by itself — `runtime:` against render.yaml. Nothing but a
 probe can validate a status, so re-measure when you change what the
 host serves and paste the probe in your report.
@@ -221,6 +253,12 @@ host serves and paste the probe in your report.
   reports still describe the divergence as live. A record that
   overclaims teaches the next sync to defend a line nobody is
   attacking.
+- **One session per tree (1.6.36).** A sub-agent must not edit files
+  its parent also edits — email's child could not see its parent's
+  item-13 diff and asked the ops seat whether it was foreign — and a
+  drop's completion signal is the REPORT, never an idle notice:
+  flexlayout's idle notice fired the moment it delegated, with the
+  work still running.
 - Every item carries **detect** (how to tell it's already there) and
   **acceptance** (the pin or wire check that proves it landed). An
   item without both is not specifiable — write a kickoff instead and

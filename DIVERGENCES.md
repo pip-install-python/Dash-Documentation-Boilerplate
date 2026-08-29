@@ -74,6 +74,11 @@ re-measure when you change what this host serves:
               ahead of it is an uncertified push pending. ABSENT reads
               as `main`: Render watches main and a push deploys before
               CI has judged it.
+    unknown_ai `allow` | `meter` | `block` — this host's
+              `default_unknown_ai` (RobotsConfig), what an unrecognised
+              or ABSENT User-Agent receives on the corpus (1.6.36; dimll
+              2.9.0 widened "block" to cover those). Absent reads as
+              `allow`, the package default.
 
 Measured on boilerplate.2plot.dev, 2026-08-27, build 5589318:
 
@@ -82,4 +87,5 @@ ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
 healthz: full
 runtime: python
 deploy: release-branch
+unknown_ai: allow
 ```

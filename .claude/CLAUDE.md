@@ -262,3 +262,13 @@ they win.
   to main, built by Render inside the minute, red in CD at 14:13Z,
   served for ~6 minutes. A host whose DIVERGENCES.md posture fence has
   no `deploy:` key still watches main — there the trap is the old one.
+- Headless browsers are CRAWLER-lane from dash-improve-my-llms 2.9.0
+  (measured on the wheel, 2026-08-29: `HeadlessChrome/…` and a
+  Playwright UA classify `lane: crawler, bot_type: monitor,
+  vendor_key: headless`; 2.8.0 said browser). A host that screenshots
+  ITSELF for social cards — Playwright, Puppeteer, a headless Chrome
+  in a job — now receives the crawler document, not the app shell,
+  unless the screenshot service sends its own non-headless UA. If a
+  card went blank or textual after a floor bump, look here before
+  the template. Same class as the two lane traps above: name the UA,
+  confirm from the body which document answered.

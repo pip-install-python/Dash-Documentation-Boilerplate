@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.35 (template @ 1.6.35)
+# SYNC 1.6.22 → 1.6.36 (template @ 1.6.36)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -120,6 +120,14 @@ no runtime change: Render deploys `release`, and only CD writes it.
 Nothing new rides the block: every cd.yml in the fleet differs from
 the template's in host, timeouts and comments — 12 of 12 measured
 2026-08-29 — so the item is contract-class by the README's rule.)
+(1.6.36 is what the FIRST wire round taught the block — item 14, spec
++ kit test + README, no runtime code: the `# declined:` fence entry so
+a fork can refuse cargo it never held (clerkhook's package suite at
+tests/ root would ERROR on a site test dropped there); the v4 rollup
+test made v3-agnostic and CHECKED against a pre-v3 fixture in the
+template's own suite; the dead-cargo rule; the `unknown_ai` posture
+key and the headless-browser trap from dimll 2.9.0 (floor stays
+2.8.0); and the one-session-per-tree authoring rule.)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -176,8 +184,23 @@ every older rung by design; do not read those as the floor.
 # methods by the names forks already call them; test_traffic_rollup_v4.py
 # imports daily_rollup / load_reads / vendor_rows from lib/traffic_rollup
 # and the package's _ledger — nothing under lib/auth, no conftest
-# fixture, no page. EXPECT BOTH RED on a fork that has not yet applied
-# item 12 — that red IS the detect firing, exactly as item 3's test was
+# fixture, no page. CORRECTED 1.6.36: "imports nothing fork-shaped" was
+# the wrong question — the real one is "does it pass against the
+# OLDEST fork's rollup?", and at 1.6.34 it did not: the v4 test
+# imported `load_agent_hits` and asserted `bot_visitors`, both v3 seams
+# that clerkhook (v4 WITHOUT v3, its DIVERGENCES §9) lacks. Grep of the
+# 12 local fork clones for `bot_visitors` in lib/traffic_rollup.py,
+# 2026-08-29: clerkhook is the ONLY pre-v3 fork (its docstring says
+# "THIS ROLLUP IS PRE-v3"); the other 11 carry v3. The test is now
+# v3-agnostic (v4 keys only, `daily_rollup(app, day)` with the ledger
+# path in the env) and the template's suite runs it against a
+# clerkhook-shaped fixture (tests/fixtures/rollup_pre_v3.py, via
+# tests/test_rollup_v4_is_v3_agnostic.py) so it cannot regress into
+# v3 again. ALSO: a fork whose tests/ root is a PACKAGE suite
+# (clerkhook) DECLINES both cargo tests with `# declined:` (item 14)
+# and keeps its site copies under tests/site/. EXPECT BOTH RED on a
+# fork that has not yet applied item 12 — that red IS the detect
+# firing, exactly as item 3's test was
 # — and apply the item in the same change; do not skip them. The other
 # two 1.6.34 tests (test_read_ledger.py, test_traffic_page.py) drive the
 # real app through conftest and compare against pages/control_board.py,
@@ -656,6 +679,11 @@ notes: CHECK THE TEMPLATE'S OWN index.html FIRST — the instruction
   link onto the declared path. A fork whose two heads disagree fixes
   the BROWSER side by default — the declaration in run.py is what
   autodiscovery agrees with and what the crawler reads.
+  HEADLESS SCREENSHOTS (1.6.36): from dimll 2.9.0 a HeadlessChrome /
+  Playwright / Puppeteer UA is crawler-lane, so a host that renders
+  its OWN social card by screenshotting itself gets the crawler
+  document unless the screenshot service sends a non-headless UA —
+  the kit trap names it; check it before blaming the head parity.
   EXPECT ONE RED IN tests/test_social_card.py, AND THAT RED IS THIS
   ITEM WORKING (1.6.31; pannellum and modelviewer landed it
   independently, same as 1.6.26's DEMOS red). The static
@@ -686,7 +714,10 @@ contract: the hub's F4 battery seeds each host's declared posture
   classified separately and may land in either lane), `healthz`
   (`minimal` | `full` — the clerkhook divergence has a name here
   now), `runtime` (`docker` | `python`, the same value item 5
-  branches on). FROM MEASUREMENT, NOT FROM INTENT: nothing but a
+  branches on); since 1.6.35 `deploy` (`release-branch`, item 13) and
+  since 1.6.36 `unknown_ai` (`allow` | `meter` | `block` — the host's
+  `default_unknown_ai`; dimll 2.9.0 widened "block" to absent and
+  unrecognised UAs, item 14). FROM MEASUREMENT, NOT FROM INTENT: nothing but a
   probe can validate a status, so the test validates the SHAPE —
   one fence, known keys only, enum values, statuses that are
   integers — plus the one value the repo can contradict by itself,
@@ -1127,6 +1158,67 @@ notes: OWNER STEP PER FORK, listed, not done by the session: if the
   one read; that is a runtime change and not this item — proposed to
   the ops seat as a follow-up.) For the hub seat: the F4 battery's
   "HEAD has a green CD run" row compares to `release` after adoption.
+
+### 14. What the first wire round taught the block — `# declined:`, `unknown_ai`, dead cargo (1.6.36)
+class: contract (spec grammar + the byte-verbatim kit test, which
+  rides the block already; DIVERGENCES.md is fork-owned; no runtime
+  code).
+files: tests/test_claude_kit.py (block — `_machine_fence` accepts
+  `# declined: <reason>`; `_POSTURE_KEYS`/`_POSTURE_ENUMS` gain
+  `unknown_ai`) · DIVERGENCES.md (yours: the byte-owned fence's
+  declined entries where they apply; the posture fence's
+  `unknown_ai:`) · .claude/CLAUDE.md (the headless-browser trap, rides
+  the kit) · sync/README.md is template-only.
+detect: `grep -c "declined:" tests/test_claude_kit.py` = 0 ⇒ the kit
+  test predates the grammar (the block delivers it). For the fork's
+  OWN state: any cargo test at a path the fork's suite cannot host,
+  or any cargo file whose posture the fork's DIVERGENCES inverts,
+  present without a `# declined:` entry ⇒ dead cargo.
+contract:
+  (a) THE DECLINED ENTRY. `- <path>  # declined: <reason>` in the
+      byte-owned fence means the fork refuses this cargo (holds an
+      equivalent elsewhere, or its posture inverts it). It is the only
+      fence entry that may name a path absent at HEAD; the reason is
+      mandatory; a spec's sync-verbatim block cannot carry one. The
+      fan-out already skips every path DIVERGENCES names
+      (scripts/fanout.py `divergence_names`) — the ops seat adds the
+      declined-entry test THERE; this item only frees the kit test to
+      allow it.
+  (b) DEAD CARGO. When your DIVERGENCES records an inversion of a
+      cargo file's posture, decline the file AND delete the dead copy
+      in the same touch. Instance, clerkhook (session action, NOT done
+      here): `scripts/smoke_live.py` — 611 lines, referenced by
+      nothing but its own DIVERGENCES §6 and tests/site/
+      test_smoke_source.py's contrast, asserting content IS served on
+      a host that denies every surface — delete it, decline it. And
+      its site tests live under tests/site/ (already true for
+      test_analytics_classifier.py, test_read_ledger.py,
+      test_traffic_page.py at 2026-08-29): decline the two item-12
+      cargo tests at tests/ root with the reason "package suite at
+      tests/, site copy at tests/site/".
+  (c) `unknown_ai: allow | meter | block` in the posture fence — your
+      `default_unknown_ai`, what an unrecognised or absent UA gets on
+      the corpus. Absent reads as `allow`. dimll 2.9.0 is NOT required
+      for the key (the floor stays 2.8.0); it is what made the value
+      observable, since 2.9.0 widened "block" to those UAs.
+  (d) Headless browsers are crawler-lane at 2.9.0 (kit trap): a host
+      that screenshots itself for cards needs its screenshot service
+      to send a non-headless UA, or it cards the crawler document.
+acceptance: the kit test at this release green (declined grammar
+  cases pass; `unknown_ai` validates); every declined entry's reason
+  names a DIVERGENCES section or an equivalent path; no cargo test at
+  a path the fork's suite cannot host; the dead-cargo instance closed
+  on clerkhook with a diff. Nothing on the wire changes.
+notes: THE FIXTURE IS THE PROOF for item 12's cargo: the template's
+  suite now runs tests/test_traffic_rollup_v4.py against
+  tests/fixtures/rollup_pre_v3.py (clerkhook's shape — no
+  `load_agent_hits`, no `bot_visitors`, `daily_rollup(app, day,
+  visits=None, reads=None)`) via a subprocess pytest with
+  `ROLLUP_V4_MODULE` set, and it is green; a future edit that reaches
+  for a v3 seam goes red HERE, not on the oldest fork. ONE SESSION PER
+  TREE (README authoring rule): a sub-agent must not edit files its
+  parent also edits, and the completion signal is the report, never
+  an idle notice — two forks lost time to each in the 1.6.35 round.
 
 ## Reporting
 
