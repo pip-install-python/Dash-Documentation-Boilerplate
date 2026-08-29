@@ -1034,7 +1034,17 @@ notes: REPORTING CONSEQUENCE, say it in your CHANGELOG under Changed:
   `n/a`; on the wire the same request is verified/unverified — pin the
   triple in the in-process test, not the pair. And the package emits
   for the crawler document only: a Chrome `GET /` writes no read row
-  (measured on the 2.8.0 wheel). Round 3.3 (the hub fold) and 3.4 (the
+  (measured on the 2.8.0 wheel). THE FLOOR BUMP BREAKS ONE VERBATIM
+  TEST ON EVERY FLASK FORK: `tests/test_proxy_scheme.py::
+  test_the_tag_dash_emits_follows_the_forwarded_scheme` (a "satellites
+  copy this verbatim" file) sends NO User-Agent, and at ≥2.8.0 an
+  absent UA is the crawler lane — it receives the crawler document,
+  which has no `twitter:url`, and fails on "no tag" without saying
+  anything about the scheme. The template's release commit went red
+  in CD on all four Flask legs for exactly this (run 33256965081,
+  2026-08-29; FastAPI/Quart skip the test). Port the fix WITH the
+  floor: the request sends `BROWSER_UA` from conftest (template
+  acc3651). Either lane can be the one you did not mean to test. Round 3.3 (the hub fold) and 3.4 (the
   posture flip) are NOT this item; the template's posture fence in
   DIVERGENCES.md is unchanged (`/` still 403 to training UAs).
 
