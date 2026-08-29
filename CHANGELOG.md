@@ -50,6 +50,10 @@ certified commits.
   delete (owner; dashboards are out of a session's reach).
 
 ### Recorded, no change
+- Dashboard Branch set to `release` for boilerplate-2plot-dev by the
+  owner, 2026-08-29 (after the first promoted run showed Render had
+  built ea4e104 from main). This entry's own push is the road's proof
+  — see the ops report for its three timestamps.
 - Owner step, named not assumed: if the Render service is not
   Blueprint-managed, the dashboard's Branch field is the switch, not
   render.yaml. The first promoted run cannot distinguish the two from
