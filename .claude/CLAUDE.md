@@ -240,3 +240,14 @@ they win.
   it: either lane can be the one you did not mean to test, so send
   `-A "<a real crawler UA>"` and confirm from the body which
   document came back.
+- There is ONE classifier: `dash_improve_my_llms.classify()`. Never
+  add a User-Agent list to this app — the tracker had one for a year
+  (`lib/analytics_tracker.py`, until 1.6.34), it filed ClaudeBot as
+  *search* (it is Anthropic's training crawler; the package's registry
+  and this repo's own `run.py` comment both said so six lines from
+  where the list ignored them), it still named the retired
+  `anthropic-ai` / `claude-web` tokens, and it counted every UA-less or
+  library client as a human. Every host in the fleet reported those
+  numbers. A token the registry lacks is a pushback to the package
+  seat, not a list here; `tests/test_analytics_classifier.py` greps the
+  module for the old tokens and goes red if one comes back.

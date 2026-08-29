@@ -5,6 +5,107 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.34] - 2026-08-29
+
+The ledger round — the template half of the network's ledger plan
+(`PLAN-ledger-and-corpus-2026-08-29`: *the ledger is the asset, not the
+wall*). dash-improve-my-llms 2.8.0 now produces the ledger's key
+(`classify()`) and its row (`on_document_read`); this release makes the
+app the first thing that KEEPS the row, and the first place a host's
+bot accounting can be checked against its own wire. Nothing new leaves
+the host: the reporter POSTs the same endpoint with two more keys the
+hub ignores until round 3.3. No hub change, no posture change.
+
+**The finding, dated 2026-08-29.** `lib/analytics_tracker.py` was the
+fleet's fourth classifier, and it was wrong about the vendor the whole
+plan is written around: its search list named `claudebot` — Anthropic's
+*training* crawler, which the package's registry has said since 2.3.3
+and this repo's own `run.py` comment said six lines from where the list
+ignored it — and still carried the retired `anthropic-ai` /
+`claude-web` tokens. `device_type == "bot"` decided `human_hits`, and
+it was set from that list, so an `httpx`, `Go-http-client` or UA-less
+request was a *human* in every rollup the hub has ever received. Every
+host in the fleet reported those numbers.
+
+### Added
+- `AnalyticsTracker.record_read` and the ledger's second table:
+  `run.py` registers it with `on_document_read` (once; guarded against
+  the suite's repeat imports) and every corpus document the package
+  serves lands as a row in `reads` in the same `visitor_analytics.json`
+  — every `_ledger.EVENT_FIELDS` key verbatim plus `kind: read`, same
+  buffer, lock, flush cadence and retention as `visits`; `client_ip`
+  dropped unless `ANALYTICS_KEEP_CLIENT_IP=1`. A pre-1.6.34 ledger has
+  no `reads` key and reads as empty. `reads` is a second table joined
+  by the rollup, never summed into `human_hits` / `bot_hits` / `pages`.
+- Rollup v4 in `lib/traffic_rollup.py`, additive and present only on a
+  day with reads: `vendors[]` — one row per `(key, verified, policy)`
+  with `class`, `hits`, `bytes` and a seven-key `tiers` map from the
+  package's `TIERS` tuple; the null-key row (the unidentified crawler
+  lane) is kept on purpose; sorted by hits, capped at 40 — and
+  `reads: int`, the reconciliation total. `load_reads()` and
+  `vendor_rows()` are the new seams; `daily_rollup(..., reads=)` loads
+  them itself when not handed them, so `lib/satellite_reporter.py`
+  changes nothing. Every v3 key byte-identical; `tests/test_traffic_rollup.py`
+  passes unmodified.
+- `pages/traffic.py` — `/admin/traffic`, the host's own ledger behind
+  the control board's exact gate (fails closed without Clerk;
+  `ALLOW_UNGATED_ADMIN=1` locally; `mark_hidden` at import): vendor ×
+  day with a bytes column, vendor → tier and top paths per vendor for a
+  picked day, the v3 headline numbers for the same day, and the line
+  that says `n/a` means the operator publishes no ranges (Anthropic
+  does not; ClaudeBot is always `n/a`). Plain tables, no charts, one
+  dropdown — fleet fact 18.
+- `.claude/CLAUDE.md`: the ONE-classifier trap.
+- `sync/SYNC-1.6.22-1.6.33.md` → `…-1.6.34.md`, item 12 (class
+  contract, with `tests/test_analytics_classifier.py` and
+  `tests/test_traffic_rollup_v4.py` as the block's cargo — the two that
+  import nothing fork-shaped).
+- Tests: 372 → 401. `test_analytics_classifier.py` (each pin a UA from
+  the wire, plus the grep that fails if a hand-written list comes
+  back), `test_read_ledger.py` (the real app: one `GET /llms.txt` from
+  GPTBot → exactly one row with tier/lane/vendor/verdict/status/bytes
+  and no `client_ip`; a Chrome `GET /` → none; the hook registered
+  once; a raising writer warns and the response is unchanged),
+  `test_traffic_rollup_v4.py`, `test_traffic_page.py` (hidden from the
+  sitemap and llms.txt, denied identically to the board, and a 3-vendor
+  × 2-day fixture whose cells are asserted as numbers).
+
+### Changed
+- dash-improve-my-llms floor **2.7.1 → 2.8.0** in every encoding
+  (`requirements.txt` × 4, `run.py`'s `LLMS_PKG_FLOOR` and its
+  diagnostic; `tests/test_config.py` reads the boot floor). Why 2.8:
+  one classifier, the read event, `Vary: User-Agent`, verified vendor
+  identity. 2.8.1 (the resolved `policy` on every event) is NOT waited
+  on — `policy` is `None` until then and the rollup groups it as
+  `"default"`.
+- `lib/analytics_tracker.py` delegates: `is_bot` and `detect_bot_type`
+  keep their names and signatures and their bodies are `classify()`;
+  `track_visit` classifies once, after the real client IP is resolved,
+  and crawler rows gain `vendor_key`, `vendor_class`, `verified`,
+  `lane`. Human rows are unchanged byte-for-byte. The module carries
+  zero User-Agent strings. Tokens the old list had that the registry
+  lacks — `headlesschrome`, `phantomjs`, `monitoring`, `uptime`,
+  `pingdom`, `better-uptime` — are a pushback to the package seat,
+  named in the 1.6.34 report, not a list kept here.
+- **Reporting consequence:** `human_hits` drops and `bot_hits` rises
+  on every host that adopts this, because UA-less and library clients
+  move from human to crawler (and an empty UA is a bot now, where it
+  used to be a desktop human). That is the number becoming true, not a
+  regression; the hub's day-over-day view will show a step on adoption
+  day.
+
+### Fixed
+Nothing — the classifier finding was never a bug by its own lights; it
+is a Changed.
+
+### Recorded, no change
+- In-process (test client, no client address) the package cannot check
+  GPTBot's published ranges and says `verified: n/a`; on the wire the
+  same request is `verified` / `unverified`. The drop's acceptance
+  named the pair; the tree pins the triple and says why.
+- `DIVERGENCES.md`'s posture fence is unchanged: `/` still answers 403
+  to training UAs. The flip is round 3.4, the owner's.
+
 ## [1.6.33] - 2026-08-27
 
 A correction release: no behaviour changes, no test changes, no

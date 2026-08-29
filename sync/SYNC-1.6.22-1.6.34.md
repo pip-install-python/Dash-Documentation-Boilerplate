@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.33 (template @ 1.6.33)
+# SYNC 1.6.22 → 1.6.34 (template @ 1.6.34)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -108,9 +108,17 @@ shape lesson behind it: a hand-declared healthz drifts silently, and a
 package floor can make a key impossible rather than absent, which are
 different states with different remedies.)
 
-Floor statement, per the authoring rule: unchanged — `LLMS_PKG_FLOOR`
-remains `(2, 7, 1)`. The rationale ladders retain every older rung by
-design; do not read those as the floor.
+(1.6.34 is the LEDGER round — item 12, the first runtime item since
+1.6.32. dash-improve-my-llms 2.8.0 produces the ledger's key
+(`classify()`) and its row (`on_document_read`); the template's tracker
+stops classifying and delegates, `run.py` keeps the row as a second
+table in the analytics file, the rollup gains an additive `vendors[]`
+block, and `/admin/traffic` shows the host its own ledger. The block
+gains the two tests that import nothing fork-shaped and drops nothing.)
+
+Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
+is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
+every older rung by design; do not read those as the floor.
 
 ```yaml sync-verbatim
 # requires-contract: .claude/CLAUDE.md :: Check the prompt against this tree
@@ -155,12 +163,28 @@ design; do not read those as the floor.
 # fetch stubs written for the pre-1.6.2x signature TypeErrored in
 # wake() on 7 of 12 forks, run 33000661276. Item 6 is contract-class
 # now; the rule is in sync/README.md: who stubs this?)
+# (1.6.34 adds item 12's two cargo tests. Both were asked the README's
+# questions — "who stubs this?" and "what does it import?" — before
+# landing here: test_analytics_classifier.py imports AnalyticsTracker
+# and lib.constants.INTERNAL_UA_TOKEN, two names every fork has had
+# since the internal-traffic contract, and calls the tracker's public
+# methods by the names forks already call them; test_traffic_rollup_v4.py
+# imports daily_rollup / load_reads / vendor_rows from lib/traffic_rollup
+# and the package's _ledger — nothing under lib/auth, no conftest
+# fixture, no page. EXPECT BOTH RED on a fork that has not yet applied
+# item 12 — that red IS the detect firing, exactly as item 3's test was
+# — and apply the item in the same change; do not skip them. The other
+# two 1.6.34 tests (test_read_ledger.py, test_traffic_page.py) drive the
+# real app through conftest and compare against pages/control_board.py,
+# which lockdown forks shape differently: contract, not cargo.)
 - .claude/skills/wire-verify/SKILL.md
 - .claude/skills/sync-template/SKILL.md
 - .claude/skills/report/SKILL.md
 - tests/test_claude_kit.py
 - .github/dependabot.yml
 - tests/test_auth_demos.py  # requires: lib/auth_demos.py
+- tests/test_analytics_classifier.py  # requires: lib/analytics_tracker.py
+- tests/test_traffic_rollup_v4.py  # requires: lib/traffic_rollup.py
 ```
 
 ### 1. Auto-merge is two repo settings away (1.6.24) — RETIRED (1.6.25)
@@ -902,6 +926,112 @@ notes: THE POPULATION IS EVERY ASGI HOST IN THE NETWORK, and it is
   Werkzeug — a one-line change in `add_url_rule`. Owner / upstream
   item; until then the middleware is the only thing standing in front
   of Dash's own routes.
+
+### 12. The ledger row — one classifier, the read table, rollup v4, /admin/traffic (1.6.34)
+class: contract (floor + four seams ported into the fork's shape) +
+  two cargo tests in the block (see the fence note). Contract rather
+  than verbatim because every file the item touches answers the
+  README's questions the wrong way for a byte-copy:
+  `lib/analytics_tracker.py` — forks' own tests call `is_bot` /
+  `detect_bot_type` (the names and signatures are KEPT for exactly
+  that reason; the bodies delegate); `lib/traffic_rollup.py` — several
+  forks' tests/test_satellite_reporter.py stub `daily_rollup` and a
+  byte-copy would change what the stub is stubbing; `pages/traffic.py`
+  calls into `lib.auth` (`is_admin_user`, `admin_access_open`) and
+  `lib.gate_layouts`, which the lockdown forks (clerkhook) shape
+  differently; `run.py` is fork-divergent by definition.
+files: requirements.txt (the dimll line, all four encodings) ·
+  run.py (`LLMS_PKG_FLOOR`, the `on_document_read` registration next
+  to `add_llms_routes`) · lib/analytics_tracker.py · lib/traffic_rollup.py
+  · pages/traffic.py (new) · .claude/CLAUDE.md (the ONE-classifier
+  trap, rides the kit) · tests: test_analytics_classifier.py and
+  test_traffic_rollup_v4.py (block), test_read_ledger.py and
+  test_traffic_page.py (port into the fork's fixtures).
+detect: `grep -c "'claudebot'" lib/analytics_tracker.py` ≠ 0 ⇒ not
+  adopted (the old search list named it). Also:
+  `grep -c on_document_read run.py` = 0 ⇒ the row is not kept;
+  `python -c "import lib.traffic_rollup as t; t.load_reads"` fails ⇒
+  no v4; `LLMS_PKG_FLOOR < (2, 8, 0)` ⇒ the floor did not move. Run all
+  four and PASTE them: a fork can be at any subset.
+contract:
+  (a) FLOOR ≥ 2.8.0 in every encoding (requirements, run.py's boot
+      floor, any test that names it, CI if it pins). The requirements
+      line changing is the cache bust — grep the number, move every
+      one (kit trap). Do NOT wait for 2.8.1: `policy` is None on every
+      event until it ships and the rollup groups None as "default".
+  (b) ONE CLASSIFIER. `is_bot(ua)` ⇔ `classify(ua)["lane"] == "crawler"`;
+      `detect_bot_type(ua)` ⇔ `classify(ua)["bot_type"] or "unknown"`.
+      `track_visit` classifies ONCE, after the real client IP is
+      resolved (so `verified` is against the client, not the proxy),
+      and crawler rows gain `vendor_key`, `vendor_class`, `verified`,
+      `lane`; human rows are byte-identical to before (the fork's
+      existing v3 rollup tests must pass unmodified). The
+      `INTERNAL_UA_TOKEN` drop stays FIRST, before classification.
+      The module ends with ZERO User-Agent strings. A token the old
+      list carried that the registry lacks and that matters for the
+      fork's accounting (`headlesschrome`, `phantomjs`, uptime
+      monitors) is a PUSHBACK to the package seat named in the report,
+      never a list kept in the fork. An absent UA is a bot now (the
+      package puts the empty UA on the crawler lane); it used to be a
+      desktop human.
+  (c) THE ROW. `on_document_read(tracker.record_read)` registered
+      once, idempotently (the suite imports run.py more than once and
+      the hook appends), next to `add_llms_routes`. `record_read`
+      keeps every `_ledger.EVENT_FIELDS` key verbatim plus
+      `"kind": "read"` in a `reads` list in the SAME analytics file —
+      same buffer, lock, flush cadence and retention as `visits` —
+      dropping `client_ip` unless `ANALYTICS_KEEP_CLIENT_IP=1`. A
+      ledger without a `reads` key reads as empty. NO double count:
+      `reads` is a second table joined by the rollup, never summed
+      into `human_hits` / `bot_hits` / `pages`.
+  (d) ROLLUP v4, additive, present ONLY on a day with reads:
+      `vendors: [{key, class, verified, policy, hits, bytes,
+      tiers:{small,index,full,page,html,policy,sitemap}}]` — one row
+      per `(key, verified, policy)`, null key KEPT (the unverifiable
+      bulk), sorted by hits desc, capped at 40, `tiers` from the
+      package's `TIERS` tuple with all seven keys always; and
+      `reads: int` = `sum(vendors[].hits)`. Every v3 key byte-identical.
+      A reads-only day is reported (the machine-only-day rule). The
+      reporter changes nothing: it POSTs what `daily_rollup` returns,
+      and the hub ignores keys it does not know (seat-read at 54bfa5a).
+      THESE KEYS ARE THE HUB CONTRACT (round 3.3) — do not rename them
+      in a port without saying why in the report.
+  (e) `/admin/traffic`: the control board's exact gate (same
+      redirect/deny branches, `mark_hidden` at import), reads the
+      analytics file directly, last 14 days: vendor × day (hits, with
+      a bytes column), vendor → tier for the picked day, top paths per
+      vendor (10 per vendor, top 8), the v3 headline numbers for the
+      same day, and one line saying what `verified` means per vendor
+      (`n/a` = the operator publishes no ranges — Anthropic does not,
+      so ClaudeBot is ALWAYS n/a; say it on the page or the owner reads
+      it as a defect). Plain tables, NO charts, no interval callback,
+      the day dropdown is the only control (fleet fact 18: a 14 × 40
+      table of strings is ~1 ms; five charts were ten seconds).
+acceptance: the fork's suite green on ≥2.8.0 including the two cargo
+  tests and the fork's ports of test_read_ledger.py / test_traffic_page.py
+  (assert the NUMBERS in the fixture ledger, not "renders"); the four
+  detects pasted at zero / present; and on the wire after deploy, a
+  `GET /llms.txt` with a real vendor UA followed by the fork's own
+  `/admin/traffic` showing that row (`ALLOW_UNGATED_ADMIN` is for local
+  work only — never set it on a host).
+notes: REPORTING CONSEQUENCE, say it in your CHANGELOG under Changed:
+  `human_hits` DROPS and `bot_hits` RISES on adoption day, because
+  UA-less and library clients (`httpx`, `Go-http-client`, `node-fetch`,
+  an empty UA) move from human to crawler. That is the number becoming
+  true, not a regression; the hub's day-over-day view will show the
+  step. The FINDING behind (b), dated 2026-08-29: the tracker's search
+  list named `claudebot` — Anthropic's TRAINING crawler, which the
+  package's registry has said since 2.3.3 and the fork's own run.py
+  comment says six lines from where the list ignored it — and still
+  carried the retired `anthropic-ai` / `claude-web` tokens. Every host
+  reported it. Two measured facts a port needs: in-process (test
+  client, no client address) the package cannot verify GPTBot and says
+  `n/a`; on the wire the same request is verified/unverified — pin the
+  triple in the in-process test, not the pair. And the package emits
+  for the crawler document only: a Chrome `GET /` writes no read row
+  (measured on the 2.8.0 wheel). Round 3.3 (the hub fold) and 3.4 (the
+  posture flip) are NOT this item; the template's posture fence in
+  DIVERGENCES.md is unchanged (`/` still 403 to training UAs).
 
 ## Reporting
 
