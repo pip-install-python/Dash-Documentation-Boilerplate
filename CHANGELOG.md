@@ -50,6 +50,16 @@ certified commits.
   delete (owner; dashboards are out of a session's reach).
 
 ### Recorded, no change
+- Fix-forward, same version: the promote checkout is `fetch-depth: 0`.
+  Run 33262495272 (747d8b3) failed "Promote to release" in one second —
+  a depth-1 clone pushing onto an EXISTING `release` is rejected as
+  non-fast-forward ("fetch first"), because a shallow history cannot
+  show the remote that release's tip is an ancestor. ea4e104's promote
+  passed only because it CREATED the branch. Reproduced locally
+  (depth-1 rejected, `--unshallow` lands); pinned in
+  `tests/test_cd_promotes_release.py`. That failed run is also the
+  dashboard proof: with Branch = release, main moved and neither
+  `release` nor the wire did (36 samples over 7 min, ops seat).
 - Dashboard Branch set to `release` for boilerplate-2plot-dev by the
   owner, 2026-08-29 (after the first promoted run showed Render had
   built ea4e104 from main). This entry's own push is the road's proof

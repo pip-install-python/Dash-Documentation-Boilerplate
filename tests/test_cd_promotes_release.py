@@ -60,6 +60,20 @@ def test_the_promote_step_is_a_fast_forward_push_of_this_sha():
     )
 
 
+def test_the_promote_checkout_is_not_shallow():
+    """A depth-1 clone cannot fast-forward an EXISTING ref: the push is
+    rejected as non-fast-forward. Run 33262495272 (747d8b3, 2026-08-29)
+    failed its promote step in one second for exactly this; the first
+    promote had only passed because `release` did not exist yet."""
+    steps = _deploy()["steps"]
+    checkouts = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout")]
+    assert checkouts, "the promote job must check out before it can push"
+    assert checkouts[0].get("with", {}).get("fetch-depth") == 0, (
+        "promote's checkout must be fetch-depth: 0 — a shallow HEAD pushed "
+        "onto an existing release is rejected ('fetch first')"
+    )
+
+
 def test_a_verify_only_dispatch_does_not_promote():
     cond = _promote_step().get("if", "")
     assert "inputs.target_url == ''" in cond and "github.event_name == 'push'" in cond, cond

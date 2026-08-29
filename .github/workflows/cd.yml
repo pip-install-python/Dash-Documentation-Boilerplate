@@ -67,6 +67,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # FULL history, not the default depth-1 shallow clone. A shallow
+          # HEAD pushed onto an EXISTING `release` is rejected as
+          # non-fast-forward ("fetch first") because the clone cannot show
+          # the remote that release's tip is an ancestor. The first
+          # promote (ea4e104, 2026-08-29) succeeded only because `release`
+          # did not exist yet; the second (747d8b3) failed in one second.
+          # Reproduced locally: depth-1 push rejected, `--unshallow` then
+          # the same push lands. tests/test_cd_promotes_release.py pins it.
+          fetch-depth: 0
 
       - name: Promote to release
         # Only a push to main promotes. A workflow_dispatch that names
