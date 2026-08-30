@@ -1493,6 +1493,15 @@ notes: detect fires on every fork today. THREE places the design did
   the sidebar, components from metadata.json; none → no /api), and the
   aside pin + the hidden-links positive control derive their pages from
   the registry instead of naming template paths.
+  COUNT ELEMENTS, NEVER SUBSTRINGS (note 63, 1.6.41): any canonical or
+  meta check extended across lanes must count parsed ELEMENTS. The
+  template's own browser document is the proof case — ONE
+  <link rel="canonical"> element (dimll's per-page tag) and THREE
+  substring hits: the comment block that explains why no static tag
+  exists, and the URL-sync script's selector string, both contain the
+  text. A static `href="__PAGE_URL__"` canonical is fork content the
+  template never had; where one exists the count of two elements is
+  real and the static line goes.
   THE VISUAL PASS (1.6.39, same item): four things no test had
   measured, all now contract + pinned — (i) the AppShell reserves the
   aside column on every page; collapse it where no `.. toc::` fills it
