@@ -35,10 +35,15 @@ item 15; clerkhook keeps its wall by design.
 - `sync/SYNC-1.6.22-1.6.36.md` → `…-1.6.37.md`, item 15.
 
 ### Recorded, no change
-- In-process at ecc66f8, `/healthz` 403ed for these UAs from the APP
-  (the 318-byte denial body), so the wire's `/healthz` flips with this
-  release and `/` does not until the edge edit — the difference between
-  in-process and the wire is the edge wall, by construction.
+- Landed and measured on the wire (2026-08-30T00:09Z, build 700a170): ClaudeBot and
+  GPTBot both 200/200/200 on `/`, `/llms.txt`, `/healthz`, robots.txt
+  with no Disallow for either, and NO Cloudflare edit — the "edge wall"
+  the drop framed was never observed on this host; every 403 was the
+  app's. The fence, item 15 and this entry are corrected to say so;
+  the owner is checking whether any zone rule exists at all.
+- The robots.txt shape after the flip is no training stanza at all
+  (GPTBot/ClaudeBot under `User-agent: *`), so the three fingerprint
+  sites assert "no Disallow", not "Allow: /".
 
 ## [1.6.36] - 2026-08-29
 

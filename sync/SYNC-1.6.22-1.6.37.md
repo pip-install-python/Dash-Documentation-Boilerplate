@@ -1258,25 +1258,30 @@ contract: DEFAULT ALLOW. The owner's decision (2026-08-29): the wall
   at the app level (leaflet, muischeduler — the ops seat's reading,
   2026-08-29) report `already-present` with their fence and the six
   wire lines.
-  TWO WALLS, ONE ORDER: the app wall is this item; the EDGE wall (a
-  Cloudflare rule 403ing these UAs on `/`) is the OWNER's and is
-  narrowed per host only after the app half is verified on the wire.
-  Ship the app half without waiting; measure BEFORE and AFTER, and
-  expect `/` to stay 403 on the wire until the edge edit even though
-  in-process it is 200 — that difference is the edge wall, name it.
+  THE EDGE WALL IS UNOBSERVED (corrected the night of 2026-08-29, on
+  the canary): the drop framed the template's 403 as two walls — the
+  app's and a Cloudflare rule on `/` — and the flip alone produced
+  200/200/200 on the wire with no Cloudflare edit; every 403 on
+  boilerplate was the app's. The owner is checking whether any zone
+  rule exists at all. So: ship the app half; measure BEFORE and AFTER;
+  the app-level wire measurement is the acceptance. If YOUR host still
+  403s `/` on the wire while in-process answers 200, THAT is an edge
+  wall — name it, paste both, and hand it to the owner; do not "fix"
+  the app again.
 acceptance: in-process ClaudeBot + GPTBot on `/`, `/llms.txt`,
   `/healthz` → 200 (the crawler document on `/`); robots.txt carries
   no Disallow for them; the fork's suite green (the fingerprint line
   flipped, not deleted); on the wire, the six lines pasted and dated
-  in the posture fence — interim (edge still up) and final (200/200/
-  200) as two dated measurements, never one overwritten.
-notes: the 403 you are removing was TWO walls stacked; a session that
-  flips the flag, sees `/` still 403 on the wire and "fixes" it again
-  is chasing the edge. In-process is the app's own answer; the wire
-  minus in-process is the edge's. `/healthz` 403ed for these UAs from
-  the APP (measured in-process at ecc66f8: 403 with the 318-byte
-  denial body), so the wire's /healthz flips with this item and `/`
-  does not — until the owner's edit.
+  in the posture fence (200/200/200 for both UAs) — the app-level
+  wire measurement alone, unless the host measures otherwise.
+notes: in-process is the app's own answer; the wire minus in-process
+  is whatever sits in front of it. On the canary the difference was
+  ZERO: `/` and `/healthz` both 403ed from the APP (in-process at
+  ecc66f8: 403 with the 318-byte denial body) and both opened with
+  the flag. The robots.txt shape after the flip is NO training stanza
+  at all (GPTBot/ClaudeBot fall under `User-agent: *` / Allow), so a
+  fingerprint that looks the stanza up raises — assert "no Disallow",
+  not "Allow: /" (the template's three sites do).
 
 ## Reporting
 

@@ -80,23 +80,26 @@ re-measure when you change what this host serves:
               2.9.0 widened "block" to cover those). Absent reads as
               `allow`, the package default.
 
-Measured on boilerplate.2plot.dev, 2026-08-29T23:49Z, build ecc66f8 —
-the INTERIM reading of Round 3.4 (the posture flip, 1.6.37): this is
-what the wire answered BEFORE this release deployed, with the ClaudeBot
-UA (`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible;
+Measured on boilerplate.2plot.dev, 2026-08-30T00:09Z, build 700a170 — Round 3.4
+(the posture flip, 1.6.37) LANDED, with the ClaudeBot UA
+(`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible;
 ClaudeBot/1.0; +claudebot@anthropic.com)`) and the GPTBot UA
 (`…compatible; GPTBot/1.2; +https://openai.com/gptbot`), identical for
-both. Two walls produce it: the APP (block_ai_training, retired in this
-release — in-process the same probe answers 403/200/403 at ecc66f8)
-and the EDGE (a Cloudflare rule 403ing these UAs on `/`, narrowed by
-the owner only after the app half is verified on the wire). Expected
-after both: `{"/": 200, "/llms.txt": 200, "/healthz": 200}` — re-measure
-and re-date this block then; until then the numbers below are true and
-the intent is not what they say.
+both: `/` 200 (the 18,779-byte crawler document), `/llms.txt` 200,
+`/healthz` 200; robots.txt carries no Disallow for either. History,
+kept because it corrects a framing: the reading before this release
+(2026-08-29T23:49Z, build ecc66f8) was 403/200/403 on the wire AND
+in-process, and the drop had framed that as two walls — the app's
+and a Cloudflare edge rule on `/`. The EDGE WALL WAS NEVER OBSERVED on
+this host: every 403 was the app's `block_ai_training`, and the flip
+alone produced 200/200/200 with no Cloudflare edit (ops seat, 00:08Z;
+this session, 2026-08-30T00:09Z). The owner is checking whether any zone rule
+exists at all; until a host measures otherwise, the app-level wire
+measurement is the whole posture.
 
 ```yaml posture
-# interim (2026-08-29T23:49Z, before this release deployed) — see above
-ai_bots: {"/": 403, "/llms.txt": 200, "/healthz": 403}
+# 2026-08-30T00:09Z, build 700a170, ClaudeBot and GPTBot identical — see above
+ai_bots: {"/": 200, "/llms.txt": 200, "/healthz": 200}
 healthz: full
 runtime: python
 deploy: release-branch
