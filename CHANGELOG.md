@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.40] - 2026-08-30
+
+Two fleet-class findings from muischeduler's item-12 port, both checked
+against this tree.
+
+### Fixed
+- `scripts/network_smoke.py`: the battery's default `UA` names the
+  browser lane first — a Chrome/AppleWebKit token, then the internal
+  token, then " network-smoke". At dash-improve-my-llms ≥ 2.8 the old
+  bare-internal-token UA classified as a crawler, so every default-UA
+  check read the prerendered crawler document; muischeduler's own
+  manifest and og:image checks went red in CD's verify job when its
+  floor moved. This template never went red only because its battery
+  has no browser-document check on the default UA (its default-UA
+  checks read healthz, llms.txt, robots and sitemap, crawler-lane
+  surfaces regardless) — the lane was still wrong. Measured at 2.8.0:
+  the new UA is `browser`, `INTERNAL_UA_TOKEN` is still a substring so
+  the tracker drops it, `CRAWLER_UA` untouched. `scripts/smoke_live.py`
+  already had this shape. Pinned in `tests/test_network_smoke.py`.
+
+### Recorded, no change
+- No og:image / twitter:card / twitter:image augmentation exists in
+  this `run.py` (Dash emits them per page; `templates/index.html`
+  declares only the auxiliaries and the one exempted static
+  `twitter:card`). muischeduler's duplicate is fork-local (its
+  divergence 8); sync item 17 tells forks how to check theirs.
+- Wording notes folded into items 9, 12, 13 and 15 from the first fork
+  reports: CI may pin the floor more than once (grep the number); tests
+  that bypass conftest's `get()` via `app.server.test_client()` send no
+  UA and land on the crawler lane; 1.6.33-block forks take the newer
+  kit-test bytes on the one-hunk item-13 conflict; item 9 is a
+  measurement pass, never a copy.
+- `sync/SYNC-1.6.22-1.6.38.md` → `…-1.6.40.md`, item 17. Tests 437 → 438.
+
 ## [1.6.39] - 2026-08-30
 
 The visual pass on 1.6.38 (ops seat in the owner's Chrome; contract

@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.38 (template @ 1.6.38)
+# SYNC 1.6.22 → 1.6.40 (template @ 1.6.40)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -144,6 +144,12 @@ Resources from one constant; Admin owner-only; /changelog; a footer; a
 generated /api page; a11y names; the no-`dcc` rule. Nothing rides the
 block THIS round — navbar.py/header.py are divergent on every fork today
 — and the item says which files become cargo next round.)
+(1.6.40 is item 17 — two fleet-class findings from muischeduler's
+item-12 port: the network battery's default UA is crawler-lane at
+dimll ≥ 2.8 (fixed: browser engine token first, internal token after),
+and a fork-local og:image augmentation the template does not carry.
+Plus wording notes on items 9, 12, 13 and 15 from the first fork
+reports — no runtime change beyond the one constant.)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -1007,7 +1013,9 @@ detect: `grep -c "'claudebot'" lib/analytics_tracker.py` ≠ 0 ⇒ not
   four and PASTE them: a fork can be at any subset.
 contract:
   (a) FLOOR ≥ 2.8.0 in every encoding (requirements, run.py's boot
-      floor, any test that names it, CI if it pins). The requirements
+      floor, any test that names it, CI if it pins — and CI may pin
+      the floor MORE THAN ONCE: grep for the number, not for one
+      line; 1.6.40 note from the first fork ports). The requirements
       line changing is the cache bust — grep the number, move every
       one (kit trap). Do NOT wait for 2.8.1: `policy` is None on every
       event until it ships and the rollup groups None as "default".
@@ -1114,6 +1122,9 @@ detect: `grep -c RENDER_DEPLOY_HOOK_URL .github/workflows/cd.yml` ≠ 0
   ⇒ not adopted. Also `grep -c "branch: release" render.yaml` = 0 ⇒
   Render still watches main. Paste both.
 contract:
+  (1.6.40 note: forks on the 1.6.33 block hit a one-hunk conflict in
+  tests/test_claude_kit.py when porting this item — take the NEWER
+  bytes, the template's; the hunk is the posture-key allowlist.)
   (a) cd.yml `deploy` keeps `needs: [test]` — that IS the gate — and
       replaces the hook step with `git push origin HEAD:refs/heads/release`
       after an `actions/checkout` **with `fetch-depth: 0`** — MEASURED on
@@ -1247,6 +1258,9 @@ files: run.py (`RobotsConfig(block_ai_training=False, …)` and the
   and scripts/network_smoke.py (same tuple) · DIVERGENCES.md (the
   posture fence's `ai_bots`, re-measured and re-dated) · CHANGELOG.
 detect: `grep -c "block_ai_training=True" run.py` ≠ 0 ⇒ not flipped.
+  (1.6.40 note: item 9 — the posture fence — is UNADOPTED on several
+  forks; it is a MEASUREMENT pass, never a copy of the template's
+  numbers: probe your own host with both UAs and write what it answered.)
   Then the WIRE: ClaudeBot and GPTBot UAs × `/`, `/llms.txt`,
   `/healthz` — paste all six with the date.
 contract: DEFAULT ALLOW. The owner's decision (2026-08-29): the wall
@@ -1284,7 +1298,11 @@ acceptance: in-process ClaudeBot + GPTBot on `/`, `/llms.txt`,
   in the posture fence (200/200/200 for both UAs) — the app-level
   wire measurement alone, unless the host measures otherwise.
 notes: in-process is the app's own answer; the wire minus in-process
-  is whatever sits in front of it. On the canary the difference was
+  is whatever sits in front of it. (1.6.40 wording note: fingerprint
+  tests that bypass conftest's `get()` wrapper via
+  `app.server.test_client()` send NO User-Agent and land on the crawler
+  lane at ≥2.8 — item 12's proxy-scheme hazard applies to every such
+  test, not only test_proxy_scheme.py.) On the canary the difference was
   ZERO: `/` and `/healthz` both 403ed from the APP (in-process at
   ecc66f8: 403 with the 318-byte denial body) and both opened with
   the flag. The robots.txt shape after the flip is NO training stanza
@@ -1419,6 +1437,54 @@ notes: detect fires on every fork today. THREE places the design did
   never per page; (iv) Menu.Dropdown gets a solid themed background
   (near-transparent in dark mode by default) and every PRIMARY entry
   an icon.
+
+### 17. The battery's default UA names the browser lane; no fork-local og:image augmentation (1.6.40; found by muischeduler)
+class: contract (both live tools have been contract-class since
+  1.6.29 — every fork's copy carries its own stubs; port the constant,
+  not the file).
+files: scripts/network_smoke.py (`BROWSER_UA` = Chrome/AppleWebKit token
+  + INTERNAL_UA + " network-smoke"; `UA = BROWSER_UA`; CRAWLER_UA
+  untouched) · tests/test_network_smoke.py (the lane pin) · your run.py
+  IF it augments the crawler HTML with og:image / twitter:* tags.
+detect: `python -c "from dash_improve_my_llms import classify; from
+  scripts import network_smoke as n; print(classify(n.UA)['lane'])"`
+  prints `crawler` ⇒ not adopted. And `grep -c "og:image" run.py` ≠ 0
+  ⇒ you carry an augmentation the template does not.
+contract:
+  (a) At dimll ≥ 2.8 a User-Agent with no browser engine token is
+      crawler-lane, so the battery's default UA — the bare internal
+      token plus " network-smoke" — made every default-UA check read
+      the prerendered crawler document. On muischeduler its own
+      `installable_as_an_app` ("no manifest link") and
+      `social_card_real_pixels` ("2 og:image tags") went red in CD's
+      VERIFY job the moment the floor moved. The template never went
+      red only because its battery has no browser-document check with
+      the default UA (its default-UA checks read healthz, llms.txt,
+      robots, sitemap — crawler-lane surfaces regardless) — the default
+      was still the wrong lane. Fix: a real Chrome/AppleWebKit token
+      FIRST, the internal token AFTER it (INTERNAL_UA_TOKEN is a
+      substring match — measured at 2.8.0: the new UA is `browser`
+      lane and the tracker still drops it); CRAWLER_UA is the other
+      lane, untouched. scripts/smoke_live.py already had this shape
+      (BROWSER_UA + internal token) — audit yours.
+  (b) The template's run.py injects NO og:image / twitter:card /
+      twitter:image; Dash emits those per page and templates/index.html
+      declares only the auxiliaries (og:image:width/height/type/alt,
+      secure_url) plus the one exempted static twitter:card (item 8).
+      A fork that augmented the crawler HTML with those tags on top of
+      the package's has a DUPLICATE the moment its battery reads the
+      browser document — remove the augmentation, or guard every
+      injected tag the way `canonical` is guarded (emit only when the
+      package did not). muischeduler's is fork-local (recorded there as
+      divergence 8 pending this item); if yours came from an older
+      template era, say so in the report — it is not in 1.6.40's tree.
+acceptance: the lane pin green; `grep -c og:image run.py` = 0 or
+  every injected tag guarded; your live battery green on the browser
+  document with the default UA.
+notes: THE LESSON IS THE LANE, again: name the lane in every UA you
+  send, and check the body says which document answered. It is the
+  fourth time this round (kit trap, item 12's proxy test, item 15's
+  in-process/wire split, and now the battery's own default).
 
 ## Reporting
 
