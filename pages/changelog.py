@@ -60,8 +60,12 @@ LLMS_DOC = _build_llms_doc()
 def newest_date(path: Path = CHANGELOG_PATH) -> str | None:
     """The newest dated release heading — /changelog's sitemap lastmod. It
     moves exactly when the content moves (a release is dated by hand)."""
-    dates = [v["date"] for v in parse_changelog(path) if re.match(r"^\d{4}-\d{2}-\d{2}$", v.get("date") or "")]
+    dates = [v["date"] for v in parse_changelog(path) if v.get("date")]
     return max(dates) if dates else None
+
+
+def _is_version(label: str) -> bool:
+    return bool(re.fullmatch(r"\d+(\.\d+)*", label))
 
 
 def parse_changelog(path: Path = CHANGELOG_PATH) -> list[dict]:
@@ -81,12 +85,26 @@ def parse_changelog(path: Path = CHANGELOG_PATH) -> list[dict]:
     for line in path.read_text(encoding="utf-8").split("\n"):
         # ASCII hyphen, en dash or em dash between version and date —
         # leaflet's headings use "—" and rendered every version DATELESS.
-        vm = re.match(r"^## \[?(\d[^\]\s]*|Unreleased)\]?(?:\s*[-–—]\s*(.+))?\s*$", line)
+        # Every heading shape the fleet writes (measured 2026-08-30):
+        #   ## [1.4.0] - 2026-08-03            hyphen
+        #   ## [1.0.0] — 2026-08-21            em dash (en dash too)
+        #   ## 2.0.0 — 2026-08-02              no brackets
+        #   ## [0.2.0] — 2026-07-31 (note)     trailing note
+        #   ## [0.1.0] — unreleased            words where the date goes
+        #   ## [2026-08-30] — title            the date IS the label
+        #   ## [Unreleased]
+        # Parsed as [?label]? (sep)? rest?, with the ISO date taken from
+        # wherever it sits and the leftover kept as a note.
+        vm = re.match(r"^## \[?(?P<label>[^\]#\n]+?)\]?(?:\s+[-–—]\s+(?P<rest>.+?))?\s*$", line)
         if vm:
             close_section()
             if current is not None:
                 versions.append({**current, "sections": sections})
-            current = {"version": vm.group(1), "date": vm.group(2) or ""}
+            label, rest = vm.group("label").strip(), (vm.group("rest") or "").strip()
+            iso = re.search(r"\d{4}-\d{2}-\d{2}", rest) or re.search(r"\d{4}-\d{2}-\d{2}", label)
+            date = iso.group(0) if iso else ""
+            note = rest.replace(date, "").strip(" -–—()") if rest else ""
+            current = {"version": label, "date": date, "note": note}
             sections, section, items = {}, None, []
             continue
         sm = re.match(r"^### (.+)", line)
@@ -141,18 +159,29 @@ def _section_icon(name: str):
     return "tabler:point", "gray"
 
 
-def _inline(text: str):
-    """`code` and **bold** inside one bullet."""
+def _code(text: str):
     out = []
     for i, part in enumerate(re.split(r"`([^`]+)`", text)):
-        if i % 2:
-            out.append(dmc.Code(part, style={"overflowWrap": "anywhere"}))
+        if not part:
             continue
-        for j, bp in enumerate(re.split(r"\*\*([^*]+)\*\*", part)):
-            if not bp:
-                continue
-            out.append(html.Strong(bp) if j % 2 else bp)
+        out.append(dmc.Code(part, style={"overflowWrap": "anywhere"}) if i % 2 else part)
     return out
+
+
+def _inline(text: str):
+    """**bold** first, then `code` — in that order on purpose (note 67):
+    a bold span CONTAINING inline code rendered its asterisks raw when
+    code was split first, because the bold markers then sat in different
+    fragments."""
+    out = []
+    for j, part in enumerate(re.split(r"\*\*(.+?)\*\*", text)):
+        if not part:
+            continue
+        if j % 2:
+            out.append(html.Strong(_code(part)))
+        else:
+            out.extend(_code(part))
+    return out or [text]
 
 
 # A bullet in a no-wrap Group: without min-width:0 the Text grows to the
@@ -189,12 +218,16 @@ def _section(name: str, items: list):
 
 def _version_item(v: dict, is_current: bool):
     cards = [_section(n, items) for n, items in v["sections"].items() if items]
+    # `v` only when the label IS a version: `## [Unreleased]` read as
+    # "VUNRELEASED" and a date-labelled release as "v2026-08-30" (note 67).
+    label = f"v{v['version']}" if _is_version(v["version"]) else v["version"]
+    when = " ".join(x for x in (v.get("date", ""), v.get("note", "")) if x)
     return dmc.TimelineItem(
         bullet=dmc.ThemeIcon(DashIconify(icon="tabler:rocket", width=16),
                              variant="filled" if is_current else "light", size=28, radius="xl"),
         title=dmc.Group(
-            [dmc.Badge(f"v{v['version']}", variant="filled" if is_current else "light", size="lg"),
-             dmc.Text(v["date"], size="sm", c="dimmed") if v["date"] else None,
+            [dmc.Badge(label, variant="filled" if is_current else "light", size="lg"),
+             dmc.Text(when, size="sm", c="dimmed") if when else None,
              dmc.Badge("Current", color="green", variant="outline", size="sm") if is_current else None],
             gap="sm"),
         children=dmc.Stack(cards, gap="xs", mt="sm") if cards

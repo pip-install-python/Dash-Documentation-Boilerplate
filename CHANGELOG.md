@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.42] - 2026-08-30
+
+The second wave of fork findings (notes 64–77): two more promote
+failure modes, every changelog heading shape the fleet writes, the
+blank-page class nothing could see, and the third lane surface.
+
+### Added
+- cd.yml's promote step guards `release/*` refs: a branch at any depth
+  under `release/` makes `release` a directory and the push fails
+  "cannot lock ref" (muischeduler's second failure, run 33318542986 —
+  its first was the workflow-permission cap; `verify` skipping on both
+  is contract (a2) working). The guard fails with the owner step
+  (delete or rename, never --force); item 13 carries the detect
+  (`git ls-remote --heads origin 'release/*'` must be empty).
+- `tests/test_layout_nesting.py` (adopted from emojimart 44ae41b;
+  the defect is modelviewer's): `parse()` returns a LIST, and
+  `children=[hero, parse(...)]` nests it — React #31, the page renders
+  EMPTY with a green suite, and every machine-lane check stays green
+  because the prerender reads the markdown. Walk over every registered
+  page + a non-vacuity fixture + a positive control derived from the
+  registry + an AST source pin on both builders; pages/home.py's
+  comment says splat-or-concatenate.
+- Sync item 18 — the 1.6.41 remainder: nineteen files moved, two were
+  ported; excalidraw found the seam from inside (`slim_generated_on`
+  imported, never called — dead code and a lastmod-less /api on every
+  two-file fork). Per-seam detects including cargo-without-caller;
+  byte-identity evidence against 519d496 declared stale; the
+  silent-empty-`load_package` wording (emojimart), the corpus half of
+  the admin-absent pin (llms, note 75), and the hide+aria pairing
+  (muicharts).
+
+### Changed
+- `pages/changelog.py` parses every heading shape measured on the
+  fleet's main branches (note 67a): bracketed or bare labels, `-`/`–`/
+  `—`, the ISO date wherever it sits, trailing notes kept — and the
+  badge says `v` only when the label IS a version (`## [Unreleased]`
+  read "VUNRELEASED"; a date-labelled release "v2026-08-30"). Bold
+  spans containing inline code render (bold split before code —
+  note 67b). Eight fixture headings pinned.
+- `scripts/network_smoke.py` `HIDDEN_DOC_PATHS` lists the two real
+  admin pages and is pinned against the registry
+  (pannellum's tuple carried a page deleted 08-02 and missed
+  /admin/traffic).
+- `tests/test_agent_key_route.py`'s client names a browser-lane UA
+  (`environ_base`); a new kit grep fails any `.test_client()` user
+  that names none — a bare client sends `Werkzeug/x.y`, crawler lane
+  at ≥ 2.8 (leaflet's every-page-200 loop went red at the floor bump;
+  the template's third-lane instance).
+- Item 16's first detect is the ABSENCE of `sections_for` (llms's
+  clusters had other names and the `page_order` grep said
+  already-present on a defective tree); item 17(b)'s og:image detect
+  greps the injection call, not the string (llms has the string only
+  in a comment).
+- `lib/api_reference.py`: two overlong lines reflowed (E501 on forks
+  that lint line length; this repo's flake8 does not).
+- Tests 450 → 458.
+
+### Recorded, no change
+- llms's two "template seams" (header identity constants; the
+  registry-derived aside pin) were both closed at 1.6.41 — llms
+  measured against stale 519d496. Recorded in item 18's detects.
+- The fork-tool harness fixes (smoke_test.py, compat_matrix.py,
+  route_parity.py) are spec text only — this tree carries none of
+  those tools.
+
 ## [1.6.41] - 2026-08-30
 
 muischeduler's item-16 port measured nine files byte-identical to the

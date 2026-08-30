@@ -504,3 +504,79 @@ def test_header_reads_header_height_and_props_tables_scroll(app_module):
     assert f"h={HEADER_HEIGHT}" in str(create_header([]))
     css = (REPO / "assets" / "main.css").read_text()
     assert ".m2d-block-props table" in css
+
+
+FLEET_HEADINGS = [
+    ("## [1.4.0] - 2026-08-03", "1.4.0", "v1.4.0", "2026-08-03", ""),
+    ("## [1.0.0] — 2026-08-21", "1.0.0", "v1.0.0", "2026-08-21", ""),
+    ("## [0.9.0] – 2026-08-20", "0.9.0", "v0.9.0", "2026-08-20", ""),
+    ("## 2.0.0 — 2026-08-02", "2.0.0", "v2.0.0", "2026-08-02", ""),
+    ("## [0.2.0] — 2026-07-31 (never published)", "0.2.0", "v0.2.0", "2026-07-31", "never published"),
+    ("## [0.1.0] — unreleased", "0.1.0", "v0.1.0", "", "unreleased"),
+    ("## [2026-08-30] — the round in one line", "2026-08-30", "2026-08-30", "2026-08-30", "the round in one line"),
+    ("## [Unreleased]", "Unreleased", "Unreleased", "", ""),
+]
+
+
+def test_every_fleet_heading_shape_parses(tmp_path):
+    """Note 67a: the seven heading shapes measured on the fleet's main
+    branches, plus Unreleased — label, badge, date and note each land."""
+    import re as _re
+
+    from pages.changelog import _is_version, parse_changelog
+
+    body = "# Changelog\n\n" + "\n\n".join(h + "\n\n- a bullet" for h, *_ in FLEET_HEADINGS)
+    p = tmp_path / "CHANGELOG.md"
+    p.write_text(body)
+    versions = parse_changelog(p)
+    assert len(versions) == len(FLEET_HEADINGS)
+    for got, (_, label, badge, date, note) in zip(versions, FLEET_HEADINGS):
+        assert got["version"] == label, got
+        assert got["date"] == date, got
+        assert got["note"] == note, got
+        rendered_badge = f"v{got['version']}" if _is_version(got["version"]) else got["version"]
+        assert rendered_badge == badge, got
+        assert not _re.match(r"^v(Unreleased|\d{4}-)", rendered_badge), "note 67(a): VUNRELEASED / v<date>"
+
+
+def test_bold_spans_containing_inline_code_render(tmp_path):
+    r"""Note 67(b): `**A \`/changelog\` page.** rest` rendered raw
+    asterisks when code split before bold."""
+    from dash import html
+
+    from pages.changelog import _inline
+
+    parts = _inline("**A `/changelog` page.** This file is the source.")
+    strong = parts[0]
+    assert isinstance(strong, html.Strong)
+    inner = str(strong.children)
+    assert "/changelog" in inner and "**" not in str(parts)
+    assert any("This file is the source." in str(x) for x in parts[1:])
+
+
+def test_battery_hidden_paths_match_the_registry(app_module):
+    """Note 74: the battery's literal tuple is pinned against the registry,
+    so a page added, renamed or deleted moves it in the same change."""
+    import dash
+
+    from scripts.network_smoke import HIDDEN_DOC_PATHS
+
+    admin = {p["path"] for p in dash.page_registry.values() if p["path"].startswith("/admin/")}
+    assert set(HIDDEN_DOC_PATHS) == {f"{p}/llms.txt" for p in admin}, (
+        "network_smoke.HIDDEN_DOC_PATHS drifted from the registered admin pages"
+    )
+
+
+def test_every_test_client_user_names_headers():
+    """Notes 70/74: a bare test client sends `Werkzeug/x.y` — crawler lane
+    at dimll ≥ 2.8 — so a mark_hidden page 404s and an every-page-200 loop
+    goes red at the floor bump. Any file that drives `.test_client()` must
+    pass headers (a named UA)."""
+    offenders = []
+    for folder in ("tests", "scripts"):
+        for path in sorted((REPO / folder).glob("*.py")):
+            src = path.read_text()
+            names_ua = "headers=" in src or "HTTP_USER_AGENT" in src
+            if ".test_client()" in src and not names_ua:
+                offenders.append(f"{folder}/{path.name}")
+    assert offenders == [], offenders

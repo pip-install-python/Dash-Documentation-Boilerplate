@@ -113,9 +113,14 @@ DEFAULT_BASE_URL = "http://localhost:8550"
 # census: `/admin` is what a fork will add first, and `mark_hidden("/admin")`
 # has to keep working. A fork adds its own paths here in the same change that
 # marks them hidden.
+# Every mark_hidden page's llms.txt must 404. Literals because this tool
+# runs standalone against a live host with no app import — and PINNED
+# against the registry by tests/test_nav_contract.py, so a page added,
+# renamed or deleted moves this tuple in the same change (pannellum's
+# carried a page deleted 08-02 and missed /admin/traffic; note 74).
 HIDDEN_DOC_PATHS = (
-    "/admin/llms.txt",
-    "/analytics/llms.txt",
+    "/admin/control-board/llms.txt",
+    "/admin/traffic/llms.txt",
 )
 
 # The hub one level up the chain. A satellite's llms.txt must name it — that

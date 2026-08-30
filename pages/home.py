@@ -52,5 +52,10 @@ layout = dmc.Container(
     # markdown2dash, not dcc.Markdown (the fleet's no-`dcc` rule, 1.6.38):
     # the same renderer the docs pages use, so home and docs share one
     # typography and one set of DMC components.
+    #
+    # parse(content) returns a LIST. If you compose a hero around it, SPLAT
+    # or CONCATENATE (`[hero, *parsed]` / `[hero] + parsed`) — a list nested
+    # inside a children list renders the page EMPTY with a green suite
+    # (React #31; modelviewer, 2026-08-30; tests/test_layout_nesting.py).
     children=(patch_renderer(), create_parser([Admonition(), Divider(), Image()])(content))[1],
 )

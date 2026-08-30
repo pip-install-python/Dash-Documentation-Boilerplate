@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.40 (template @ 1.6.40)
+# SYNC 1.6.22 → 1.6.42 (template @ 1.6.42)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -150,6 +150,14 @@ dimll ≥ 2.8 (fixed: browser engine token first, internal token after),
 and a fork-local og:image augmentation the template does not carry.
 Plus wording notes on items 9, 12, 13 and 15 from the first fork
 reports — no runtime change beyond the one constant.)
+(1.6.42 is the second wave of fork findings, notes 64–77: item 13
+gains the release/* ref detect and cd.yml a guard step; item 18 is the
+1.6.41 REMAINDER — the round ported two files of nineteen, and
+excalidraw found the seam from inside (an import nothing calls);
+/changelog's parser and badge take every heading shape the fleet
+writes; the layout-nesting kit pin (modelviewer's blank home with a
+green suite); the third-lane UA rule for in-process harnesses; detect
+rewrites for items 16 and 17(b).)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -1132,6 +1140,18 @@ contract:
   (1.6.40 note: forks on the 1.6.33 block hit a one-hunk conflict in
   tests/test_claude_kit.py when porting this item — take the NEWER
   bytes, the template's; the hunk is the posture-key allowlist.)
+  RELEASE/* REFS (1.6.42; muischeduler's SECOND promote failure, with
+  the permission set): `cannot lock ref 'refs/heads/release':
+  'refs/heads/release/v0.1.0' exists` — refs are a filesystem, and a
+  `release/<anything>` branch at ANY depth makes `release` a
+  directory (a 2026-08-01 version branch, a common convention; expect
+  it elsewhere — the seat measured: only muischeduler carries one,
+  llms already has `release`, the other nine are clean). DETECT before
+  the first push: `git ls-remote --heads origin 'release/*'` must be
+  EMPTY. Owner step: delete or rename every release/* branch — never
+  `git push --force`. cd.yml's promote step now guards this itself and
+  fails with the message. The verify job SKIPPING on such a failed run
+  is contract (a2) working, measured on run 33318542986.
   OWNER STEP BEFORE THE FIRST PUSH (1.6.41; muischeduler's first
   promote, run 33318542986, FAILED at `git push origin
   HEAD:refs/heads/release` with the whole matrix green): the repo's
@@ -1362,9 +1382,13 @@ files: lib/constants.py (GITHUB_URL + SAME_AS=[GITHUB_URL], CATEGORY_ORDER,
   · lib/directives/source.py (copyLabel/copiedLabel) · pages/markdown.py
   (Meta.order) · pages/traffic.py (DatePickerInput + People) · every
   docs page's frontmatter (`category:`, `order:`) · tests.
-detect: `grep -cE "page_order|excluded_links|EXCLUDED_LINKS" components/navbar.py`
-  ≠ 0 ⇒ not adopted (forks spell the list both ways — 1.6.41). Also
-  `grep -c "dcc.Dropdown" pages/traffic.py` ≠ 0.
+detect: `grep -c "def sections_for" components/navbar.py` = 0 ⇒ not
+  adopted — the ABSENCE of the mechanism, not the presence of a
+  spelling (1.6.42, llms: its hand clusters were named PACKAGE_LINKS
+  and the page_order grep said already-present on a tree carrying the
+  defect). Also `grep -cE "page_order|excluded_links|EXCLUDED_LINKS"
+  components/navbar.py` ≠ 0, and `grep -c "dcc.Dropdown"
+  pages/traffic.py` ≠ 0.
 contract (the design's numbered list, DESIGN-navigation-uniformity §The
   contract; each is a pin in tests/test_nav_contract.py):
   (1) Sidebar: Home · Changelog → the app's sections from frontmatter
@@ -1526,8 +1550,10 @@ files: scripts/network_smoke.py (`BROWSER_UA` = Chrome/AppleWebKit token
   IF it augments the crawler HTML with og:image / twitter:* tags.
 detect: `python -c "from dash_improve_my_llms import classify; from
   scripts import network_smoke as n; print(classify(n.UA)['lane'])"`
-  prints `crawler` ⇒ not adopted. And `grep -c "og:image" run.py` ≠ 0
-  ⇒ you carry an augmentation the template does not.
+  prints `crawler` ⇒ not adopted. And an og:image INJECTION CALL in
+  run.py (grep the call that writes the tag — e.g. a head-augmentation
+  or response-mutation site), not the string: llms carries "og:image"
+  only in a comment and a string grep mis-fired (1.6.42).
 contract:
   (a) At dimll ≥ 2.8 a User-Agent with no browser engine token is
       crawler-lane, so the battery's default UA — the bare internal
@@ -1563,6 +1589,83 @@ notes: THE LESSON IS THE LANE, again: name the lane in every UA you
   send, and check the body says which document answered. It is the
   fourth time this round (kit trap, item 12's proxy test, item 15's
   in-process/wire split, and now the battery's own default).
+
+### 18. The 1.6.41 remainder — nineteen files, ported as one contract (1.6.42)
+class: contract. The 16+17 round ported exactly two files
+  (lib/api_reference.py + scripts/build_api_metadata.py) of the
+  NINETEEN 1.6.41 moved: components/{navbar,header,appshell,footer}.py,
+  pages/{api,changelog,markdown,home,traffic}.py, lib/constants.py,
+  lib/aside.py, assets/main.css, scripts/smoke_live.py,
+  .github/workflows/cd.yml, tests/{test_nav_contract,
+  test_excluded_links_hidden,test_traffic_rollup_v4,test_network_smoke}.py,
+  tests/fixtures/docstring_dash_pkg. Excalidraw found the seam FROM
+  INSIDE: it imports `slim_generated_on()` that nothing calls —
+  1.6.41's pages/api.py wires it to /api's sitemap lastmod — so every
+  fork that took the two-file cargo has DEAD CODE and a lastmod-less
+  /api. Fork byte-identity evidence recorded against 519d496 is STALE
+  for the files 1.6.41 touched; re-measure against the 1.6.42 sha.
+detect: per seam — run all, paste all:
+  - cargo-without-caller: `<pkg>/api_metadata.json` present (or
+    lib/api_reference.py has SLIM_METADATA) while
+    `grep -c slim_generated_on pages/api.py` = 0 ⇒ the extract exists
+    and /api's lastmod never reads it.
+  - `grep -c "def newest_date" pages/changelog.py` = 0 ⇒ /changelog
+    undated. `grep -c "nav:" pages/markdown.py` = 0 ⇒ no short labels.
+  - `grep -c "skip-link" components/appshell.py` = 0 ⇒ no skip link.
+  - `grep -c LOGO_ASSET lib/constants.py` = 0 ⇒ header identity still
+    hardcoded (llms measured header.py and the aside pin as the only
+    two files that could not be byte-identical, with the seams on the
+    TEMPLATE side — both were closed at 1.6.41: LOGO_ASSET et al., and
+    the registry-derived aside pin; llms measured against stale
+    519d496).
+contract highlights (the fork ports the 1.6.41 CHANGELOG entry, in its
+  shape; these are the parts fork reports already tripped on):
+  (7-amended, emojimart) upstream `load_package` returns `[]`
+    SILENTLY when metadata.json is missing — and metadata.json IS
+    missing on any fork that gitignores it (the
+    dash-generate-components default) — so /api ships EMPTY while
+    passing 200, canonical and h1. The committed-extract-or-docstring
+    road is REQUIRED, with a pin that resolves metadata into an empty
+    dir and asserts components still come back. Expect a
+    `# declined:` on lib/api_reference.py where a fork keeps its own
+    parser (emojimart, DIVERGENCES §15 — one parser per tree).
+  (corpus half, llms, note 75) prose can leak what structure hides:
+    hyperlinking /admin/control-board in five docs pages put the path
+    into /llms.txt while every navbar/sitemap pin passed. The
+    admin-absent pin must sweep the CORPUS (llms.txt and the tier
+    docs), not only the sitemap and the sidebar tree — the template's
+    test_admin_paths_absent_from_sitemap_llms_and_sidebar does; port
+    that half too. Seat swept all twelve hosts: only llms leaked.
+  (header, muicharts) hiding a control at a breakpoint PAIRS with its
+    aria-label: a control that is display:none still reads to a
+    screen reader if only visually hidden — use visibleFrom/hiddenFrom
+    (which remove it from the tree), never opacity/width tricks.
+acceptance: the fork's suite green with the four 1.6.42 pins ported
+  (layout-nesting walk + positive control + source pin; the fleet
+  heading shapes; the battery hidden-paths registry pin; the
+  test-client-names-a-UA grep); /api carries lastmod on the wire;
+  /changelog badges read correctly on the fork's own changelog shape.
+notes: THE THIRD LANE SURFACE (notes 70/74, leaflet run 33326994172 +
+  muicharts + emojimart): in-process harnesses (scripts/smoke_test.py,
+  compat_matrix.py, route_parity.py — fork tools the template does not
+  carry) drive a bare test client, which sends `Werkzeug/x.y` —
+  crawler lane at ≥2.8 — so mark_hidden pages 404 and every-page-200
+  loops go red at the floor bump; the red PRE-DATES the port wherever
+  a mark_hidden page existed. Fix = a named BROWSER-lane UA WITH the
+  internal token (else a CI sweep lands in the ledger as N desktop
+  humans — muicharts measured 4 rows) AND the crawler-lane 404
+  assertion on mark_hidden pages in the same change (repairing the
+  lane alone measures strictly less, silently). The kit grep is
+  `.test_client()` without a named UA (`headers=` or
+  `HTTP_USER_AGENT`), not a missing header. And the LAYOUT-NESTING
+  class (notes 69/69a, modelviewer/emojimart): `parse()` returns a
+  LIST; `children=[hero, parse(...)]` nests it, React logs #31, the
+  page renders EMPTY with a green suite — the prerender reads the
+  MARKDOWN, so every machine-lane check stays green; only a browser
+  shows it. The template's tests/test_layout_nesting.py (walk +
+  non-vacuity fixture + positive control derived from the registry +
+  source pin) is the guard; port it with your own composition sites
+  in the source pin.
 
 ## Reporting
 

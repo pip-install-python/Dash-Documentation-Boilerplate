@@ -10,6 +10,8 @@ from __future__ import annotations
 import flask
 import pytest
 
+from conftest import BROWSER_UA
+
 from lib import agent_key
 
 NO_STORE = "private, no-store"
@@ -24,7 +26,11 @@ class _App:
 def route_client():
     server = flask.Flask(__name__)
     agent_key.register_agent_key_route(_App(server), "flask")
-    return server.test_client()
+    # A NAMED browser-lane UA (notes 70/74): a bare Werkzeug client sends
+    # `Werkzeug/x.y`, which is crawler-lane at dimll >= 2.8.
+    client = server.test_client()
+    client.environ_base["HTTP_USER_AGENT"] = BROWSER_UA
+    return client
 
 
 def test_anonymous_gets_204_with_no_store(route_client):
