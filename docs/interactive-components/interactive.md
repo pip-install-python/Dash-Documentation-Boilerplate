@@ -5,6 +5,8 @@ endpoint: /examples/interactive
 package: interactive
 icon: mdi:gesture-tap
 lastmod: 2025-11-09
+category: Getting started
+order: 2
 ---
 
 .. llms_copy::Interactive Components

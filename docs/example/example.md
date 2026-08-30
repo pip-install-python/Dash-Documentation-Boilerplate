@@ -6,6 +6,8 @@ package: example
 icon: mdi:rocket-launch-outline
 tier: public
 lastmod: 2026-08-19
+category: Getting started
+order: 1
 ---
 
 .. llms_copy::Getting Started

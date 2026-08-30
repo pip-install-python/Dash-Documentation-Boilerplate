@@ -5,6 +5,8 @@ endpoint: /backend-comparison
 package: backend-comparison
 icon: mdi:compare-horizontal
 lastmod: 2026-08-16
+category: Backends
+order: 2
 ---
 
 .. llms_copy::Backend Deep Dive

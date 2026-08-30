@@ -2,7 +2,10 @@ from pathlib import Path
 
 import frontmatter
 import dash_mantine_components as dmc
-from dash import dcc, register_page
+from dash import register_page
+from markdown2dash import Admonition, Divider, Image, create_parser
+
+from lib.directives.headings import patch_renderer
 
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, SITE_DESCRIPTION
 from lib.versions import substitute_versions
@@ -46,12 +49,8 @@ layout = dmc.Container(
     id="m2d-page-home",
     size="lg",
     py="xl",
-    children=[
-        dcc.Markdown(
-            content,
-            style={
-                "maxWidth": "none",  # Allow Container to control width
-            }
-        )
-    ]
+    # markdown2dash, not dcc.Markdown (the fleet's no-`dcc` rule, 1.6.38):
+    # the same renderer the docs pages use, so home and docs share one
+    # typography and one set of DMC components.
+    children=(patch_renderer(), create_parser([Admonition(), Divider(), Image()])(content))[1],
 )

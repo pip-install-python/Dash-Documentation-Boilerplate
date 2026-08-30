@@ -188,9 +188,67 @@ OG_IMAGE_ALT = SITE_BRAND
 # the GitHub README pointing back at the docs subdomain) is a per-package
 # checklist item, not code.
 PUBLISHER = "Pip Install Python LLC"
-SAME_AS = [
-    "https://github.com/pip-install-python/dash-documentation-boilerplate",
+
+# ONE constant for the repository. The header's GitHub icon, the footer,
+# the Resources block and JSON-LD `sameAs` all read it (1.6.38): a fork
+# sets it once. muischeduler's icon pointed at the profile while its
+# sameAs named the repo — two truths, one of them wrong.
+GITHUB_URL = "https://github.com/pip-install-python/dash-documentation-boilerplate"
+SAME_AS = [GITHUB_URL]
+
+# ---------------------------------------------------------------------------
+# Navigation contract (1.6.38) — the parts of the sidebar/top bar that are
+# IDENTICAL on every host come from template code and these constants; the
+# app's own sections come from frontmatter. A fork edits THIS block and its
+# docs' frontmatter, never components/navbar.py.
+# ---------------------------------------------------------------------------
+
+# The app's own sections, in sidebar order. Every docs page declares
+# `category:` in its frontmatter; categories not listed here follow the
+# listed ones, alphabetically. Keep names short — they are sidebar titles.
+CATEGORY_ORDER = [
+    "Getting started",
+    "Backends",
+    "Content",
+    "Network",
+    "Auth",
 ]
+
+# Network-wide community links — identical on every host.
+DISCORD_URL = "https://discord.gg/e5s5uHWUHH"
+YOUTUBE_URL = "https://www.youtube.com/@2plotai"
+YOUTUBE_SUBSCRIBE_URL = YOUTUBE_URL + "?sub_confirmation=1"
+DMC_URL = "https://www.dash-mantine-components.com/"
+
+# The upstream project a component wraps — `{"name": ..., "url": ...}` or
+# None. Rendered as the last Resources link when declared (MUI X, Leaflet,
+# React Flow, React Email, FlexLayout, emoji-mart, Excalidraw, model-viewer,
+# Pannellum). The template wraps nothing.
+UPSTREAM = None
+
+# Dash component packages whose props the generated /api page documents
+# (`["dash_mui_scheduler"]`). Empty → /api is not registered. The version
+# badge in the header reads the first entry's __version__.
+API_PACKAGES: list = []
+
+
+# The owner's profile — the FOOTER's GitHub link (the repo is the top bar's).
+GITHUB_PROFILE_URL = "https://github.com/pip-install-python"
+
+
+def resources() -> list:
+    """The sidebar's Resources section: THIRD-PARTY ONLY (owner, 2026-08-30).
+    `dmc` and, when a fork declares it, the upstream project. The owner's
+    own links (repo, Discord, YouTube) live in the top bar and the footer,
+    never here; no community.plotly.com; no 2plot.dev (the network is the
+    Other Apps menu)."""
+    items = [
+        {"label": "dmc", "url": DMC_URL, "icon": "ic:baseline-design-services"},
+    ]
+    if UPSTREAM:
+        items.append({"label": UPSTREAM["name"], "url": UPSTREAM["url"],
+                      "icon": UPSTREAM.get("icon", "mdi:open-in-new")})
+    return items
 
 
 def require_owned_base_url(base_url: str = BASE_URL) -> None:

@@ -5,6 +5,8 @@ endpoint: /fastapi-showcase
 package: fastapi-showcase
 icon: simple-icons:fastapi
 lastmod: 2026-08-16
+category: Backends
+order: 3
 ---
 
 .. llms_copy::FastAPI Showcase

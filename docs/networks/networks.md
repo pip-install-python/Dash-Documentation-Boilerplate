@@ -5,6 +5,8 @@ endpoint: /networks
 package: networks
 icon: mdi:lan-connect
 lastmod: 2026-07-30
+category: Network
+order: 2
 ---
 
 .. llms_copy::Multi-Site Networks

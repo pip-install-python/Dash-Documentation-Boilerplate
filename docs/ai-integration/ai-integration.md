@@ -5,6 +5,8 @@ endpoint: /examples/ai-integration
 package: ai-integration
 icon: mdi:robot-outline
 lastmod: 2026-08-16
+category: Network
+order: 1
 ---
 
 .. llms_copy::AI/LLM Integration

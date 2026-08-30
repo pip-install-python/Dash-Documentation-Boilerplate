@@ -6,6 +6,8 @@ package: authentication
 icon: mdi:shield-account-outline
 tier: public
 lastmod: 2026-08-21
+category: Auth
+order: 1
 ---
 
 .. llms_copy::Authentication

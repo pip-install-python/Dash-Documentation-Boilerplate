@@ -38,6 +38,8 @@ class Meta(BaseModel):
     package: str = "dash_pydantic_form"
     category: Optional[str] = None
     icon: Optional[str] = None
+    # Sidebar position within its category (1.6.38); ties break on name.
+    order: int = 1000
     # Who may read this page: public | auth | admin | hidden. Absent means
     # the deployment default (PAGE_DEFAULT_TIER, else public) — see
     # lib/page_tiers.py for the tier model and why the default is open.
@@ -210,6 +212,7 @@ for file in files:
         ),
         category=metadata.category,
         icon=metadata.icon,
+        order=metadata.order,
         # Without this Dash infers an image from assets/ and finds `logo.svg` —
         # an SVG, which every social scraper rejects — then emits it ALONGSIDE
         # the og:image in templates/index.html. See lib.constants.OG_IMAGE_URL.

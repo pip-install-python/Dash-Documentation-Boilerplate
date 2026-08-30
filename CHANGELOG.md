@@ -5,6 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.38] - 2026-08-30
+
+Navigation — **uniform where it should be identical, free where identity
+matters** (owner design round, 2026-08-30; gates the fleet's 12+13
+pushes as sync item 16). The survey found one root cause: the sidebar
+was hand-written in `components/navbar.py` — a `page_order` of display
+names, an `excluded_links` list inherited from the DMC docs that matched
+nothing here, literal sections, the network typed by hand twice — and
+every fork edited that file differently or not at all. `navbar.py` is no
+longer a file forks edit.
+
+### Added
+- `lib/constants.py` navigation block: `GITHUB_URL` (one constant;
+  `SAME_AS` reads it), `CATEGORY_ORDER`, `DISCORD_URL`, `YOUTUBE_URL`,
+  `YOUTUBE_SUBSCRIBE_URL`, `DMC_URL`, `UPSTREAM`, `API_PACKAGES`,
+  `resources()`.
+- Other Apps as a top-bar hover menu (`components/header.py`) from
+  `lib/network_directory.other_apps_for()` — the registry's `PRIMARY`
+  set (2plot.ai, 2plot.dev, 2plot.media, piratesbargain.com,
+  ai-agent.buzz; the owner's review of 2026-08-30 — never the docs
+  subdomains, which 2plot.dev's catalogue lists) minus this host,
+  labelled by domain, icons from a new `ICONS` table keyed by URL.
+  2plot.media joins AFFILIATED so the registry stays the source. The
+  sidebar's "Pip Components" and "Other Apps I've built" sections are
+  gone.
+- Admin section, owner-only: `navbar-admin-{desktop,mobile}` filled by a
+  callback that returns nothing unless `is_admin_user()` (pip-docs+'s
+  pattern); the startup tree carries no `/admin/` href; search lists
+  sidebar pages only (never `/admin/*`, never hidden-tier).
+- `/changelog` (`pages/changelog.py`): `CHANGELOG.md` as a DMC Timeline;
+  the file, minus its H1, is the page's LLMS_DOC. Linked under Home and
+  in the footer.
+- `components/footer.py` — `AppShellFooter`: © {computed year} Pip
+  Install Python LLC · GitHub profile (`GITHUB_PROFILE_URL`; the repo is
+  the top bar's icon) · Discord · YouTube, every icon labelled; no
+  Changelog link (the sidebar's is the single one), no Terms/Privacy.
+- `/api` (`pages/api.py`, `lib/api_reference.py`): one `dmc.Table` per
+  exported component from each `API_PACKAGES` entry's `metadata.json`
+  (prop · type · default · description); the same tables as Markdown for
+  `/api/llms.txt`. Not registered when the list is empty (the template's
+  case); tested with `tests/fixtures/fake_dash_pkg`.
+- `pages/markdown.py` `Meta.order` (default 1000) → `register_page(order=)`;
+  every docs page declares `category:` and `order:`.
+- `/admin/traffic`: `dmc.DatePickerInput` day picker (ledger-bounded,
+  presets Today / Yesterday / Last 7 days) and a **People** section — the
+  day's human hits, visitors, sessions and median session — above the
+  crawler ledger, with the line "humans never enter the read ledger —
+  the tables below are crawlers only".
+- Inline `![alt](src)` images render through markdown2dash
+  (`lib/directives/headings.py` `patch_renderer`): the library has no
+  image renderer and mistune's fallback raised on DMC children.
+- `tests/test_nav_contract.py` (19 pins) and the rewritten
+  `tests/test_excluded_links_hidden.py` (admin pages hidden from both
+  audiences and the sidebar tree). Tests 413 → 432.
+
+### Changed
+- `components/navbar.py`: sections from frontmatter against
+  `CATEGORY_ORDER`; `page_order` and `excluded_links` deleted; Resources
+  rendered from `resources()` — third-party only: `dmc` and the
+  fork's `UPSTREAM` (owner's review, 2026-08-30).
+- `components/header.py`: GitHub icon → `GITHUB_URL`; `dmc.Burger`
+  `aria-label`; version badge from `API_PACKAGES[0]` when declared;
+  search data from `navbar.search_data`.
+- `pages/home.py` renders through markdown2dash, not `dcc.Markdown`
+  (the fleet's no-`dcc` rule); `lib/directives/source.py` sets
+  `copyLabel`/`copiedLabel`.
+- The template's docs are five short sections: Getting started ·
+  Backends · Content · Network · Auth.
+- `sync/SYNC-1.6.22-1.6.37.md` → `…-1.6.38.md`, item 16 (contract now;
+  names the files that become cargo next round).
+
+### Recorded, no change
+- Two places the design did not fit the tree: an `icon` field on the
+  registry entries breaks `register_network` at boot (the package
+  forwards every key) — icons live in `ICONS` keyed by URL; and Dash 4
+  generated component classes carry no `_prop_names` — `metadata.json`
+  and the docstring are the sources. Both are in item 16's contract.
+- No `dcc.` remains in `pages/` or `components/` except `Location` and
+  `Store`.
+
 ## [1.6.37] - 2026-08-29
 
 Round 3.4 — **the posture flip.** Owner decision, 2026-08-29: AI-training

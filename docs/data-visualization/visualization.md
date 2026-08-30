@@ -5,6 +5,8 @@ endpoint: /examples/visualization
 package: visualization
 icon: mdi:chart-line
 lastmod: 2026-06-14
+category: Content
+order: 2
 ---
 
 .. llms_copy::Data Visualization

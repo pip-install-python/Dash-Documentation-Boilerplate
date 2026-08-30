@@ -5,6 +5,8 @@ endpoint: /examples/directives
 package: directives
 icon: mdi:code-braces
 lastmod: 2025-11-09
+category: Content
+order: 1
 ---
 
 .. llms_copy::Custom Directives

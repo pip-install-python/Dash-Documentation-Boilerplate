@@ -1,4 +1,4 @@
-# SYNC 1.6.22 → 1.6.37 (template @ 1.6.37)
+# SYNC 1.6.22 → 1.6.38 (template @ 1.6.38)
 
 Machine-lane hardening (1.6.22 skip-on-absence, 1.6.23 `# requires:`)
 rides the block below as bytes. What needs judgment is 1.6.24:
@@ -135,6 +135,15 @@ the ledger now records and reconciles every read. Canary = boilerplate
 design. Two walls, one order: the app half is this item; the EDGE half
 (the Cloudflare rule) is the owner's, after the seat verifies the app
 half on the wire.)
+(1.6.38 is the NAVIGATION round — item 16, an owner design round that
+GATES the fleet's 12+13 pushes: every fork ports 16 alongside 12+13
+before its push. One registry, two surfaces, the app's own docs in
+between: sections from frontmatter against a fork-owned CATEGORY_ORDER;
+the network as the top bar's Other Apps menu from lib/network_directory;
+Resources from one constant; Admin owner-only; /changelog; a footer; a
+generated /api page; a11y names; the no-`dcc` rule. Nothing rides the
+block THIS round — navbar.py/header.py are divergent on every fork today
+— and the item says which files become cargo next round.)
 
 Floor statement, per the authoring rule: **moved** — `LLMS_PKG_FLOOR`
 is `(2, 8, 0)` from 1.6.34 (item 12). The rationale ladders retain
@@ -1282,6 +1291,121 @@ notes: in-process is the app's own answer; the wire minus in-process
   at all (GPTBot/ClaudeBot fall under `User-agent: *` / Allow), so a
   fingerprint that looks the stanza up raises — assert "no Disallow",
   not "Allow: /" (the template's three sites do).
+
+### 16. Navigation from one registry; the app's identity from frontmatter (1.6.38; owner design round — GATES the 12+13 pushes)
+class: contract THIS round. Every fork's navbar.py/header.py is
+  hand-edited today (the survey of 2026-08-30: twelve different copies
+  of the template's page_order/excluded_links/section literals), so a
+  byte-copy would overwrite each fork's identity. After a fork carries
+  the constants block, these files hold NO fork content and become
+  cargo-eligible NEXT round: components/navbar.py, components/header.py,
+  components/footer.py, pages/changelog.py, pages/api.py,
+  lib/api_reference.py, tests/test_nav_contract.py, and
+  tests/test_excluded_links_hidden.py (rewritten). Say in your report
+  whether your copies are byte-identical to the template's at 1.6.38
+  once ported — that is the evidence the reclass needs.
+files: lib/constants.py (GITHUB_URL + SAME_AS=[GITHUB_URL], CATEGORY_ORDER,
+  DISCORD_URL/YOUTUBE_URL/YOUTUBE_SUBSCRIBE_URL/DMC_URL, UPSTREAM,
+  API_PACKAGES, resources()) · lib/network_directory.py (ICONS table +
+  other_apps_for()) · components/navbar.py (sections_for, admin
+  callback, search_data; page_order and excluded_links DELETED) ·
+  components/header.py (Other Apps menu, GitHub → GITHUB_URL, Burger
+  aria-label, version badge, search from navbar.search_data) ·
+  components/footer.py + appshell (AppShellFooter) · pages/changelog.py ·
+  pages/api.py + lib/api_reference.py · pages/home.py (markdown2dash,
+  not dcc.Markdown) · lib/directives/headings.py (inline-image renderer)
+  · lib/directives/source.py (copyLabel/copiedLabel) · pages/markdown.py
+  (Meta.order) · pages/traffic.py (DatePickerInput + People) · every
+  docs page's frontmatter (`category:`, `order:`) · tests.
+detect: `grep -c page_order components/navbar.py` ≠ 0 ⇒ not adopted.
+  Also `grep -c "excluded_links" components/navbar.py` ≠ 0, and
+  `grep -c "dcc.Dropdown" pages/traffic.py` ≠ 0.
+contract (the design's numbered list, DESIGN-navigation-uniformity §The
+  contract; each is a pin in tests/test_nav_contract.py):
+  (1) Sidebar: Home · Changelog → the app's sections from frontmatter
+      `category:` + `order:` in CATEGORY_ORDER (unknown categories after,
+      alphabetically; uncategorised pages in one trailing "Documentation"
+      section — give every page a category instead) → API (only when
+      API_PACKAGES is set) → Resources → Admin (owner-only). /admin/*
+      never enters a section or search; neither does a hidden-tier page.
+  (2) Top bar: Burger (aria-label) · wordmark · backend badge · OpenAPI
+      badge (FastAPI) · version badge (API_PACKAGES[0]'s version, when
+      declared) · search (sidebar pages only) · Other Apps hover menu =
+      the PRIMARY applications only (owner's review, 2026-08-30:
+      2plot.ai, 2plot.dev, 2plot.media, piratesbargain.com,
+      ai-agent.buzz — never the docs subdomains, which 2plot.dev's
+      catalogue lists), from `network_directory.PRIMARY` (a URL set
+      inside the registry, not a hand-typed menu) minus this host,
+      labelled by DOMAIN, icons from
+      network_directory.ICONS (keyed by URL — NOT a field on the entries:
+      the package's register_network forwards every entry key and an
+      unknown one is a TypeError at boot; measured on the template) ·
+      GitHub icon → GITHUB_URL · theme toggle · avatar. The sidebar's
+      network / "Pip Components" / "Other Apps I've built" sections are
+      DELETED — the network is listed once, in the menu.
+  (3) Footer: © {computed year} Pip Install Python LLC · GitHub PROFILE
+      (GITHUB_PROFILE_URL — the repo link is the top bar's icon) ·
+      Discord · YouTube (subscribe); NO Changelog link (the sidebar's is
+      the single one); every icon labelled; no Terms/Privacy.
+  (4) /changelog: pages/changelog.py — CHANGELOG.md as a Timeline, the
+      file (minus its H1) as LLMS_DOC. Sidebar link under Home; footer.
+  (5) Resources = lib.constants.resources(): THIRD-PARTY ONLY — `dmc`
+      (labelled exactly that; it fits the sidebar) + UPSTREAM when
+      declared. No GitHub, Discord or YouTube here (top bar + footer
+      carry the owner's links), no community.plotly.com, no 2plot.dev.
+      The kit test asserts the absence.
+  (6) Admin: the pip-docs+ callback — `navbar-admin-{desktop,mobile}`
+      filled only for is_admin_user() (or admin_access_open() locally);
+      the startup tree carries no /admin/ href at all.
+  (7) /api from API_PACKAGES via lib/api_reference (the package's
+      metadata.json — Dash 4 generated classes carry no `_prop_names`;
+      the docstring and metadata.json are what exist): one dmc.Table per
+      exported component, prop · type · default · description; LLMS_DOC
+      is the same tables as Markdown. Not registered when the list is
+      empty.
+  (8) a11y: every dmc.Burger/ActionIcon in components/ has aria-label;
+      CodeHighlightTabs sets copyLabel/copiedLabel.
+  (9) No `dcc.` in pages/ or components/ except Location, Store,
+      Interval, Upload, Graph. Home renders through markdown2dash with
+      patch_renderer() — which now also renders inline `![alt](src)`
+      images (markdown2dash has no image renderer and mistune's fallback
+      raises on DMC children; found converting home.py).
+  (10) /admin/traffic: dmc.DatePickerInput (id `traffic-day`; min/max =
+      the ledger's first/last day, presets Today / Yesterday / Last 7
+      days (start), valueFormat YYYY-MM-DD) and a People section above
+      the crawler ledger with the day's human_hits / visitors / sessions
+      / median_session_s and the line "humans never enter the read
+      ledger — the tables below are crawlers only".
+  PER-FORK IDENTITY (the freedom): muischeduler keeps "Scheduler" and
+  "Radial Charts" as categories, drops its "2plot network" section (the
+  menu has it) and its "name — role" titles; email keeps "App";
+  muicharts keeps its families as categories and its raw-markdown
+  changelog becomes the Timeline; leaflet and emojimart already have
+  categories — map them onto CATEGORY_ORDER; llms loses the two
+  duplicate listings and GAINS the Admin section (today hidden from the
+  owner too); pannellum retires pip-install-python.com and its
+  pre-network Other Apps; clerkhook: the public nav is n/a (lockdown) —
+  a11y labels only. Every component fork sets UPSTREAM (MUI X, Leaflet,
+  React Flow, React Email, FlexLayout, emoji-mart, Excalidraw,
+  model-viewer, Pannellum) and API_PACKAGES = [its package].
+acceptance: tests/test_nav_contract.py green (a11y, no-dcc, menu ==
+  registry, anonymous tree has no /admin/ href and the admin tree lists
+  every admin page, sections follow CATEGORY_ORDER, footer, changelog,
+  api fixture) + tests/test_excluded_links_hidden.py (rewritten) green;
+  the rendered section list pasted in the report; and the ops seat's
+  visual pass in the owner's browser — the owner asked for polish, which
+  no test measures.
+notes: detect fires on every fork today. THREE places the design did
+  not fit the template's tree, each now in the contract text so no fork
+  rediscovers it: (a) the registry `icon` field — the package forwards
+  every entry key to register_network_site and TypeErrors at boot; icons
+  live in ICONS keyed by URL (contract 2); (b) `_prop_names` — absent on
+  Dash 4 generated classes; read metadata.json (contract 7); (c) inline
+  images — markdown2dash has no `image` renderer and mistune's fallback
+  raises on DMC children; patch_renderer() adds one (contract 9). A
+  fourth, smaller: DMC's Burger accepts `aria-label` as a wildcard prop
+  though its docstring does not list it — pinned by construction in the
+  a11y grep, not by the docstring.
 
 ## Reporting
 

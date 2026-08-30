@@ -1,6 +1,7 @@
 import dash_mantine_components as dmc
 from dash import Output, Input, clientside_callback, dcc, page_container, State
 
+from components.footer import FOOTER_HEIGHT, create_footer
 from components.header import create_header
 from components.navbar import create_navbar, create_navbar_drawer
 from lib.constants import PRIMARY_COLOR, HEADER_HEIGHT
@@ -181,11 +182,13 @@ def create_appshell(data):
                     create_navbar_drawer(data),
                     dmc.AppShellMain(
                         children=page_container,
-                        style={"minHeight": f"calc(100dvh - {HEADER_HEIGHT}px)"}  # Full height minus header
+                        style={"minHeight": f"calc(100dvh - {HEADER_HEIGHT + FOOTER_HEIGHT}px)"}
                     ),
+                    create_footer(),
                 ],
                 id="m2d-appshell",
                 header={"height": HEADER_HEIGHT},
+                footer={"height": FOOTER_HEIGHT},
                 padding="xl",
                 navbar={
                     "width": 280,

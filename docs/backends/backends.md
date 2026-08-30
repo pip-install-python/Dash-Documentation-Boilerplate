@@ -5,6 +5,8 @@ endpoint: /backends
 package: backends
 icon: mdi:server-network
 lastmod: 2026-08-16
+category: Backends
+order: 1
 ---
 
 .. llms_copy::Pluggable Backends

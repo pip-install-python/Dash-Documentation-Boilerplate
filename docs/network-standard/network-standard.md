@@ -5,6 +5,8 @@ endpoint: /network-standard
 package: network-standard
 icon: mdi:file-certificate-outline
 lastmod: 2026-08-19
+category: Network
+order: 3
 ---
 
 .. llms_copy::Network Standard
