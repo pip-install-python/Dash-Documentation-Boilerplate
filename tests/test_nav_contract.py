@@ -216,13 +216,14 @@ def test_changelog_page_is_the_file(app_module, client):
     from pages.changelog import parse_changelog
 
     versions = parse_changelog()
-    assert versions and versions[0]["version"] == "1.6.38"
+    newest = re.search(r"^## \[([^\]]+)\]", (REPO / "CHANGELOG.md").read_text(), re.M).group(1)
+    assert versions and versions[0]["version"] == newest
     doc = client.get("/changelog/llms.txt", user_agent="Mozilla/5.0 (compatible; Googlebot/2.1)")
     assert doc.status == 200
     assert doc.text.startswith("# Changelog") and "\n# Changelog" not in doc.text, "the file's H1 was not deduplicated"
-    assert "## [1.6.38]" in doc.text
+    assert f"## [{newest}]" in doc.text
     page = client.get("/changelog", user_agent="Mozilla/5.0 (compatible; Googlebot/2.1)")
-    assert page.status == 200 and "1.6.38" in page.text
+    assert page.status == 200 and newest in page.text
 
 
 # ------------------------------------------------------------- api --
@@ -266,3 +267,59 @@ def test_missing_package_is_reported_not_raised():
 
     out = api_reference.load_packages(["no_such_dash_package_xyz"])
     assert out[0]["components"] == [] and "error" in out[0]
+
+
+# ------------------------------------------------ 1.6.39 fix-forward --
+
+
+def test_the_aside_collapses_on_pages_without_a_toc(app_module):
+    """Owner's note 1: /changelog full width. Docs pages with `.. toc::`
+    keep the column; everything else collapses it."""
+    from lib.aside import aside_config, has_aside
+
+    assert has_aside("/backend-comparison") and has_aside("/getting-started")
+    for path in ("/changelog", "/", "/admin/traffic", "/api"):
+        assert not has_aside(path), path
+        assert aside_config(path)["collapsed"]["desktop"] is True
+    assert aside_config("/backend-comparison")["collapsed"]["desktop"] is False
+    assert aside_config(None)["collapsed"]["mobile"] is True
+
+
+def test_the_mobile_drawer_is_always_mounted(app_module):
+    """Owner's note 2: the burger must not depend on a mount-on-open
+    transition, and #navbar-admin-mobile must exist on every load."""
+    from components.navbar import create_navbar_drawer
+
+    drawer = create_navbar_drawer([])
+    assert drawer.keepMounted is True
+    assert "navbar-admin-mobile" in str(drawer)
+
+
+def test_code_blocks_cannot_widen_the_page():
+    """Owner's note 3: the overflow rule lives in the stylesheet, for every
+    container a code block can sit in — never a per-page fix."""
+    css = (REPO / "assets" / "main.css").read_text()
+    for selector in (".mantine-List-itemWrapper", ".mantine-List-itemLabel",
+                     ".mantine-Timeline-itemBody", ".mantine-CodeHighlight-root",
+                     ".mantine-CodeHighlightTabs-root", ".mantine-AppShell-main pre",
+                     "table.m2d-block-kwargs", "code.m2d-codespan"):
+        assert selector in css, selector
+    # and the changelog's rows let an unbreakable code token wrap
+    src = (REPO / "pages" / "changelog.py").read_text()
+    assert '"overflowWrap": "anywhere"' in src and '"minWidth": 0' in src
+    wrappers = css[css.index(".mantine-List-itemWrapper"):]
+    assert "min-width: 0" in wrappers[:400]
+    pre_rule = css[css.index(".mantine-AppShell-main pre"):]
+    assert "overflow-x: auto" in pre_rule[:200]
+    assert "overflow-wrap: anywhere" in css[css.index("code.m2d-codespan"):][:200]
+
+
+def test_other_apps_dropdown_is_solid_and_every_primary_app_has_an_icon(app_module):
+    """Seat's note 4."""
+    from components.header import create_other_apps_menu
+    from lib.network_directory import ICONS, PRIMARY
+
+    dropdown = create_other_apps_menu().children[1]
+    assert dropdown.styles["dropdown"]["backgroundColor"]
+    for url in PRIMARY:
+        assert ICONS.get(url) not in (None, "mdi:web"), f"{url} has no icon"

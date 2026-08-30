@@ -15,6 +15,7 @@ from lib.ad_client import inject_ad_into_aside
 from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, NAME_CONTENT_MAP
 from lib import gate_layouts, page_tiers, page_visibility
 from lib.page_visibility import published_name
+from lib import aside
 from lib.directives.headings import patch_renderer
 from lib.directives.kwargs import Kwargs
 from lib.directives.llms_copy import LlmsCopy
@@ -168,6 +169,11 @@ for file in files:
 
     # Store raw markdown content in NAME_CONTENT_MAP for the LLM copy button.
     NAME_CONTENT_MAP[metadata.name] = content
+
+    # Pages with a `.. toc::` fill the aside; the shell collapses it for
+    # every other page (lib/aside.py, 1.6.39 — full-width /changelog).
+    if ".. toc::" in content:
+        aside.register(metadata.endpoint)
 
     layout = parse(content)
 

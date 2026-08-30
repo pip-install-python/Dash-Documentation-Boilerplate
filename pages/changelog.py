@@ -120,13 +120,21 @@ def _inline(text: str):
     out = []
     for i, part in enumerate(re.split(r"`([^`]+)`", text)):
         if i % 2:
-            out.append(dmc.Code(part))
+            out.append(dmc.Code(part, style={"overflowWrap": "anywhere"}))
             continue
         for j, bp in enumerate(re.split(r"\*\*([^*]+)\*\*", part)):
             if not bp:
                 continue
             out.append(html.Strong(bp) if j % 2 else bp)
     return out
+
+
+# A bullet in a no-wrap Group: without min-width:0 the Text grows to the
+# width of its longest unbreakable token — a 60-character test name in a
+# `code` span — and the row leaves its card (measured on a phone: a 429px
+# paragraph in a 218px group, a 549px document at 391px). `anywhere` lets
+# that token break; the Code spans get the same.
+_WRAP = {"flex": 1, "minWidth": 0, "overflowWrap": "anywhere"}
 
 
 def _section(name: str, items: list):
@@ -136,12 +144,12 @@ def _section(name: str, items: list):
         if it["type"] == "item":
             rows.append(dmc.Group(
                 [DashIconify(icon="tabler:point-filled", width=8, color=f"var(--mantine-color-{color}-6)"),
-                 dmc.Text(_inline(it["text"]), size="sm", style={"flex": 1})],
+                 dmc.Text(_inline(it["text"]), size="sm", style=_WRAP)],
                 gap="xs", align="flex-start", wrap="nowrap"))
         else:
             rows.append(dmc.Group(
                 [dmc.Box(w=16), DashIconify(icon="tabler:point", width=6),
-                 dmc.Text(_inline(it["text"]), size="xs", c="dimmed", style={"flex": 1})],
+                 dmc.Text(_inline(it["text"]), size="xs", c="dimmed", style=_WRAP)],
                 gap="xs", align="flex-start", wrap="nowrap", ml="md"))
     return dmc.Paper(
         [dmc.Group([dmc.ThemeIcon(DashIconify(icon=icon, width=16), color=color,

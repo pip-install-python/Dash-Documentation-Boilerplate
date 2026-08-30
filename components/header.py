@@ -86,6 +86,13 @@ def create_other_apps_menu():
                     for entry in other_apps_for(BASE_URL)
                 ],
                 id="other-apps-menu",
+                # Solid, themed panel (1.6.39): the seat found the dropdown
+                # near-transparent with washed-out items in dark mode.
+                styles={"dropdown": {
+                    "backgroundColor": "var(--mantine-color-body)",
+                    "border": "1px solid var(--mantine-color-default-border)",
+                    "boxShadow": "var(--mantine-shadow-md)",
+                }},
             ),
         ],
         trigger="hover",

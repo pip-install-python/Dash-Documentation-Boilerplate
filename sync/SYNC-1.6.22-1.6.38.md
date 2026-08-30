@@ -1406,6 +1406,19 @@ notes: detect fires on every fork today. THREE places the design did
   fourth, smaller: DMC's Burger accepts `aria-label` as a wildcard prop
   though its docstring does not list it — pinned by construction in the
   a11y grep, not by the docstring.
+  THE VISUAL PASS (1.6.39, same item): four things no test had
+  measured, all now contract + pinned — (i) the AppShell reserves the
+  aside column on every page; collapse it where no `.. toc::` fills it
+  (lib/aside.py + a callback on url.pathname) or /changelog renders
+  with an empty right gutter; (ii) the mobile Drawer is keepMounted
+  (the hamburger's callback fires but a mount-on-open transition can
+  leave it empty; and #navbar-admin-mobile must exist on every load);
+  (iii) code blocks inside a List item / Blockquote widen the whole
+  document at phone width — `min-width: 0; max-width: 100%` on the
+  public Mantine wrappers + `overflow-x: auto` on pre, in main.css,
+  never per page; (iv) Menu.Dropdown gets a solid themed background
+  (near-transparent in dark mode by default) and every PRIMARY entry
+  an icon.
 
 ## Reporting
 

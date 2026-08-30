@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.39] - 2026-08-30
+
+The visual pass on 1.6.38 (ops seat in the owner's Chrome; contract
+met, four notes). Fix-forward, same round.
+
+### Fixed
+- `/changelog` (and every page that renders no `.. toc::` — home, `/api`,
+  the admin pages) is full width: `lib/aside.py` records which endpoints
+  fill the aside and a callback on `url.pathname` collapses the
+  AppShell's aside column elsewhere. Before, the shell reserved the
+  column on every page.
+- The mobile drawer is `keepMounted=True`. Measured on the wire at phone
+  width: the hamburger's callback fired (`opened` → true, `n_clicks`
+  incrementing, the dependency registered) while the drawer content
+  never mounted in an unfocused window — a mount-on-open transition the
+  nav must not depend on. It also guarantees `#navbar-admin-mobile`
+  exists on every load. The owner's "burger does not open the
+  navigation" report is taken as the fact; this removes the mechanism
+  that can produce it.
+- Code blocks no longer widen the page (`assets/main.css`): a flex parent
+  with the default `min-width:auto` — Mantine's List item wrapper, a
+  Blockquote — refused to shrink below the code's intrinsic width
+  (measured: a 959 px document in a 200 px viewport; widest element the
+  List itemWrapper around "Replace @server.before_request…" on
+  /backend-comparison). Re-measured on the owner's local build at 391
+  px after the first rule: the wrapper was constrained but its
+  `.mantine-List-itemLabel` child still grew to 887 px — the label is
+  constrained too; the `.. kwargs::` prop table carries
+  `m2d-block-kwargs`, not `m2d-table`, and joins the scrolling-table
+  rule (a 457 px table on /examples/directives); and `/changelog`'s
+  bullet rows get `min-width: 0; overflow-wrap: anywhere` so a
+  60-character test name in a `code` span breaks instead of pushing the
+  row out of its card (a 549 px document); and inline code in prose
+  (`code.m2d-codespan`) wraps with `overflow-wrap: anywhere` — the last
+  353 px token on /backend-comparison. Verified on the owner's local
+  build at 391 px: every page's document width equals the viewport,
+  zero overflowing flow elements (13 pages swept in same-origin
+  iframes). Public Mantine class names only.
+- The Other Apps dropdown has a solid themed background and border in
+  both schemes; every PRIMARY app has an icon (piratesbargain.com
+  `mdi:pirate`, 2plot.media `mdi:movie-open-play-outline`), and the
+  fleet's docs hosts lose their `mdi:web` placeholders.
+- Four pins in `tests/test_nav_contract.py`. Tests 432 → 437.
+
 ## [1.6.38] - 2026-08-30
 
 Navigation — **uniform where it should be identical, free where identity

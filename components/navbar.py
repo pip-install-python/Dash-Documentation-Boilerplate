@@ -272,6 +272,12 @@ def create_navbar_drawer(data):
         overlayProps={"opacity": 0.55, "blur": 3},
         zIndex=1500,
         withCloseButton=False,  # removes the whole Drawer header row
+        # Always in the DOM (1.6.39): the mobile nav must not depend on a
+        # mount-on-open transition — measured on the wire, `opened` flipped
+        # true while the content never mounted in an unfocused window — and
+        # the Admin callback's mobile target (#navbar-admin-mobile) has to
+        # exist on every page load, not only after the first open.
+        keepMounted=True,
         size="300px",
         padding=0,
         children=create_mobile_content(data),
