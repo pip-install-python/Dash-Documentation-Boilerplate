@@ -10,6 +10,7 @@ pin here is one line of that brief.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -106,14 +107,20 @@ def test_other_apps_menu_is_the_registrys_primary_set(app_module):
 def test_resources_are_third_party_only():
     """Owner's review (2026-08-30): the sidebar's Resources holds dmc and
     the upstream project only; the owner's own links are top bar + footer."""
-    from lib.constants import DISCORD_URL, GITHUB_URL, YOUTUBE_URL, resources
+    from lib import constants
+    from lib.constants import DISCORD_URL, GITHUB_PROFILE_URL, GITHUB_URL, YOUTUBE_URL, resources
 
     items = resources()
     assert items[0]["label"] == "dmc" and items[0]["url"] == "https://www.dash-mantine-components.com/"
     urls = [r["url"] for r in items]
-    for banned in (GITHUB_URL, DISCORD_URL, YOUTUBE_URL, "github.com", "discord", "youtube",
+    # The OWNER's links are banned; an upstream project on GitHub is not —
+    # five of nine upstreams live there (1.6.41, excalidraw's finding).
+    for banned in (GITHUB_URL, GITHUB_PROFILE_URL, DISCORD_URL, YOUTUBE_URL,
+                   "pip-install-python", "discord.gg", "youtube.com",
                    "community.plotly.com", "https://2plot.dev"):
         assert not any(banned in u for u in urls), banned
+    if constants.UPSTREAM:
+        assert urls[-1] == constants.UPSTREAM["url"]
 
 
 def test_github_icon_and_same_as_share_one_constant(app_module):
@@ -253,13 +260,26 @@ def test_api_page_renders_one_table_per_component():
     assert "Current value." in text
 
 
-def test_api_page_is_not_registered_when_no_package_is_declared(app_module):
+def test_api_page_follows_api_packages(app_module):
+    """Fork-invariant (1.6.41): a host that declares API_PACKAGES has /api
+    registered, in the sidebar, with components read from the package's
+    metadata.json; a host that declares none has no /api at all."""
     import dash
 
+    from components.navbar import _has_api_page
+    from lib import api_reference
     from lib.constants import API_PACKAGES
 
-    assert API_PACKAGES == [], "the template documents no component package"
-    assert "/api" not in [p["path"] for p in dash.page_registry.values()]
+    paths = [p["path"] for p in dash.page_registry.values()]
+    if not API_PACKAGES:
+        assert "/api" not in paths
+        assert not _has_api_page(dash.page_registry.values())
+        return
+    assert "/api" in paths
+    assert _has_api_page(dash.page_registry.values())
+    for pkg in api_reference.load_packages(API_PACKAGES):
+        assert not pkg.get("error"), pkg
+        assert pkg["components"], f"{pkg['package']} exposes no components"
 
 
 def test_missing_package_is_reported_not_raised():
@@ -275,13 +295,20 @@ def test_missing_package_is_reported_not_raised():
 def test_the_aside_collapses_on_pages_without_a_toc(app_module):
     """Owner's note 1: /changelog full width. Docs pages with `.. toc::`
     keep the column; everything else collapses it."""
-    from lib.aside import aside_config, has_aside
+    from lib.aside import ASIDE_PATHS, aside_config, has_aside
 
-    assert has_aside("/backend-comparison") and has_aside("/getting-started")
-    for path in ("/changelog", "/", "/admin/traffic", "/api"):
+    # Derived from the registry, not named (1.6.41): any fork has SOME docs
+    # page with a `.. toc::`, and its own paths.
+    toc_pages = sorted(ASIDE_PATHS)
+    assert toc_pages, "no docs page registered an aside — is `.. toc::` gone?"
+    assert all(has_aside(p) for p in toc_pages)
+    # Only pages the TEMPLATE owns and that render no TOC are asserted
+    # collapsed; a fork may serve / or /api as a docs page with its own
+    # toc (muicharts), so those are not named (1.6.41).
+    for path in ("/changelog", "/admin/traffic", "/admin/control-board"):
         assert not has_aside(path), path
         assert aside_config(path)["collapsed"]["desktop"] is True
-    assert aside_config("/backend-comparison")["collapsed"]["desktop"] is False
+    assert aside_config(toc_pages[0])["collapsed"]["desktop"] is False
     assert aside_config(None)["collapsed"]["mobile"] is True
 
 
@@ -323,3 +350,157 @@ def test_other_apps_dropdown_is_solid_and_every_primary_app_has_an_icon(app_modu
     assert dropdown.styles["dropdown"]["backgroundColor"]
     for url in PRIMARY:
         assert ICONS.get(url) not in (None, "mdi:web"), f"{url} has no icon"
+
+
+def test_the_skip_link_is_the_first_tab_stop(app_module):
+    """1.6.41 (adopted from muischeduler): "Skip to content" → #main-content,
+    first in the tree, visible only on focus (.skip-link in main.css)."""
+    from components.appshell import create_appshell
+
+    shell = create_appshell([])
+    first = shell.children[0]
+    assert getattr(first, "href", None) == "#main-content" and first.className == "skip-link"
+    assert 'id="main-content"' in str(shell).replace("'", '"') or "main-content" in str(shell)
+    css = (REPO / "assets" / "main.css").read_text()
+    assert ".skip-link:focus" in css and "left: -9999px" in css
+
+
+def test_an_upstream_on_github_is_allowed_in_resources(monkeypatch):
+    from lib import constants
+
+    monkeypatch.setattr(constants, "UPSTREAM", {"name": "Excalidraw", "url": "https://github.com/excalidraw/excalidraw"})
+    urls = [r["url"] for r in constants.resources()]
+    assert urls[-1] == "https://github.com/excalidraw/excalidraw"
+    assert not any("pip-install-python" in u for u in urls)
+
+
+def test_changelog_headings_accept_every_dash(tmp_path):
+    from pages.changelog import newest_date, parse_changelog
+
+    p = tmp_path / "CHANGELOG.md"
+    p.write_text("# Changelog\n\n## [2.0.0] — 2026-08-30\n\n### Added\n- em dash\n\n"
+                 "## [1.9.0] – 2026-08-29\n\n### Fixed\n- en dash\n\n## [1.8.0] - 2026-08-28\n\n### Added\n- hyphen\n")
+    versions = parse_changelog(p)
+    assert [v["date"] for v in versions] == ["2026-08-30", "2026-08-29", "2026-08-28"]
+    assert newest_date(p) == "2026-08-30"
+
+
+def test_locked_pages_are_marked_in_the_sidebar(app_module, monkeypatch):
+    """1.6.41 (excalidraw): an auth-tier page shows a lock and a Tooltip
+    ("Sign in required") — never `title=`, which DMC 2.8 rejects."""
+    import dash_mantine_components as dmc
+
+    from components import navbar
+    from lib import page_tiers
+
+    monkeypatch.setattr(navbar, "page_tier", lambda p: "auth" if p == "/locked" else "public")
+    locked = navbar._page_link({"path": "/locked", "name": "Locked", "icon": None})
+    assert isinstance(locked, dmc.Tooltip) and locked.label == "Sign in required"
+    assert "fluent:lock-closed-16-regular" in str(locked)
+    public = navbar._page_link({"path": "/open", "name": "Open", "icon": None})
+    assert isinstance(public, dmc.Anchor)
+    assert page_tiers.local_tier("/getting-started") in ("public", "auth", "admin", "hidden")
+
+
+def test_api_reference_falls_back_to_the_committed_extract_then_docstrings(tmp_path, monkeypatch):
+    """1.6.41: metadata.json → api_metadata.json (committed, stamped) →
+    docstrings (hook-based packages ship no metadata at all)."""
+    import sys
+
+    from lib import api_reference
+
+    # docstring-only package (modelviewer's shape)
+    comps = api_reference.load_package("tests.fixtures.docstring_dash_pkg")
+    assert [c["name"] for c in comps] == ["DocWidget"]
+    props = {p["name"]: p for p in comps[0]["props"]}
+    assert props["value"]["required"] and props["size"]["default"] == "'md'"
+    assert props["id"]["description"].startswith("The ID")
+    assert "setProps" not in props
+    # slim extract wins over docstrings and carries the generated stamp
+    pkg_dir = tmp_path / "slim_pkg"
+    pkg_dir.mkdir()
+    (pkg_dir / "__init__.py").write_text("class Only:\n    pass\n")
+    (pkg_dir / api_reference.SLIM_METADATA).write_text(json.dumps({"generated": "2026-08-30", "components": [
+        {"name": "Only", "description": "d", "props": [{"name": "id", "type": "string", "required": False, "default": "", "description": "x"}]}]}))
+    monkeypatch.syspath_prepend(str(tmp_path))
+    sys.modules.pop("slim_pkg", None)
+    assert api_reference.load_package("slim_pkg")[0]["name"] == "Only"
+    assert api_reference.slim_generated_on("slim_pkg") == "2026-08-30"
+    assert api_reference.slim_generated_on("tests.fixtures.fake_dash_pkg") is None
+
+
+def test_api_markdown_escapes_pipes_in_every_cell():
+    from lib import api_reference
+
+    rows = [{"package": "x", "components": [{"name": "C", "description": "", "props": [
+        {"name": "a|b", "type": "a | b", "required": False, "default": "x|y", "description": "d|e\nf"}]}]}]
+    import unittest.mock as um
+    with um.patch.object(api_reference, "load_packages", return_value=rows):
+        md = api_reference.as_markdown(["x"])
+    assert "| `a\\|b` | a \\| b | x\\|y | d\\|e f |" in md
+
+
+def test_generated_pages_carry_the_full_machine_record(app_module, client):
+    """1.6.41 (leaflet): /changelog (and /api when declared) register the
+    full record — visibility, tier, lastmod — not just a module LLMS_DOC."""
+    import re as _re
+
+    from lib import page_tiers, page_visibility
+    from pages.changelog import newest_date
+
+    assert page_tiers.local_tier("/changelog") == "public"
+    assert "/changelog" in page_visibility.controllable_pages()
+    sitemap = client.get("/sitemap.xml").text
+    m = _re.search(r"<url>\s*<loc>[^<]*/changelog</loc>\s*<lastmod>([^<]+)</lastmod>", sitemap)
+    assert m and m.group(1).startswith(newest_date()), sitemap[:400]
+
+
+def test_nav_short_label_is_used_in_sidebar_and_search():
+    """1.6.41 (emojimart, muicharts): frontmatter `nav:` is the sidebar and
+    search label; `name:` stays the <title> / og:title / llms.txt heading."""
+    from components.navbar import _page_link, search_data
+
+    entry = {"path": "/very-long", "name": "A Very Long Page Name Indeed", "nav": "Long page", "icon": None}
+    assert "Long page" in str(_page_link(entry)) and "Indeed" not in str(_page_link(entry))
+    assert search_data([entry]) == [{"label": "Long page", "value": "/very-long"}]
+    plain = {"path": "/p", "name": "Plain", "icon": None}
+    assert search_data([plain]) == [{"label": "Plain", "value": "/p"}]
+
+
+def test_changelog_parser_takes_prose_first_and_bare_versions(tmp_path):
+    """1.6.41 (pannellum): `## 2.0.0 — date` with paragraphs and no ###
+    sections rendered eight empty headings. Bare or bracketed version,
+    any dash, prose as `para` items."""
+    from pages.changelog import parse_changelog
+
+    p = tmp_path / "CHANGELOG.md"
+    p.write_text("# Changelog\n\n## 2.0.0 — 2026-08-02\n\nFirst paragraph of prose\nthat wraps.\n\nSecond paragraph.\n\n"
+                 "## [1.0.0] - 2026-01-01\n\n### Added\n- a bullet\n")
+    v = parse_changelog(p)
+    assert [x["version"] for x in v] == ["2.0.0", "1.0.0"]
+    assert v[0]["date"] == "2026-08-02"
+    paras = [i["text"] for i in v[0]["sections"]["Notes"] if i["type"] == "para"]
+    assert paras == ["First paragraph of prose that wraps.", "Second paragraph."]
+    assert v[1]["sections"]["Added"][0] == {"type": "item", "text": "a bullet"}
+
+
+def test_generated_api_yields_to_a_docs_page_that_owns_the_path(tmp_path, monkeypatch):
+    from pages import api as api_page
+
+    docs = tmp_path / "docs" / "x"
+    docs.mkdir(parents=True)
+    (docs / "api.md").write_text("---\nname: API\nendpoint: /api\n---\n\nprose\n")
+    monkeypatch.chdir(tmp_path)
+    assert api_page._docs_page_owns("/api") is True
+    assert api_page._docs_page_owns("/nope") is False
+
+
+def test_header_reads_header_height_and_props_tables_scroll(app_module):
+    from components.header import create_header
+    from lib.constants import HEADER_HEIGHT
+
+    src = (REPO / "components" / "header.py").read_text()
+    assert "h=HEADER_HEIGHT" in src and "h=70" not in src
+    assert f"h={HEADER_HEIGHT}" in str(create_header([]))
+    css = (REPO / "assets" / "main.css").read_text()
+    assert ".m2d-block-props table" in css

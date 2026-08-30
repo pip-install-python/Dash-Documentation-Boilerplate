@@ -206,7 +206,14 @@ every older rung by design; do not read those as the floor.
 # methods by the names forks already call them; test_traffic_rollup_v4.py
 # imports daily_rollup / load_reads / vendor_rows from lib/traffic_rollup
 # and the package's _ledger — nothing under lib/auth, no conftest
-# fixture, no page. CORRECTED 1.6.36: "imports nothing fork-shaped" was
+# fixture, no page. (1.6.41, note 61 — leaflet: `vendor_class` never
+# reaches the ledger on 2.8.0 because EVENT_FIELDS lacks it and
+# record_read stores EVENT_FIELDS only, so every host's rollup sends
+# `class: null`; the v4 test now builds its rows THROUGH record_read and
+# pins the seam — dimll 2.9.2 adds the field.) (1.6.41: the floor constant is spelled
+# `LLMS_PKG_FLOOR` here and `_DIMLL_FLOOR` on emojimart — grep the
+# ASSIGNMENT SHAPE `= (2, 8, 0)` / `>=2.8.0`, not one name.) CORRECTED
+# 1.6.36: "imports nothing fork-shaped" was
 # the wrong question — the real one is "does it pass against the
 # OLDEST fork's rollup?", and at 1.6.34 it did not: the v4 test
 # imported `load_agent_hits` and asserted `bot_visitors`, both v3 seams
@@ -1125,6 +1132,21 @@ contract:
   (1.6.40 note: forks on the 1.6.33 block hit a one-hunk conflict in
   tests/test_claude_kit.py when porting this item — take the NEWER
   bytes, the template's; the hunk is the posture-key allowlist.)
+  OWNER STEP BEFORE THE FIRST PUSH (1.6.41; muischeduler's first
+  promote, run 33318542986, FAILED at `git push origin
+  HEAD:refs/heads/release` with the whole matrix green): the repo's
+  Actions default workflow permission is READ-ONLY (GitHub's default
+  since Feb 2023) and it CAPS the job-level `contents: write` — the
+  template's repo already allowed write, which a template cannot see
+  in itself. Settings → Actions → General → Workflow permissions →
+  "Read and write permissions". DETECT, where a token exists:
+  `gh api repos/<owner>/<repo>/actions/permissions/workflow` →
+  `default_workflow_permissions == "write"`; without a token the first
+  promote IS the detect, and its failure is SAFE — nothing deploys by
+  CD and `verify` correctly SKIPS (that skip is contract (a2) working,
+  measured on the same run). REMEDY after a failure: the setting, then
+  "Re-run failed jobs" — never a PAT, never a force push, never writing
+  `release` by hand.
   (a) cd.yml `deploy` keeps `needs: [test]` — that IS the gate — and
       replaces the hook step with `git push origin HEAD:refs/heads/release`
       after an `actions/checkout` **with `fetch-depth: 0`** — MEASURED on
@@ -1257,7 +1279,9 @@ files: run.py (`RobotsConfig(block_ai_training=False, …)` and the
   robots fingerprint: ClaudeBot → `Allow: /`) · scripts/smoke_live.py
   and scripts/network_smoke.py (same tuple) · DIVERGENCES.md (the
   posture fence's `ai_bots`, re-measured and re-dated) · CHANGELOG.
-detect: `grep -c "block_ai_training=True" run.py` ≠ 0 ⇒ not flipped.
+detect: `grep -cE '^\s*block_ai_training=True' run.py` ≠ 0 ⇒ not
+  flipped (1.6.41: anchored to the line start so a COMMENT documenting
+  the flag a host did not take — muischeduler:381 — no longer fires).
   (1.6.40 note: item 9 — the posture fence — is UNADOPTED on several
   forks; it is a MEASUREMENT pass, never a copy of the template's
   numbers: probe your own host with both UAs and write what it answered.)
@@ -1302,7 +1326,10 @@ notes: in-process is the app's own answer; the wire minus in-process
   tests that bypass conftest's `get()` wrapper via
   `app.server.test_client()` send NO User-Agent and land on the crawler
   lane at ≥2.8 — item 12's proxy-scheme hazard applies to every such
-  test, not only test_proxy_scheme.py.) On the canary the difference was
+  test, not only test_proxy_scheme.py — and to ANY in-process probe that
+  sends no UA: muicharts' scripts/route_parity.py probed every route
+  UA-less and its CI gate reported `/admin/control-board: 404` at 2.8;
+  grep test_client()/probe calls without headers.) On the canary the difference was
   ZERO: `/` and `/healthz` both 403ed from the APP (in-process at
   ecc66f8: 403 with the 318-byte denial body) and both opened with
   the flag. The robots.txt shape after the flip is NO training stanza
@@ -1335,8 +1362,8 @@ files: lib/constants.py (GITHUB_URL + SAME_AS=[GITHUB_URL], CATEGORY_ORDER,
   · lib/directives/source.py (copyLabel/copiedLabel) · pages/markdown.py
   (Meta.order) · pages/traffic.py (DatePickerInput + People) · every
   docs page's frontmatter (`category:`, `order:`) · tests.
-detect: `grep -c page_order components/navbar.py` ≠ 0 ⇒ not adopted.
-  Also `grep -c "excluded_links" components/navbar.py` ≠ 0, and
+detect: `grep -cE "page_order|excluded_links|EXCLUDED_LINKS" components/navbar.py`
+  ≠ 0 ⇒ not adopted (forks spell the list both ways — 1.6.41). Also
   `grep -c "dcc.Dropdown" pages/traffic.py` ≠ 0.
 contract (the design's numbered list, DESIGN-navigation-uniformity §The
   contract; each is a pin in tests/test_nav_contract.py):
@@ -1424,6 +1451,48 @@ notes: detect fires on every fork today. THREE places the design did
   fourth, smaller: DMC's Burger accepts `aria-label` as a wildcard prop
   though its docstring does not list it — pinned by construction in the
   a11y grep, not by the docstring.
+  KIT TRAP FOR THIS ITEM (1.6.41): DMC 2.8's Anchor / ActionIcon accept
+  `aria-*` wildcards but REJECT `title=` with a TypeError raised at app
+  CONSTRUCTION — the whole site fails to boot. Use dmc.Tooltip for any
+  hover text. SECOND-ROUND FITS (leaflet, excalidraw, modelviewer, all
+  measured on real packages, all now in the template): (a) the
+  changelog heading regex accepts `-`, `–` and `—` between version and
+  date — an em-dash repo rendered every version DATELESS; (b) Resources
+  bans the OWNER's links only (GITHUB_URL, GITHUB_PROFILE_URL,
+  pip-install-python, discord.gg, youtube.com) — five of nine upstream
+  projects live on GitHub and contract 5 REQUIRES the upstream link;
+  (c) `tier: auth` / `admin` docs pages show a lock + Tooltip ("Sign in
+  required" / "Admin access required") — signage, the gate is unchanged;
+  (d) /changelog and /api register the FULL machine record
+  (page_visibility.register_default + page_tiers.register +
+  register_page_metadata with lastmod: the changelog's newest dated
+  heading; /api's committed-extract `generated` stamp) — a module-level
+  LLMS_DOC alone enters the sitemap undated and escapes the control
+  board's llms.txt toggle; (e) /api reads three sources in order —
+  metadata.json, the committed `api_metadata.json` extract
+  (scripts/build_api_metadata.py; a component REPO's metadata.json can
+  be a 27 MB gitignored artifact absent on the host, so /api renders
+  EMPTY in production while every local check passes), then the class
+  docstrings (hook-based packages ship no metadata) — and escapes pipes
+  in EVERY Markdown cell; forks with a no-regeneration guard exempt
+  tests/fixtures/.
+  CARGO CANDIDATES (1.6.41, measured by muischeduler against 519d496):
+  nine files came out BYTE-IDENTICAL after its port — components/
+  navbar.py, footer.py, pages/changelog.py, pages/api.py,
+  lib/api_reference.py, lib/aside.py, lib/network_directory.py,
+  pages/traffic.py, lib/directives/source.py — the next round's block
+  candidates. header.py joins them at 1.6.41: its last fork content
+  (logo asset, wordmark colour and breakpoint) moved to lib/constants
+  (LOGO_ASSET, LOGO_STYLE, WORDMARK_COLOR, WORDMARK_VISIBLE_FROM), and
+  create_link() takes visible_from so the GitHub icon drops at phone
+  widths (the footer carries it there). Also 1.6.41: the skip link
+  ("Skip to content" → #main-content, first tab stop, visible on
+  focus) adopted from muischeduler into appshell + main.css — ahead of
+  the template on requirement 9; and the two per-fork pins generalised:
+  the API test branches on API_PACKAGES (declared → /api registered, in
+  the sidebar, components from metadata.json; none → no /api), and the
+  aside pin + the hidden-links positive control derive their pages from
+  the registry instead of naming template paths.
   THE VISUAL PASS (1.6.39, same item): four things no test had
   measured, all now contract + pinned — (i) the AppShell reserves the
   aside column on every page; collapse it where no `.. toc::` fills it

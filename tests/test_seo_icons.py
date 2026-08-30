@@ -118,6 +118,27 @@ def _declared_lastmods() -> set[str]:
         m = re.search(r"^lastmod:\s*(\d{4}-\d{2}-\d{2})\s*$", head, re.MULTILINE)
         if m:
             dates.add(m.group(1))
+    # Generated pages declare theirs from their SOURCE (1.6.41): /changelog's
+    # is the newest dated release heading in CHANGELOG.md, /api's the
+    # committed extract's `generated` stamp — both move exactly when the
+    # content moves, which is what "declared" means here.
+    try:
+        from pages.changelog import newest_date
+
+        if newest_date():
+            dates.add(newest_date())
+    except Exception:  # noqa: BLE001 — no changelog page on this fork
+        pass
+    try:
+        from lib import api_reference
+        from lib.constants import API_PACKAGES
+
+        for pkg in API_PACKAGES:
+            stamp = api_reference.slim_generated_on(pkg)
+            if stamp:
+                dates.add(stamp)
+    except Exception:  # noqa: BLE001
+        pass
     return dates
 
 

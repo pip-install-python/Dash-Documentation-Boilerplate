@@ -19,12 +19,14 @@ from lib.constants import OG_IMAGE_URL, PAGE_TITLE_PREFIX, SITE_SHORT_NAME
 
 CHANGELOG_PATH = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 
+CHANGELOG_DESCRIPTION = f"Version history of {SITE_SHORT_NAME}, rendered from CHANGELOG.md."
+
 dash.register_page(
     __name__,
     path="/changelog",
     name="Changelog",
     title=PAGE_TITLE_PREFIX + "Changelog",
-    description=f"Version history of {SITE_SHORT_NAME}, rendered from CHANGELOG.md.",
+    description=CHANGELOG_DESCRIPTION,
     image_url=OG_IMAGE_URL,
     icon="tabler:history",
 )
@@ -55,6 +57,13 @@ def _build_llms_doc() -> str:
 LLMS_DOC = _build_llms_doc()
 
 
+def newest_date(path: Path = CHANGELOG_PATH) -> str | None:
+    """The newest dated release heading — /changelog's sitemap lastmod. It
+    moves exactly when the content moves (a release is dated by hand)."""
+    dates = [v["date"] for v in parse_changelog(path) if re.match(r"^\d{4}-\d{2}-\d{2}$", v.get("date") or "")]
+    return max(dates) if dates else None
+
+
 def parse_changelog(path: Path = CHANGELOG_PATH) -> list[dict]:
     """``[{version, date, sections: {name: [items]}}]`` in file order."""
     if not path.exists():
@@ -70,7 +79,9 @@ def parse_changelog(path: Path = CHANGELOG_PATH) -> list[dict]:
             sections.setdefault(section, []).extend(items)
 
     for line in path.read_text(encoding="utf-8").split("\n"):
-        vm = re.match(r"^## \[([^\]]+)\](?: - (.+))?", line)
+        # ASCII hyphen, en dash or em dash between version and date —
+        # leaflet's headings use "—" and rendered every version DATELESS.
+        vm = re.match(r"^## \[?(\d[^\]\s]*|Unreleased)\]?(?:\s*[-–—]\s*(.+))?\s*$", line)
         if vm:
             close_section()
             if current is not None:
@@ -83,14 +94,29 @@ def parse_changelog(path: Path = CHANGELOG_PATH) -> list[dict]:
             close_section()
             section, items = sm.group(1), []
             continue
-        if current is None or not section:
+        if current is None:
             continue
+        if not section:
+            # Prose-first releases (pannellum: `## 2.0.0 — date` then
+            # paragraphs, no ### sections) rendered EIGHT EMPTY HEADINGS
+            # silently. Prose under a version heading is its own section.
+            if line.strip() and not line.startswith("#"):
+                section, items = "Notes", []
+            else:
+                continue
         if line.startswith("- "):
             items.append({"type": "item", "text": line[2:]})
         elif line.startswith("  - "):
             items.append({"type": "subitem", "text": line[4:]})
         elif line.startswith("  ") and items and items[-1]["type"] in ("item", "subitem"):
             items[-1]["text"] += " " + line.strip()      # wrapped bullet
+        elif line.strip() and not line.startswith("#"):
+            if items and items[-1]["type"] == "para" and not items[-1].get("closed"):
+                items[-1]["text"] += " " + line.strip()
+            else:
+                items.append({"type": "para", "text": line.strip()})
+        elif not line.strip() and items and items[-1]["type"] == "para":
+            items[-1]["closed"] = True
     close_section()
     if current is not None:
         versions.append({**current, "sections": sections})
@@ -146,6 +172,8 @@ def _section(name: str, items: list):
                 [DashIconify(icon="tabler:point-filled", width=8, color=f"var(--mantine-color-{color}-6)"),
                  dmc.Text(_inline(it["text"]), size="sm", style=_WRAP)],
                 gap="xs", align="flex-start", wrap="nowrap"))
+        elif it["type"] == "para":
+            rows.append(dmc.Text(_inline(it["text"]), size="sm", style=_WRAP))
         else:
             rows.append(dmc.Group(
                 [dmc.Box(w=16), DashIconify(icon="tabler:point", width=6),
@@ -206,3 +234,26 @@ def layout(**kwargs):
         size="md",
         py="xl",
     )
+
+
+# The full machine record (1.6.41; leaflet's finding): a module-level
+# LLMS_DOC alone leaves the package to discover the page with no
+# `lastmod`, so /changelog entered the sitemap undated — and outside the
+# control board's llms.txt toggle. Same two calls pages/markdown.py makes
+# for every docs page; lastmod = the newest dated release heading.
+from dash_improve_my_llms import register_page_metadata  # noqa: E402
+
+from lib import page_tiers, page_visibility  # noqa: E402
+
+page_visibility.register_default("/changelog", "Changelog", visibility="public", llms_public=True)
+page_tiers.register("/changelog", "public", llms_public=True)
+register_page_metadata(
+    path="/changelog",
+    name="Changelog",
+    description=CHANGELOG_DESCRIPTION,
+    title=PAGE_TITLE_PREFIX + "Changelog",
+    image_url=OG_IMAGE_URL,
+    schema_type="TechArticle",
+    lastmod=newest_date(),
+    llms_doc=LLMS_DOC,
+)

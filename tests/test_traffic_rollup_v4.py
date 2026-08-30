@@ -36,15 +36,35 @@ def _ts(hour=10, minute=0, day=DAY):
 def _read(path="/llms.txt", *, tier="index", vendor_key="gptbot",
           vendor_class="training", verified="unverified", policy=None,
           nbytes=1000, minute=0, day=DAY):
+    """A ledger row built THROUGH `AnalyticsTracker.record_read` from a
+    classify()-shaped event (1.6.41, leaflet's finding): the stored row
+    carries exactly the package's EVENT_FIELDS, so a key the package does
+    not emit — `vendor_class` on 2.8.0 — is dropped here the way production
+    drops it. A fixture written by hand asserted a shape production never
+    produced, and every host's rollup sent `class: null` unnoticed."""
+    import tempfile
+    from pathlib import Path as _P
+
+    from lib.analytics_tracker import AnalyticsTracker
+
     ev = {k: None for k in EVENT_FIELDS}
     ev.update(ts=_ts(minute=minute, day=day), host="x", path=path, method="GET",
               tier=tier, lane="crawler", bot_type=vendor_class or "unknown",
               vendor_key=vendor_key, vendor_class=vendor_class,
               verified=verified, policy=policy,
-              verdict="served", status=200, bytes=nbytes, ua="ua")
-    ev.pop("client_ip")
-    ev["kind"] = "read"
-    return ev
+              verdict="served", status=200, bytes=nbytes, ua="ua", client_ip="203.0.113.9")
+    with tempfile.TemporaryDirectory() as d:
+        t = AnalyticsTracker(_P(d) / "l.json")
+        t.record_read(ev)
+        t.flush()
+        return json.loads((_P(d) / "l.json").read_text())["reads"][0]
+
+
+# What `class` can be on THIS package: the rollup reads `vendor_class` from
+# the stored row, and the row carries only EVENT_FIELDS. On 2.8.0 that is
+# None for every vendor (dimll 2.9.2 adds the field); the pin follows the
+# seam instead of asserting a value production cannot produce.
+CLASS_ON_THIS_PACKAGE = "training" if "vendor_class" in EVENT_FIELDS else None
 
 
 def _visit(path, *, minute=0, ip="1.1.1.1", ua="Mozilla/5.0 Chrome",
@@ -100,11 +120,11 @@ def test_vendor_rows_group_on_key_verified_policy(tmp_path, monkeypatch):
                          ("claudebot", "n/a", "default"),
                          (None, "n/a", "default")}
     top = rows[("gptbot", "unverified", "default")]
-    assert top["hits"] == 2 and top["bytes"] == 250 and top["class"] == "training"
+    assert top["hits"] == 2 and top["bytes"] == 250 and top["class"] == CLASS_ON_THIS_PACKAGE
     assert top["tiers"] == {**{t: 0 for t in TIERS}, "index": 1, "full": 1}
     assert p["reads"] == 6 == sum(r["hits"] for r in p["vendors"])
     assert p["vendors"][0]["hits"] == 2          # sorted by hits desc
-    assert rows[(None, "n/a", "default")]["class"] is None   # null key KEPT
+    assert rows[(None, "n/a", "default")]["class"] is None   # null key KEPT, class null regardless
 
 
 def test_tiers_always_carry_all_seven_keys(tmp_path, monkeypatch):
@@ -154,3 +174,13 @@ def test_the_reporter_payload_carries_v4_on_a_read_day(tmp_path, monkeypatch):
     and daily_rollup loads reads itself when not handed them."""
     p = _rollup(tmp_path, monkeypatch, visits=[_visit("/")], reads=[_read()])
     assert p["reads"] == 1 and p["vendors"][0]["key"] == "gptbot"
+
+
+def test_the_fixture_rows_are_what_record_read_stores():
+    """The seam itself (1.6.41): a row is EVENT_FIELDS + kind, nothing else —
+    client_ip dropped by default, and any key the package does not emit
+    (vendor_class on 2.8.0) absent, not None-by-hand."""
+    row = _read()
+    assert row["kind"] == "read" and "client_ip" not in row
+    assert set(row) - {"kind"} <= set(EVENT_FIELDS)
+    assert ("vendor_class" in row) == ("vendor_class" in EVENT_FIELDS)

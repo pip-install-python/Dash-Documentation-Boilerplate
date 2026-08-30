@@ -5,6 +5,106 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.41] - 2026-08-30
+
+muischeduler's item-16 port measured nine files byte-identical to the
+template and six not; the six were template asks. No runtime behaviour
+changes beyond a skip link and a header breakpoint.
+
+### Added
+- Skip link ("Skip to content" → `#main-content`), the first tab stop,
+  visible only on keyboard focus — adopted from muischeduler
+  (`components/appshell.py`, `assets/main.css`); pinned.
+- `lib/constants.py`: `LOGO_ASSET`, `LOGO_STYLE`, `WORDMARK_COLOR`,
+  `WORDMARK_VISIBLE_FROM` beside `WORDMARK` — `components/header.py`'s
+  last fork content, so it can become cargo. `create_link()` takes
+  `visible_from`; the GitHub icon drops below `xs` (the footer carries
+  it on phones).
+
+- `/changelog` and `/api` register the full machine record —
+  `page_visibility.register_default`, `page_tiers.register`,
+  `register_page_metadata(... lastmod=)` (the changelog's newest dated
+  heading; `/api`'s committed-extract `generated` stamp) — so both carry
+  a sitemap `lastmod` and sit under the control board's llms.txt toggle
+  (leaflet's finding: a module-level `LLMS_DOC` alone entered the sitemap
+  undated).
+- `lib/api_reference.py` reads three sources in order: `metadata.json`,
+  the committed `api_metadata.json` extract written by the new
+  `scripts/build_api_metadata.py` (a component repo's `metadata.json`
+  can be a 27 MB gitignored artifact absent on the host — leaflet's
+  `/api` was empty in production while every local check passed), then
+  the classes' docstrings (hook-based packages ship no metadata —
+  modelviewer). Pipes are escaped in every Markdown cell. Two fixture
+  packages pin the fallbacks.
+- Sidebar links to `tier: auth` / `admin` docs pages carry a lock icon
+  and a `dmc.Tooltip` ("Sign in required" / "Admin access required") —
+  adopted from excalidraw. `title=` is never used: DMC 2.8 rejects it
+  at app construction (recorded in item 16).
+
+- Frontmatter `nav:` — a short sidebar/search label, default = `name`
+  (emojimart, muicharts: long names where they had short labels;
+  shortening `name:` would churn `<title>`, og:title and the llms.txt
+  heading). `Meta.nav` → `register_page(nav=)`; the sidebar and both
+  search boxes read it.
+- `scripts/smoke_live.py` fetches `GITHUB_URL` (its own request, never
+  the stubbable `fetch`; unreachable is a notice, a reachable 404 is
+  red) — pannellum: four spellings of `dash-pannellum` for the repo
+  `dash_pannellum`, a live 404 the profile-vs-repo framing never caught.
+- `pages/api.py` yields when a docs page owns `/api` (pannellum,
+  muicharts serve it as a `.. kwargs::` page with curated prose) —
+  read from the docs' frontmatter, since page modules load before
+  `pages/markdown.py`.
+- `assets/main.css`: `.m2d-block-props table` joins the scrolling-table
+  rule (a fork's `.. props::` directive stamps the wrapper; the rule
+  must match the table).
+
+### Changed
+- `pages/changelog.py` accepts `-`, `–` and `—` between version and
+  date (leaflet's em-dash headings rendered every version dateless),
+  bare or bracketed versions, and prose-first releases — paragraphs
+  under a version heading become a `Notes` section of `para` items
+  (pannellum's `## 2.0.0 — 2026-08-02` releases rendered eight empty
+  headings, silently).
+- `tests/test_traffic_rollup_v4.py` builds its read rows THROUGH
+  `AnalyticsTracker.record_read` from a classify()-shaped event
+  (leaflet, note 61): the stored row carries only the package's
+  `EVENT_FIELDS`, which on 2.8.0 lacks `vendor_class`, so every host's
+  rollup has been sending `class: null` while the hand-built fixture
+  asserted "training". The pin follows the seam (`CLASS_ON_THIS_PACKAGE`)
+  and a new test asserts the row shape; dimll 2.9.2 adds the field and
+  the pin flips with it. `vendor_rows` keeps its fallback-free semantics.
+- `components/header.py` reads `HEADER_HEIGHT` instead of a literal 70.
+- The aside pin names only template-owned TOC-less pages (`/changelog`,
+  the admin pages); a fork may serve `/` or `/api` as a docs page with
+  its own toc (muicharts). `tests/test_seo_icons.py` counts the
+  changelog's newest dated heading and `/api`'s `generated` stamp as
+  declared dates.
+- Item 13 gains the owner step a template cannot see in itself: the
+  repo's Actions default workflow permission must be "Read and write"
+  or it caps the promote job's `contents: write` — muischeduler's first
+  promote failed there with a green matrix and `verify` correctly
+  skipped; detect via `gh api …/actions/permissions/workflow`, remedy =
+  the setting + re-run, never a PAT or a force push. The promote step's
+  comment in cd.yml says the same.
+- Item 12/15/16 detects and wording: `EXCLUDED_LINKS` / `_DIMLL_FLOOR`
+  spellings, "any in-process probe that sends no UA", "every tool that
+  asserts a ClaudeBot stanza", and `components/header.py` is never
+  cargo. Item 16 notes: count canonical/meta ELEMENTS, never
+  substrings (the template's browser document: one element, three
+  substring hits — a comment and a script selector; note 63).
+- `test_resources_are_third_party_only` bans the owner's links only;
+  an upstream project on GitHub is allowed (contract 5 requires it).
+- `tests/test_nav_contract.py`: the API pin branches on `API_PACKAGES`
+  (declared → `/api` registered, in the sidebar, components from
+  `metadata.json`; none → no `/api`); the aside pin and
+  `tests/test_excluded_links_hidden.py`'s positive control derive their
+  pages from the registry instead of naming `/backend-comparison` and
+  `/getting-started` — both files are fork-invariant now.
+- Item 15's detect anchors to the line start (`^\s*block_ai_training=True`)
+  so a comment documenting the flag no longer fires it; item 16 notes
+  name muischeduler's nine byte-identical files as next round's cargo
+  candidates. Tests 438 → 450.
+
 ## [1.6.40] - 2026-08-30
 
 Two fleet-class findings from muischeduler's item-12 port, both checked

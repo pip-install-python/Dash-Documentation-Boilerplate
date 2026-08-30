@@ -51,6 +51,14 @@ SITE_SHORT_NAME = "Dash Documentation Boilerplate"
 # review, upstreamed in 1.6.8). The header's aria-label derives from this
 # too, so the accessible name can never disagree with the visible one.
 WORDMARK = "Dash Docs"
+# The header's mark, lifted out of components/header.py (1.6.41) so that
+# file holds no fork content: the asset under assets/, its box (an SVG
+# needs no fixed width — set only what the asset needs), the wordmark
+# colour, and the breakpoint the wordmark text appears from.
+LOGO_ASSET = "ddb.png"
+LOGO_STYLE = {"height": "36px", "width": "36px"}
+WORDMARK_COLOR = "#03c7e5"
+WORDMARK_VISIBLE_FROM = "xs"
 
 # Prefixed to every per-page title (`pages/markdown.py`, `pages/home.py`), and
 # therefore NOT only a browser-tab string: Dash passes the page title straight

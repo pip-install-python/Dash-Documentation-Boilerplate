@@ -229,7 +229,8 @@ input:invalid {
    regardless of stylesheet load order. markdown2dash stamps m2d-table on
    every table it renders, including kwargs prop tables. */
 table.m2d-table,
-table.m2d-block-kwargs {
+table.m2d-block-kwargs,
+.m2d-block-props table {
     display: block;
     width: max-content;
     max-width: 100%;
@@ -593,4 +594,21 @@ img[alt=logo] { width: 100%; }
 :root[data-mantine-color-scheme="dark"] .ag-theme-alpine .user-agent-cell {
     font-size: 12px;
     color: #909296;
+}
+/* Skip link (1.6.41, adopted from muischeduler): the first tab stop, off-
+   screen until keyboard focus, then pinned top-left above the header. */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 9999;
+    background: var(--mantine-primary-color-filled);
+    color: var(--mantine-color-white);
+    padding: 8px 14px;
+    border-radius: 0 0 8px 0;
+    font-weight: 600;
+    text-decoration: none;
+}
+.skip-link:focus {
+    left: 0;
 }

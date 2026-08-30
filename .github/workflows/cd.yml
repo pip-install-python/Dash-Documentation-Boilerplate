@@ -91,6 +91,13 @@ jobs:
           # receive an uncertified commit by construction. On the FIRST run
           # `release` does not exist yet and this push creates it.
           #
+          # If this push is rejected with the whole matrix green, the REPO's
+          # Actions default workflow permission is read-only and caps the
+          # job-level `contents: write` above: Settings → Actions → General
+          # → Workflow permissions → "Read and write", then re-run failed
+          # jobs. Never a PAT, never --force (sync item 13; measured on
+          # muischeduler's first promote).
+          #
           # NOT --force, on purpose: a non-fast-forward means somebody wrote
           # `release` by hand (a rollback, a hotfix). This job then FAILS
           # and says so; a force here would silently undo that person.
