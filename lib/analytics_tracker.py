@@ -399,6 +399,18 @@ class AnalyticsTracker:
         """
         if not isinstance(event, dict):
             return
+        # DROP FIRST, before anything else is read (pipdocs, 2026-08-31 —
+        # measured on this tree: 69 rows where 67 were real). `track_visit`
+        # has dropped INTERNAL_UA_TOKEN since the internal-traffic contract
+        # and this hook never learned to, so the network's own probes — the
+        # hub's health sweep, every satellite's link audit — landed in the
+        # `reads` table and became the busiest "vendor" on every board in
+        # the fleet. "Counted nowhere" has to include the read table, or the
+        # contract is only half kept.
+        from lib.constants import INTERNAL_UA_TOKEN
+
+        if INTERNAL_UA_TOKEN in (event.get("ua") or "").lower():
+            return
         row = {k: event.get(k) for k in EVENT_FIELDS}
         if not KEEP_CLIENT_IP:
             row.pop("client_ip", None)

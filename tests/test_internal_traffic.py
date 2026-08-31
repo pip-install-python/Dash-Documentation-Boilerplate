@@ -238,3 +238,32 @@ def test_every_battery_script_sends_the_token(script):
     assert agents, f"scripts/{script}.py declares no User-Agent constant"
     missing = [ua for ua in agents if INTERNAL_UA_TOKEN not in ua]
     assert missing == [], f"scripts/{script}.py sends untokened UAs: {missing}"
+
+
+def test_the_read_table_drops_internal_traffic_too(tmp_path, monkeypatch):
+    """"Counted nowhere" has to include the READ table (pipdocs, 2026-08-31).
+
+    `track_visit` has dropped INTERNAL_UA_TOKEN since this contract existed;
+    `record_read` — the `on_document_read` hook added at 2.8.0 — never
+    learned to, so the network's own probes landed in `reads` and became the
+    busiest "vendor" on every board in the fleet. pipdocs measured 69 rows
+    where 67 were real; this tree kept the row too, confirmed before fixing.
+
+    Both directions, so the pin cannot pass by dropping everything.
+    """
+    monkeypatch.setenv("ANALYTICS_FILE", str(tmp_path / "a.json"))
+    from lib.analytics_tracker import AnalyticsTracker
+    from lib.constants import INTERNAL_UA
+
+    tracker = AnalyticsTracker()
+
+    def event(ua):
+        return {"ts": "t", "host": "h", "path": "/llms.txt", "method": "GET",
+                "tier": "public", "lane": "crawler", "status": 200, "bytes": 10,
+                "ua": ua, "client_ip": "203.0.113.9"}
+
+    tracker.record_read(event(INTERNAL_UA))
+    assert tracker._reads_buffer == [], "internal traffic reached the read table"
+
+    tracker.record_read(event("Mozilla/5.0 (compatible; Googlebot/2.1)"))
+    assert len(tracker._reads_buffer) == 1, "a real crawler read was dropped"

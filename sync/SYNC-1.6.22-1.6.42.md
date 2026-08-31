@@ -211,7 +211,15 @@ every older rung by design; do not read those as the floor.
 # landing here: test_analytics_classifier.py imports AnalyticsTracker
 # and lib.constants.INTERNAL_UA_TOKEN, two names every fork has had
 # since the internal-traffic contract, and calls the tracker's public
-# methods by the names forks already call them; test_traffic_rollup_v4.py
+# methods by the names forks already call them — AND THAT ANSWER WAS
+# WRONG (pipdocs, note 83d, measured on its port): the file has THREE
+# fork-owned seams, not zero. Its row-key SET, `flush()`, and the geo
+# switch are all things a fork shapes, so "nothing stubs this" held
+# only for the imports and not for the interface. The README's two
+# questions were asked and answered too shallowly — asking them is not
+# the same as answering them about every seam the file TOUCHES, which
+# is the mirror question (1.6.30) applied one level deeper;
+ test_traffic_rollup_v4.py
 # imports daily_rollup / load_reads / vendor_rows from lib/traffic_rollup
 # and the package's _ledger — nothing under lib/auth, no conftest
 # fixture, no page. (1.6.41, note 61 — leaflet: `vendor_class` never
@@ -1356,7 +1364,21 @@ notes: in-process is the app's own answer; the wire minus in-process
   test, not only test_proxy_scheme.py — and to ANY in-process probe that
   sends no UA: muicharts' scripts/route_parity.py probed every route
   UA-less and its CI gate reported `/admin/control-board: 404` at 2.8;
-  grep test_client()/probe calls without headers.) On the canary the difference was
+  grep test_client()/probe calls without headers.
+  STATED AS THE CLASS, not by filename (pipdocs, note 83b): **any test
+  that requests a browser surface without naming a UA**. Naming
+  test_proxy_scheme.py alone reads as `not-applicable` on a fork that
+  has no such file, and the hazard is not about proxies — on pipdocs it
+  bit test_social_card.py and test_page_structure.py, neither of which
+  sounds like a lane test.
+  AND THE KWARG TRAP for anyone copying the template's CALL SITES:
+  `client.get(path, user_agent=…)` works HERE only because conftest's
+  `Client` wrapper folds it into `headers` before werkzeug sees it. A
+  fork whose `client` is a raw werkzeug test client gets an
+  EnvironBuilder rejection on current pins from the same line — so copy
+  the WRAPPER, or fold the kwarg into headers yourself, before copying
+  any call that uses it. pipdocs' fix shape is the template's existing
+  one.) On the canary the difference was
   ZERO: `/` and `/healthz` both 403ed from the APP (in-process at
   ecc66f8: 403 with the 318-byte denial body) and both opened with
   the flag. The robots.txt shape after the flip is NO training stanza
