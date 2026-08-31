@@ -1796,10 +1796,33 @@ round corrections (2026-08-31, folded back from the fan-out's own
     sitemap pin (llms, modelviewer, muischeduler): `newest_date()` and
     the extract's `generated` stamp are declaration sources that are
     not docs frontmatter. Teach the pin its new SOURCE FILES; do not
-    loosen it. And SEED the extract's stamp with the date the
-    components last changed, never `date.today()` (muischeduler) — a
-    fleet all stamping its adoption day publishes twelve simultaneous
-    lies.
+    loosen it. And a lastmod is THE DATE THE CONTENT MOVED, WHATEVER
+    GENERATES IT — never the day you ran the port (muischeduler first,
+    as "seed the extract's stamp, never `date.today()`"; muicharts then
+    proved the wider form by LIVING it: its /api is a hand-written
+    markdown page with no builder to blame, it stamped `2026-08-31`,
+    and the sitemap asserted a content date that was not one for about
+    four minutes of wire time. So the rule is not about
+    `build_api_metadata.py` — a fork with a hand-written /api makes the
+    same mistake, and did). Its correction is the shape to copy: not a
+    retyped date but a PIN deriving the expected value from the
+    CHANGELOG entry for the INSTALLED package version, so bumping the
+    package moves the page's lastmod in the same change or goes red. A
+    hand-typed date that nothing checks is exactly what produced the
+    lie. A fleet all stamping its adoption day publishes twelve
+    simultaneous ones.
+  - NAMING THE ARTIFACT IS EASIER TO WRITE THAN TO APPLY (muicharts,
+    who supplied the three-artifact rule and then misapplied it twice
+    inside the hour): it checked its skip link with `"Skip to content"
+    in <received HTML>`, read False, and nearly reported it missing —
+    the link is in the Dash LAYOUT, so it lives in the rendered DOM,
+    the distinction it had written into its own DIVERGENCES two commits
+    earlier. Then it asked "is it the first tab stop" with
+    `querySelector('a,button,input,[tabindex]')`, matched a hidden
+    dash-input-element, and got the wrong answer again; filtered to
+    genuinely tabbable elements it is first of 99. Both caught by
+    measuring again, neither by thinking harder. Budget for the rule
+    failing on the person who wrote it.
   - the admin-absent pin lives in tests/test_excluded_links_hidden.py,
     NOT test_nav_contract.py where this item's other pins live
     (pannellum). It stays LINK-shaped — `](path)` — not
