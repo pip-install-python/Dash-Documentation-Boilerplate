@@ -42,6 +42,18 @@ UNPAIRED = """# Page
 Some prose.
 
 .. exec::docs.fastapi-showcase.async_demo
+
+More prose.
+"""
+
+# `:code: false` is the author saying "this module is plumbing for an
+# embed, not documentation" (muischeduler). Rendering it into the machine
+# lane publishes what the browser lane deliberately hides — and silently,
+# because the browser keeps looking right. This repo shipped that inversion
+# on all three of its own unpaired directives before the correction.
+HIDDEN = """# Page
+
+.. exec::docs.fastapi-showcase.async_demo
     :code: false
 
 More prose.
@@ -50,7 +62,6 @@ More prose.
 PAIRED = """# Page
 
 .. exec::docs.fastapi-showcase.async_demo
-    :code: false
 
 Source code:
 
@@ -64,7 +75,6 @@ Source code:
 DIFFERENT_TARGET = """# Page
 
 .. exec::docs.fastapi-showcase.async_demo
-    :code: false
 
 .. source::docs/fastapi-showcase/stress_test.py
 """
@@ -113,7 +123,28 @@ def test_an_unpaired_exec_renders_its_module_source(app_module):
     assert _needle() in out, "the exec'd component's code never reached the prose"
     assert "```python" in out
     assert ".. exec::" not in out, "the raw directive line survived into the prose"
-    assert ":code:" not in out, "the directive's option line was left behind as prose"
+
+
+def test_a_code_false_directive_withholds_the_source_but_says_so(app_module):
+    """The author's signal is honoured, and the gap is VISIBLE.
+
+    Skipping silently would leave the same shape as the defect: a machine
+    document with nothing where a component is. Broken, hidden and absent
+    must not look alike.
+    """
+    out = _expand(HIDDEN)
+    assert _needle() not in out, "`:code: false` source was published to the machine lane"
+    assert "source withheld" in out and "async_demo.py" in out, (
+        "the withheld component left no trace at all"
+    )
+    # Line-exact, not a substring: the marker itself quotes `:code: false`,
+    # so a substring assertion matches the pin's own output. That is the
+    # third time in this round a check matched prose ABOUT the thing it was
+    # asked to find — the UA grep flagged its own comment, and before that a
+    # naive count read fenced documentation as defects.
+    assert not any(ln.strip() == ":code: false" for ln in out.split("\n")), (
+        "the directive's option line was left behind as prose"
+    )
 
 
 def test_a_paired_exec_renders_once_not_twice(app_module):
@@ -198,8 +229,13 @@ def test_every_exec_in_this_repos_docs_reaches_the_machine_lane(client, app_modu
                 if ln.startswith("def ") or ln.startswith("component = ")
             ]
             assert anchors, f"{target} has no anchor line to check"
-            assert anchors[0] in doc, (
-                f"{url} does not carry {target.name}'s code — mechanism 4"
+            # Either the code reached the lane, or the author withheld it with
+            # `:code: false` and the document SAYS SO. What is not acceptable
+            # is silence, which is the defect this whole file exists for.
+            withheld = "source withheld" in doc and target.name in doc
+            assert anchors[0] in doc or withheld, (
+                f"{url} carries neither {target.name}'s code nor a withheld "
+                f"marker for it — mechanism 4"
             )
             checked += 1
     assert checked >= 3, f"only {checked} exec directives walked; the sweep found nothing"

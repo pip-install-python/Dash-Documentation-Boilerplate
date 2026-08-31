@@ -212,7 +212,34 @@ def _expand_source_directives(markdown_content: str) -> str:
             m = _EXEC_DIRECTIVE.match(line)
             if m:
                 skip_options = True
-                if exec_target_file(m.group(1)) not in paired:
+                # `:code: false` is the AUTHOR saying this module is
+                # plumbing for an embed, not documentation (muischeduler,
+                # 2026-08-31 — 12 of its 34 directives carry it). Rendering
+                # it into the machine lane publishes exactly what the
+                # browser lane deliberately hides, inverting the usual
+                # asymmetry, and silently: the browser keeps looking right.
+                # This repo shipped that inversion on all three of its own
+                # unpaired directives before the correction landed.
+                # Skipped, but NOT silently — broken, hidden and absent must
+                # not look alike, which is the whole lesson of this round.
+                opts = []
+                j = i
+                while j < len(lines) and lines[j].strip().startswith(':'):
+                    opts.append(lines[j].strip())
+                    j += 1
+                hidden = any(o.replace(' ', '').lower() == ':code:false' for o in opts)
+                target = exec_target_file(m.group(1))
+                if target in paired:
+                    # Dedupe wins over the withheld marker: the source IS in
+                    # this document, via `.. source::`, so announcing it as
+                    # withheld would be a false statement about the page.
+                    pass
+                elif hidden:
+                    out.append(
+                        f'\n<!-- component rendered from {target}; source withheld '
+                        f'by `:code: false` -->\n'
+                    )
+                else:
                     out.append(exec_expansion(m.group(1)))
                 continue
         out.append(line)
