@@ -1724,12 +1724,31 @@ round corrections (2026-08-31, folded back from the fan-out's own
     stripped with nothing replacing it, prose pointing at a component
     the reader cannot see) and flows (its curated API doc: 0 markdown
     rows, 0 crawler tables, 0 prerender tables, 5 populated browser
-    tables). The TEMPLATE has it too, in a third
-    variant: four documents — `/llms.txt`, `/examples/directives`,
-    `/examples/visualization`, `/getting-started` — serve the raw
-    `.. exec::` LINE, so an agent gets neither the component nor its
-    code. Assume you have this until you have counted rows in a lane
-    that is not the React tree.
+    tables). The TEMPLATE has it too — and how the template seat first
+    reported it is itself the lesson. The claim was "four documents
+    serve the raw `.. exec::` LINE", from a substring count of the
+    SERVED documents; every one of those hits was inside a FENCE,
+    which is documentation showing the syntax and is correct. Made
+    while writing up five other trees' versions of the same error.
+    Re-measured fence-aware: zero raw directives served.
+    AND THE AXIS IS PAIRING, NOT FENCING (llms, who re-measured this
+    tree itself rather than swapping one reported number for another).
+    Five docs here carry real unfenced `.. exec::` directives, 17 of
+    them; what makes four of those docs correct is that every
+    directive is PAIRED with a `.. source::` for the same target, so
+    the code reaches the machine lane by the hand-authored road. The
+    naive count was wrong twice: it read fenced documentation as
+    defects, and even fence-aware it would have named the wrong files,
+    because fencing is not the axis that decides whether a page is
+    broken. The real defect was THREE UNPAIRED directives in one
+    document — `/fastapi-showcase/llms.txt`, 19,378 bytes of prose
+    about endpoint_explorer, async_demo and stress_test with not one
+    line of any of them — which is llms' stripped variant, not a new
+    one. Fixed at 1.6.43, road (a) with the dedupe rule below; after,
+    35,766 bytes with all three present.
+    So: assume you have this until you have counted rows in a lane
+    that is not the React tree, and count with something that knows
+    what a fence and a pairing are.
   - the two roads through it, both legitimate: expand the directive
     into the prose through the SAME fence-aware pass `.. source::`
     uses (llms, muicharts, muischeduler, email, pannellum), or PAIR
