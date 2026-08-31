@@ -185,7 +185,12 @@ def test_every_exec_in_this_repos_docs_reaches_the_machine_lane(client, app_modu
                 continue
             target = REPO / (m.group(1).strip().replace(".", "/") + ".py")
             body = md.read_text()
-            endpoint = re.search(r"^endpoint:\s*(\S+)", body, re.M).group(1)
+            # `.strip("\"'")` — a fork whose frontmatter QUOTES its values
+            # (`endpoint: "/attribution"`) otherwise builds
+            # `/"/attribution"/llms.txt`, gets "llms.txt not available", and
+            # sees every page reported as a mechanism-4 leak: a wall of false
+            # failures on a pin that is otherwise right (leaflet, 2026-08-31).
+            endpoint = re.search(r"^endpoint:\s*(\S+)", body, re.M).group(1).strip("\"'")
             url = f"{endpoint.rstrip('/')}/llms.txt"
             doc = client.get(url).text
             anchors = [
