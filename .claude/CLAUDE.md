@@ -272,3 +272,32 @@ they win.
   card went blank or textual after a floor bump, look here before
   the template. Same class as the two lane traps above: name the UA,
   confirm from the body which document answered.
+- Which branch Render actually builds can be measured on a GREEN push,
+  by TIMING, without waiting for a red one (leaflet, 2026-08-31 — the
+  method, not just its answer). `main == release == wire` at every step
+  of a promote tells you nothing: both refs hold the same sha, so the
+  wire cannot separate them, and four promotes across three hosts said
+  nothing at all. Sample `/healthz` every ~45 s from the moment of the
+  push and note when the swap lands relative to the PROMOTE, not the
+  push. leaflet measured build+swap at 2m03s from the promote; had
+  Render reacted to the push instead, the same 2m03s would have put the
+  build live ~1m52s earlier than it appeared, and the wire was still
+  serving the old sha well past that point. That is STRONG EVIDENCE
+  that Render is building `release` — not proof, since a queued or slow
+  build could in principle produce the same shape. The canonical
+  discriminator is unchanged and still owed: the first push that goes
+  RED on main must leave `release` unmoved and the wire unchanged.
+  Worth taking on every SECOND promote — it costs one background
+  sampler and converts "asserted" into "strongly evidenced".
+- Verify the artifact the claim is about, and say which one you
+  measured. Three hosts got this wrong in one round while holding the
+  rule: a skip link checked in the received HTML lives in the RENDERED
+  DOM (muicharts, twice inside an hour, having written the rule
+  itself); a props table absent from the crawler document is a defect
+  of the site, not of the harness — pannellum moved that assertion onto
+  the rendered layout and the pin passed for a fortnight over a corpus
+  serving zero props. WHEN A LANE DISAGREES, THAT IS THE FINDING; never
+  relocate the assertion to the lane that passes. And an owner-gated
+  section needs BOTH cookie states to be a measurement at all
+  (modelviewer: `credentials: 'include'` → 2,962 B with admin hrefs,
+  `'omit'` → 108 B with none — hidden, not merely styled away).
