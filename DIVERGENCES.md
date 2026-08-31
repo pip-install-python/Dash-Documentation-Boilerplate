@@ -73,7 +73,12 @@ re-measure when you change what this host serves:
               `build` on /healthz is HEAD of `release`, and `main`
               ahead of it is an uncertified push pending. ABSENT reads
               as `main`: Render watches main and a push deploys before
-              CI has judged it.
+              CI has judged it. MEASURED BY RED PUSH 2026-08-31 on this
+              host: 417731e went red in CI (run 33342828114), `release`
+              held, and the ops seat's 41 wire samples over ten minutes
+              all served the prior green build (425baea) on a host whose
+              push-to-wire window is 90–135 s — the red build never
+              served. The mechanism is proven where it was built.
     unknown_ai `allow` | `meter` | `block` — this host's
               `default_unknown_ai` (RobotsConfig), what an unrecognised
               or ABSENT User-Agent receives on the corpus (1.6.36; dimll

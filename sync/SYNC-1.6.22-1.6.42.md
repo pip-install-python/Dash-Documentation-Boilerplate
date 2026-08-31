@@ -1140,6 +1140,13 @@ contract:
   (1.6.40 note: forks on the 1.6.33 block hit a one-hunk conflict in
   tests/test_claude_kit.py when porting this item — take the NEWER
   bytes, the template's; the hunk is the posture-key allowlist.)
+  PROVEN BY RED PUSH ON THE TEMPLATE (2026-08-31): 417731e's matrix
+  went red (run 33342828114, one leg), deploy skipped, and the wire
+  held the prior green build for 41 consecutive samples over ten
+  minutes on a host whose measured push-to-wire window is 90–135 s.
+  The discriminating observation item 13 asked for is taken: Render
+  follows `release`, and a red matrix cannot reach production. Cite
+  this, not intent, when a fork asks why the road exists.
   RELEASE/* REFS (1.6.42; muischeduler's SECOND promote failure, with
   the permission set): `cannot lock ref 'refs/heads/release':
   'refs/heads/release/v0.1.0' exists` — refs are a filesystem, and a
