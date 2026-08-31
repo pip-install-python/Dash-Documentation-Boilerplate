@@ -1807,7 +1807,26 @@ round corrections (2026-08-31, folded back from the fan-out's own
     its urllib probes while every in-process fetch was bare. Take the
     new shape — it is NOT cosmetic: it went red on arrival on every
     tree that re-took it, including this one, and on modelviewer it
-    named a live defect its own file-scoped port had passed. Flask's client wants `environ_base` as an ATTRIBUTE,
+    named a live defect its own file-scoped port had passed.
+    IT ACCEPTS BOTH FIX SHAPES, and the precise rule matters because
+    excalidraw reshaped a correct file expecting otherwise: a client
+    passes if it carries the UA on `environ_base` OR if EVERY request
+    call on it passes `headers=`. So a per-call fix is not rejected —
+    the pin goes red only where SOME call site is still bare, which is
+    the realistic failure (a fork fixes the sites it noticed and the
+    pin finds the ones it did not). `environ_base` is still the better
+    shape, for excalidraw's reason: it cannot be forgotten at a call
+    site added later.
+  - MODULE PATH vs FILE PATH when you measure exec/source pairing:
+    `.. exec::` takes `docs.events.events` and `.. source::` takes
+    `docs/events/events.py`, so a naive string compare reports EVERY
+    directive as unpaired (excalidraw's first count said 14 of 14;
+    normalised, the answer was 0). Normalise module→file before you
+    conclude anything, and measure the DOCUMENT rather than the
+    source: excalidraw's original mechanism-4 answer was
+    `assert "create_parser" not in src`, which is a source pin about
+    pages/api.py and says nothing about the docs pages that do run
+    directives. It replaced it with a byte-read of /events/llms.txt. Flask's client wants `environ_base` as an ATTRIBUTE,
     not an `__init__` kwarg (muischeduler). And strip comments and
     docstrings before grepping, or the WORDS pass while the header is
     gone (muicharts).
