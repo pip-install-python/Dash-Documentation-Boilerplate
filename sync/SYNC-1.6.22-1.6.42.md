@@ -1932,9 +1932,22 @@ round corrections (2026-08-31, folded back from the fan-out's own
     9b2ad49. emojimart's port did the same thing and caught it before
     pushing; leaflet's did it on its HOME page, the most-read machine
     surface it has.
-    WHAT THE FLAG ACTUALLY MEANS, and it is not "secret" (emojimart's
-    8 of 8 and pannellum's 10 of 11, converging independently): on
-    both forks every `:code: false` directive ALSO carries an explicit
+    WHAT THE FLAG ACTUALLY MEANS, and it is not "secret" — three forks
+    converging independently, emojimart 8 of 8, pannellum 10 of 11,
+    leaflet 27 of 28 (and leaflet's is 28 of 28 directives carrying the
+    flag, so on that host it is not a property some demos have, it is
+    simply how the author writes an embed). THE EXCEPTIONS CONFIRM THE
+    READING RATHER THAN QUALIFYING IT: each unpaired one is the single
+    module in its tree that is NOT example code — leaflet's is a
+    YouTube embed helper, muischeduler's a video module — so there was
+    no placement to make, because it is not something a reader would
+    ever want to read. Every module that IS documentation got a
+    placement; the one that is plumbing got none. The flag and the
+    absent `.. source::` say the same thing from two directions, which
+    is also why the MARKER is the right treatment for those and not
+    merely the safe one: an agent reading it learns there is nothing
+    there for it, rather than that something failed. On both forks
+    every `:code: false` directive ALSO carries an explicit
     `.. source::` for the same file. That is not redundancy — it reads
     "do not auto-dump the code under the demo; here it is deliberately,
     where I put it." The two options are a COMPOSITIONAL instruction,

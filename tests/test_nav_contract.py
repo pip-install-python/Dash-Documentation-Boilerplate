@@ -626,14 +626,41 @@ def test_bold_spans_containing_inline_code_render(tmp_path):
 
 def test_battery_hidden_paths_match_the_registry(app_module):
     """Note 74: the battery's literal tuple is pinned against the registry,
-    so a page added, renamed or deleted moves it in the same change."""
+    so a page added, renamed or deleted moves it in the same change.
+
+    SUBSET plus a reality check, not set equality (leaflet and
+    muischeduler, who re-derived the same adaptation independently).
+    Equality would delete muischeduler's `/404/llms.txt` — a real hidden
+    surface the battery had checked on the wire for months — and leaflet's
+    deliberate `/admin` canary. Removing live coverage to satisfy an
+    assertion is the opposite of what note 74 is for.
+
+    But subset ALONE would lose what equality was catching: stale canaries
+    on FIVE forks (`/admin/llms.txt`, `/analytics/llms.txt` — paths that
+    never existed, 404ing vacuously while the real admin pages went
+    unchecked). So the second half asks whether each listed path is
+    genuinely hidden. Extras that are real coverage pass; extras that are
+    fiction do not.
+    """
     import dash
 
+    from dash_improve_my_llms import is_hidden
     from scripts.network_smoke import HIDDEN_DOC_PATHS
 
     admin = {p["path"] for p in dash.page_registry.values() if p["path"].startswith("/admin/")}
-    assert set(HIDDEN_DOC_PATHS) == {f"{p}/llms.txt" for p in admin}, (
-        "network_smoke.HIDDEN_DOC_PATHS drifted from the registered admin pages"
+    required = {f"{p}/llms.txt" for p in admin}
+    assert required, "no admin pages registered — the pin would be vacuous"
+    missing = required - set(HIDDEN_DOC_PATHS)
+    assert not missing, (
+        f"registered admin pages the battery never probes: {sorted(missing)}"
+    )
+    fiction = [
+        p for p in HIDDEN_DOC_PATHS
+        if p not in required and not is_hidden(p.rsplit("/llms.txt", 1)[0])
+    ]
+    assert fiction == [], (
+        f"battery probes paths that are not hidden pages at all: {fiction} — "
+        "a 404 for a page that does not exist is not evidence that a page is hidden"
     )
 
 
@@ -657,8 +684,15 @@ def _client_names_a_ua(src: str, var: str) -> bool:
     """Does `var` — a bound `.test_client()` — name a UA on the wire?
 
     Either the client carries one for every request (`environ_base`), or
-    every request call on it passes `headers=`. A client that issues no
-    requests in this file cannot get the lane wrong here.
+    every request call on it names a UA.
+
+    A bound client with NO request calls in this file is an OFFENDER, and
+    the docstring used to say the opposite (muischeduler measured the
+    contradiction, 2026-08-31). It is the fixture shape — build a client,
+    hand it to callers — and it is the one shape file-scoped analysis can
+    never follow, because those callers name a fixture, not a
+    `.test_client()` binding. Flagging it forces the UA onto the client,
+    where it cannot be forgotten. The docstring was wrong, not the code.
     """
     if re.search(re.escape(var) + r"\.environ_base\b[^\n]*HTTP_USER_AGENT", src):
         return True
