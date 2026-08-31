@@ -1612,10 +1612,25 @@ class: contract. The 16+17 round ported exactly two files
   /api. Fork byte-identity evidence recorded against 519d496 is STALE
   for the files 1.6.41 touched; re-measure against the 1.6.42 sha.
 detect: per seam — run all, paste all:
+  - PRIMARY for the /api seam (pannellum, 2026-08-31 — the grep below
+    CANNOT find the fourth mechanism): note 79's battery invariant,
+    **api rows > 0 in every lane**. Count property ROWS on the wire in
+    the machine lane (`/api/llms.txt`), the crawler document and the
+    app shell, not in the React tree. A battery check does not care
+    which of the four mechanisms produced the silence, and the forks
+    most at risk are exactly the ones the greps cannot reach: a fork
+    whose /api is a MARKDOWN page with a component-rendering directive
+    has no `pages/api.py` to grep, so every file-shaped detect below
+    reads `n/a` while the corpus serves zero props. Measured, not
+    argued: pannellum's `/api` served 27 props to the React tree and
+    **0** to all three other lanes — a WORKING spec rendering into one
+    lane, perfect in a browser the whole time.
   - cargo-without-caller: `<pkg>/api_metadata.json` present (or
     lib/api_reference.py has SLIM_METADATA) while
     `grep -c slim_generated_on pages/api.py` = 0 ⇒ the extract exists
-    and /api's lastmod never reads it.
+    and /api's lastmod never reads it. SECONDARY: `n/a` here is not a
+    pass, it is a fork whose /api the greps cannot see — run the
+    battery invariant above and say where /api lives.
   - `grep -c "def newest_date" pages/changelog.py` = 0 ⇒ /changelog
     undated. `grep -c "nav:" pages/markdown.py` = 0 ⇒ no short labels.
   - `grep -c "skip-link" components/appshell.py` = 0 ⇒ no skip link.
