@@ -1687,7 +1687,16 @@ contract highlights (the fork ports the 1.6.41 CHANGELOG entry, in its
 acceptance: the fork's suite green with the four 1.6.42 pins ported
   (layout-nesting walk + positive control + source pin; the fleet
   heading shapes; the battery hidden-paths registry pin; the
-  test-client-names-a-UA grep); /api carries lastmod on the wire;
+  test-client-names-a-UA grep); /api carries lastmod on the wire OR
+  omits the tag HONESTLY where there is no committed extract to date it
+  (corrected 2026-08-31, after two forks met the same wall: excalidraw,
+  whose `newest_date()` is None because it has never dated a release,
+  and email, whose `slim_generated_on()` is None because it keeps the
+  full metadata.json that `load_package` prefers and so has no slim
+  extract. Both are the contract's own "then the sitemap omits the tag,
+  honestly" and both would have failed the acceptance line as written.
+  A date invented to satisfy an acceptance is worse than an absent one
+  — see the seeding rule above);
   /changelog badges read correctly on the fork's own changelog shape.
 notes: THE THIRD LANE SURFACE (notes 70/74, leaflet run 33326994172 +
   muicharts + emojimart): in-process harnesses (scripts/smoke_test.py,
