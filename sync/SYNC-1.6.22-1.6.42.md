@@ -2002,6 +2002,30 @@ round corrections (2026-08-31, folded back from the fan-out's own
     be present, which is what the flag answers. "One of 28 was
     unpaired" was true; "therefore the machine lane was missing
     content" did not follow.
+  - PIPELINE ORDER, if you implement the directives as SEPARATE passes
+    (flexlayout, 2026-08-31 — a hazard the template does not have and
+    so never named). exec's dedupe scan looks for raw `.. source::`
+    LINES in the text it is handed; run source first and every one of
+    them is already a fenced block, so the scan finds nothing, the
+    dedupe never fires, and a correctly hand-paired page DOUBLES its
+    output. So exec must run BEFORE source (kwargs has no such
+    dependency and can run last). The template is immune only because
+    it is ONE fence-aware walk with the `paired` set computed from the
+    RAW input before any expansion — which is the shape to prefer for
+    exactly this reason, not just for the "one parse, two consumers"
+    one. Three forks ported into their own walkers, so this bites more
+    of the fleet than it does the template. flexlayout caught it with
+    its port of `test_a_paired_exec_renders_once_not_twice`, which is
+    the pin earning its place on a fork rather than here.
+  - AND THE BETTER LASTMOD SHAPE, one rung past a pin (flexlayout):
+    `changelog_date_for_version()` reads the dated CHANGELOG entry for
+    the INSTALLED package's own `__version__` and REFUSES to write
+    anything when no dated entry exists — SystemExit, not a fallback to
+    today. muicharts' pin DETECTS the fabricated date; this PREVENTS
+    it, and a builder that cannot invent a date is better than a test
+    that notices afterwards. Its pin then derives the expected value
+    independently rather than re-reading what the builder wrote, so a
+    version bump that forgets to regenerate goes red.
   - CENSUS BEFORE YOU ADOPT: measure what an incoming change would DO
     to YOUR tree before taking it, and make it a step rather than an
     instinct (muischeduler, whose refusal of the exec builder is the
