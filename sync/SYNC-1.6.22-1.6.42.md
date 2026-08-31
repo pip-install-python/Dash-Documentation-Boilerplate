@@ -2002,6 +2002,17 @@ round corrections (2026-08-31, folded back from the fan-out's own
     be present, which is what the flag answers. "One of 28 was
     unpaired" was true; "therefore the machine lane was missing
     content" did not follow.
+  - WHEN A LANE DISAGREES, THAT IS THE FINDING — never relocate the
+    assertion to the lane that passes. This is the root cause of the
+    whole mechanism-4 class and pannellum names it against itself:
+    porting item 16 it wrote a pin for /api's props, found the CRAWLER
+    document did not contain them, and moved the assertion onto the
+    rendered layout, noting "the crawler document doesn't include the
+    kwargs table" in its working notes as a property of the harness.
+    The pin then passed for a FORTNIGHT while the corpus served zero
+    props. Every fork that shipped this defect did some version of the
+    same move. A lane that disagrees with another lane is telling you
+    the document is wrong, not that your test is in the wrong place.
   - A PIN THAT PASSES ON ARRIVAL IS NOT EVIDENCE IT MEASURES ANYTHING
     (pannellum, after the UA-token tightening found a false pass its
     own ported pin had been giving `headers={"CF-IPCountry": "FR"}`).
