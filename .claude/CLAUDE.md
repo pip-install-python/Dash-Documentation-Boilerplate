@@ -301,3 +301,13 @@ they win.
   section needs BOTH cookie states to be a measurement at all
   (modelviewer: `credentials: 'include'` → 2,962 B with admin hrefs,
   `'omit'` → 108 B with none — hidden, not merely styled away).
+  The error runs BOTH ways and the second one is worse, because it
+  sends someone hunting a bug that does not exist: `curl https://…/ |
+  grep -c skip-link` returns **0** on a host where the skip link is
+  shipped and working (excalidraw, 2026-08-31) — it is a Dash
+  component in `app.layout`, so React renders it and the served HTML
+  never contains it. A fork "verifying the skip link on the wire" with
+  curl reports a missing feature that is present. Anything built by
+  the layout rather than written into the template is invisible to the
+  two artifacts curl can reach; assert it through the layout or a real
+  browser, and say which you used.
