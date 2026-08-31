@@ -1710,6 +1710,131 @@ notes: THE THIRD LANE SURFACE (notes 70/74, leaflet run 33326994172 +
   non-vacuity fixture + positive control derived from the registry +
   source pin) is the guard; port it with your own composition sites
   in the source pin.
+round corrections (2026-08-31, folded back from the fan-out's own
+  reports — every one measured in a fork, most reproduced in the
+  template; the template fixes are at bd3fe82):
+  - MECHANISM 4 IS THE ROUND'S HEADLINE, not a footnote. FIVE forks
+    found it live and none of them had been looking for it: muicharts
+    (/api, closed), pannellum (27 props to the React tree, 0 to all
+    three other lanes), muischeduler (0 of 33 EventCalendar props in
+    the machine lane, the prerender AND the app-shell markup — a
+    component-documentation site answering "what does this accept?"
+    with prose and not one prop), email (15 `.. kwargs::` across 7
+    component docs, zero prop rows to agents), llms (`.. exec::`
+    stripped with nothing replacing it, prose pointing at a component
+    the reader cannot see). The TEMPLATE has it too, in a third
+    variant: four documents — `/llms.txt`, `/examples/directives`,
+    `/examples/visualization`, `/getting-started` — serve the raw
+    `.. exec::` LINE, so an agent gets neither the component nor its
+    code. Assume you have this until you have counted rows in a lane
+    that is not the React tree.
+  - the two roads through it, both legitimate: expand the directive
+    into the prose through the SAME fence-aware pass `.. source::`
+    uses (llms, muicharts, muischeduler, email, pannellum), or PAIR
+    every `.. exec::` with a `.. source::` and pin the pairing
+    (modelviewer). Copy the FENCE-AWARENESS with the fix shape
+    (clerkhook): a directive inside a ``` block is documentation, and
+    expanding it there turns an example into an instruction.
+  - two pins the lane work taught, both found by a pin going red on
+    good prose: scope row extraction to the GENERATED section, or a
+    document-wide row regex counts the page's own hand-written tables
+    (muischeduler); and a pin may not assert the JS-rendered DOM — no
+    test client renders React, which is exactly why the one artifact
+    that always looked right was the only one anyone checked.
+  - `LOGO_ASSET` is TEMPLATE-SHAPED. Four forks (leaflet, pannellum,
+    emojimart, muicharts) carry an Iconify GLYPH, not an image file,
+    and an asset path cannot express it. The contract is identity BY
+    REFERENCE — nothing hardcoded in header.py — so the detect is
+    `grep -c` of your own mark in components/header.py = 0, and the
+    constants may be named LOGO_ICON/WORDMARK_* instead. Three forks
+    report header.py byte-identical for the first time once the names
+    move, which is the seam actually closing.
+  - `0` on the cargo-without-caller detect means IMMUNE, not
+    un-adopted, on a fork that declined the two-file cargo (emojimart
+    §15, muischeduler). Excalidraw's seam cannot exist on a tree that
+    never took the file. Say which of the two zeros you are.
+  - the battery pin is SUBSET + non-vacuity, not set equality
+    (muischeduler, leaflet). Equality would have deleted
+    `/404/llms.txt` — a real hidden surface checked on the wire for
+    months — and leaflet's deliberate `/admin` canary. Every
+    registered admin page must be listed; genuinely-hidden extras are
+    coverage, not drift. It still found stale canaries on FIVE forks
+    (`/admin/llms.txt`, `/analytics/llms.txt` — paths that never
+    existed, 404ing vacuously while the real admin pages went
+    unchecked), which is the pin earning its place.
+  - a derived /changelog lastmod COLLIDES with a truth-or-silence
+    sitemap pin (llms, modelviewer, muischeduler): `newest_date()` and
+    the extract's `generated` stamp are declaration sources that are
+    not docs frontmatter. Teach the pin its new SOURCE FILES; do not
+    loosen it. And SEED the extract's stamp with the date the
+    components last changed, never `date.today()` (muischeduler) — a
+    fleet all stamping its adoption day publishes twelve simultaneous
+    lies.
+  - the admin-absent pin lives in tests/test_excluded_links_hidden.py,
+    NOT test_nav_contract.py where this item's other pins live
+    (pannellum). It stays LINK-shaped — `](path)` — not
+    mention-shaped (emojimart, muicharts): a changelog that cannot
+    name the page it added is not a changelog, and a pin that forbids
+    prose about your own admin pages gets deleted by the first person
+    it inconveniences. What the item ADDS is sweeping the TIER DOCS,
+    which is where the only real leak was found; the template's own
+    copy swept just `/llms.txt` until bd3fe82 (email).
+  - the test-client UA pin is resolved per CALL SITE since bd3fe82
+    (pannellum, excalidraw, muicharts). The file-scoped substring form
+    both over- and under-flagged, and it MISSED the only real offender
+    in three trees: `scripts/audit_links.py`, whose `headers=` sat on
+    its urllib probes while every in-process fetch was bare. Take the
+    new shape. Flask's client wants `environ_base` as an ATTRIBUTE,
+    not an `__init__` kwarg (muischeduler). And strip comments and
+    docstrings before grepping, or the WORDS pass while the header is
+    gone (muicharts).
+  - the third lane's premise is GATE-DEPENDENT (clerkhook): where a
+    request gate precedes the package middleware, anonymous crawler
+    and browser lanes are the same lane and the defect survives only
+    for an authenticated fetch of a mark_hidden page. "No red here"
+    is not "not applicable" — it can be a latent 404 waiting for the
+    first test that authenticates.
+  - the empty-dir pin DOES exist upstream:
+    tests/test_nav_contract.py:405, against tests/fixtures/
+    docstring_dash_pkg, which ships no metadata.json at all
+    (contra one report; email diffed it byte-identical). Two real
+    template limits beside it, both stated as if universal and not:
+    `_from_docstrings` reads a ONE-LINE unindented bullet and returns
+    zero props on an indented, description-on-the-next-line format,
+    and `build_api_metadata.py` EXITS when metadata.json is absent —
+    which is the permanent state of a hook-based package
+    (modelviewer). Also ship `<pkg>/api_metadata.json` in the WHEEL
+    (MANIFEST.in + package-data): present in a checkout and missing on
+    the host is leaflet's failure one file along.
+  - scripts/smoke_live.py: the port is NOT positional (excalidraw).
+    The HEAD check reads a `status` local whose value differs by file,
+    so dropping the block in at the same relative offset can compare
+    `HEAD /healthz` against `GET /sitemap.xml` — both 200, GREEN,
+    measuring nothing. And the 1.6.29 lesson repeated itself in this
+    round on the very file the README names for it: a byte-copy broke
+    eleven fork-owned `fetch` stubs with `unexpected keyword argument
+    'method'`. Port the additions; add `method=` to your stubs in the
+    same touch.
+  - PHANTOM RELEASES, template-class and fleet-wide: 1.6.41's widened
+    heading match reads a prose `##` section as a release (muicharts —
+    a Timeline card badged `Component License Requirements` and a page
+    claiming 15 releases where there are 14). The template had two of
+    its own and had not noticed. Fixed at bd3fe82: unbracketed labels
+    must look like a release (version, ISO date, or Unreleased);
+    brackets stay trusted as intent. The fleet-shapes fixture could
+    not catch this — it holds only release headings, so it never asked
+    what a NON-release heading does. ANY fork with a prose `##`
+    section has phantom releases right now.
+  - the layout-nesting positive control is derived from the REGISTRY
+    alone since bd3fe82 (clerkhook): it named `lib.aside.ASIDE_PATHS`,
+    a module a lockdown fork has no equivalent for, while its own
+    docstring already claimed the registry.
+  - SEATS-AND-CHECKOUTS' `<repo-name>` rule is wrong for four of the
+    nine forks that have reported. leaflet's tree is `2plot_leaflet`
+    and `dash-leaflet2` is a DIFFERENT private repo, not a stale
+    clone; flows is `dash-flows-upgraded`; emojimart is `emoji_mart`;
+    clerkhook is `Dash-Clerk-Auth-Hook`. Literal paths per seat, not a
+    derivation.
 
 ## Reporting
 
