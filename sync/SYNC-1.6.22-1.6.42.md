@@ -2002,6 +2002,20 @@ round corrections (2026-08-31, folded back from the fan-out's own
     be present, which is what the flag answers. "One of 28 was
     unpaired" was true; "therefore the machine lane was missing
     content" did not follow.
+  - CENSUS BEFORE YOU ADOPT: measure what an incoming change would DO
+    to YOUR tree before taking it, and make it a step rather than an
+    instinct (muischeduler, whose refusal of the exec builder is the
+    only reason it shipped with the `:code: false` guard). Its words,
+    and they are the rule: "a change from the template is still a
+    change, and 'it came from upstream' is not a measurement." It cost
+    one grep over 34 directives. The round's whole discipline had been
+    pointed downstream — forks measuring their own work — and this is
+    the one seat that pointed it up. Concretely, for any cargo that
+    REWRITES output: count the constructs it will act on in your tree,
+    split them by the branches the change distinguishes, and check the
+    branch counts against what the change claims it does. Where that
+    census is expensive is exactly where it gets skipped and something
+    ships, so do it while it is cheap.
   - WHEN A LANE DISAGREES, THAT IS THE FINDING — never relocate the
     assertion to the lane that passes. This is the root cause of the
     whole mechanism-4 class and pannellum names it against itself:
