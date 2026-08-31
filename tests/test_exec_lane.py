@@ -27,6 +27,7 @@ NEGATIVE cases (fenced, differently-targeted) rather than only the happy one.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -105,12 +106,23 @@ def _needle() -> str:
 
     Never a literal: a hardcoded expectation drifts out of the file it
     claims to be about and the pin quietly starts proving nothing.
+
+    Fork-invariant shape (leaflet, 2026-08-31): first top-level `def`, ELSE
+    first top-level assignment. A `def `-only search finds nothing on a fork
+    whose showcase convention is a module-level `component = dmc.Stack(...)`
+    with no functions anywhere, and the pin then fails at collection rather
+    than testing anything. Multi-line-string openers are skipped — anchoring
+    on a `QUICKSTART = ` triple-quote opener works but is a poor needle.
     """
     src = (REPO / "docs" / "fastapi-showcase" / "async_demo.py").read_text()
-    for line in src.split("\n"):
+    lines = src.split("\n")
+    for line in lines:
         if line.startswith("def "):
             return line
-    pytest.fail("async_demo.py has no top-level def to anchor the pin on")
+    for line in lines:
+        if re.match(r"^\w+\s*=", line) and not re.search(r'=\s*("""|\'\'\')', line):
+            return line
+    pytest.fail("no top-level def or assignment in the module to anchor the pin on")
 
 
 def test_the_needle_is_really_in_the_module():

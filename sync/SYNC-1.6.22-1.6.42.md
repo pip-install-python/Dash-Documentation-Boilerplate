@@ -1921,7 +1921,47 @@ round corrections (2026-08-31, folded back from the fan-out's own
     not catch this — it holds only release headings, so it never asked
     what a NON-release heading does. ANY fork with a prose `##`
     section has phantom releases right now.
-    IT EXCLUDES WITHOUT DROPPING — the inverse risk pannellum asked
+    `:code: false` IS AN AUTHORING INSTRUCTION, AND THE BUILDER MUST
+    HONOUR IT (muischeduler, who measured what the builder would do on
+    its tree and REFUSED the port until the guard existed; 12 of its
+    34 directives carry the flag). The template shipped the inversion
+    first: all three of its unpaired directives carry `:code: false`,
+    so 1.6.43's first cut published three authors' withheld source to
+    the machine lane and the "19,378 -> 35,876 bytes" reported as the
+    round's win WAS the defect, live on the wire between d5675d8 and
+    9b2ad49. emojimart's port did the same thing and caught it before
+    pushing; leaflet's did it on its HOME page, the most-read machine
+    surface it has.
+    WHAT THE FLAG ACTUALLY MEANS, and it is not "secret" (emojimart's
+    8 of 8 and pannellum's 10 of 11, converging independently): on
+    both forks every `:code: false` directive ALSO carries an explicit
+    `.. source::` for the same file. That is not redundancy — it reads
+    "do not auto-dump the code under the demo; here it is deliberately,
+    where I put it." The two options are a COMPOSITIONAL instruction,
+    and a builder honouring only one of them breaks the page either
+    way round. So the precedence is DEDUPE FIRST, then the flag:
+    - target already `.. source::`d -> silent skip (announcing a
+      withheld source that is visibly in the document would be a false
+      statement about the page, and it would also override the author's
+      placement);
+    - else `:code: false` -> a MARKER naming the module and why its
+      source is absent, never a silent skip: broken, hidden and absent
+      must not look alike;
+    - else expand.
+    AN UNPAIRED DIRECTIVE IS A CANDIDATE, NOT A DEFECT (leaflet, whose
+    own report this corrects). Two questions follow it and both must be
+    asked: is the content actually ABSENT — leaflet's home page had
+    published the video's title and link as author-written markdown
+    since 2026-08-23, so nothing a reader needed was missing and all
+    3,374 bytes it "restored" were the withheld source — and SHOULD it
+    be present, which is what the flag answers. "One of 28 was
+    unpaired" was true; "therefore the machine lane was missing
+    content" did not follow.
+  - A PIN THAT PASSES ON ARRIVAL IS NOT EVIDENCE IT MEASURES ANYTHING
+    (pannellum, after the UA-token tightening found a false pass its
+    own ported pin had been giving `headers={"CF-IPCountry": "FR"}`).
+    Mutation-check it, or tighten it until it goes red once.
+  - IT EXCLUDES WITHOUT DROPPING — the inverse risk pannellum asked
     about, and the reason to prefer it to a narrower heading regex.
     Measured on a synthetic changelog: `## Migration Guide` between
     two releases parses to ['1.4.0', '1.3.0'] AND its prose survives,
