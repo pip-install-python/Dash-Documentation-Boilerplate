@@ -1636,6 +1636,28 @@ contract highlights (the fork ports the 1.6.41 CHANGELOG entry, in its
     dir and asserts components still come back. Expect a
     `# declined:` on lib/api_reference.py where a fork keeps its own
     parser (emojimart, DIVERGENCES §15 — one parser per tree).
+    FOUR mechanisms produce an empty /api at 200, and the metadata one
+    above is only the third — a fork that fixes it and stops still
+    ships silence. The FOURTH (muicharts 1b2ac12, note 80, from the
+    review's P1-1 — diagnosed, fixed, live at b4e8718, 371 properties
+    verified in every lane 2026-08-31 ~02:30Z; muicharts is CLOSED on
+    this, do not re-diagnose it): a markdown2dash DIRECTIVE that
+    renders Dash components puts its output only in the React tree —
+    the machine lane, the prerender and the crawler HTML are built
+    from the markdown SOURCE, where the directive line is stripped,
+    and the renderer returns None on empty, so a broken spec renders
+    as silence. Fix shape: fence-aware expansion of the directive into
+    the prose (the `.. source::` treatment), ONE shared parse for both
+    consumers. The real defect was the TEST: assert ROWS and row
+    CONTENT with lane-parity pins, never section headings, and
+    MUTATION-CHECK them — disable the expansion, watch the pins go
+    red. Note 79's "api rows > 0" battery invariant catches all four.
+    Wire-byte nuance: "Chrome HTML" fetched by curl has no JS-rendered
+    tables, so the browser lane spans THREE artifacts — the app-shell
+    markup, the dimll prerender block inside the SAME received HTML
+    (where this fix lands), and the JS-rendered DOM. Name which you
+    measured; muicharts collapsed the first two and mispredicted its
+    own fix, and only measuring caught it.
   (corpus half, llms, note 75) prose can leak what structure hides:
     hyperlinking /admin/control-board in five docs pages put the path
     into /llms.txt while every navbar/sitemap pin passed. The
