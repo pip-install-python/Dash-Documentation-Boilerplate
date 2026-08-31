@@ -1713,7 +1713,7 @@ notes: THE THIRD LANE SURFACE (notes 70/74, leaflet run 33326994172 +
 round corrections (2026-08-31, folded back from the fan-out's own
   reports — every one measured in a fork, most reproduced in the
   template; the template fixes are at bd3fe82):
-  - MECHANISM 4 IS THE ROUND'S HEADLINE, not a footnote. FIVE forks
+  - MECHANISM 4 IS THE ROUND'S HEADLINE, not a footnote. SIX forks
     found it live and none of them had been looking for it: muicharts
     (/api, closed), pannellum (27 props to the React tree, 0 to all
     three other lanes), muischeduler (0 of 33 EventCalendar props in
@@ -1722,7 +1722,9 @@ round corrections (2026-08-31, folded back from the fan-out's own
     with prose and not one prop), email (15 `.. kwargs::` across 7
     component docs, zero prop rows to agents), llms (`.. exec::`
     stripped with nothing replacing it, prose pointing at a component
-    the reader cannot see). The TEMPLATE has it too, in a third
+    the reader cannot see) and flows (its curated API doc: 0 markdown
+    rows, 0 crawler tables, 0 prerender tables, 5 populated browser
+    tables). The TEMPLATE has it too, in a third
     variant: four documents — `/llms.txt`, `/examples/directives`,
     `/examples/visualization`, `/getting-started` — serve the raw
     `.. exec::` LINE, so an agent gets neither the component nor its
@@ -1782,9 +1784,11 @@ round corrections (2026-08-31, folded back from the fan-out's own
   - the test-client UA pin is resolved per CALL SITE since bd3fe82
     (pannellum, excalidraw, muicharts). The file-scoped substring form
     both over- and under-flagged, and it MISSED the only real offender
-    in three trees: `scripts/audit_links.py`, whose `headers=` sat on
+    in four trees: `scripts/audit_links.py`, whose `headers=` sat on
     its urllib probes while every in-process fetch was bare. Take the
-    new shape. Flask's client wants `environ_base` as an ATTRIBUTE,
+    new shape — it is NOT cosmetic: it went red on arrival on every
+    tree that re-took it, including this one, and on modelviewer it
+    named a live defect its own file-scoped port had passed. Flask's client wants `environ_base` as an ATTRIBUTE,
     not an `__init__` kwarg (muischeduler). And strip comments and
     docstrings before grepping, or the WORDS pass while the header is
     gone (muicharts).
@@ -1797,7 +1801,19 @@ round corrections (2026-08-31, folded back from the fan-out's own
   - the empty-dir pin DOES exist upstream:
     tests/test_nav_contract.py:405, against tests/fixtures/
     docstring_dash_pkg, which ships no metadata.json at all
-    (contra one report; email diffed it byte-identical). Two real
+    (reported missing by modelviewer, withdrawn by it on the record —
+    a grep whose filter could not match the function's own name, read
+    as an absence; email had diffed it byte-identical). What that pin
+    does NOT cover, and what every fork on the extract road should add
+    (modelviewer): **the committed extract still AGREES with the
+    docstrings it was built from**. `load_package` PREFERS the
+    extract, so the extract is a second source of truth — a prop
+    change that skips scripts/build_api_metadata.py silently stops
+    reaching /api and nothing else in a suite notices. Not added
+    upstream because it would be VACUOUS here: this repo's
+    `API_PACKAGES` is `[]` and it ships no extract, so the template
+    cannot exercise its own advice. Gate it on the extract existing.
+    Two real
     template limits beside it, both stated as if universal and not:
     `_from_docstrings` reads a ONE-LINE unindented bullet and returns
     zero props on an indented, description-on-the-next-line format,
@@ -1829,6 +1845,13 @@ round corrections (2026-08-31, folded back from the fan-out's own
     alone since bd3fe82 (clerkhook): it named `lib.aside.ASIDE_PATHS`,
     a module a lockdown fork has no equivalent for, while its own
     docstring already claimed the registry.
+  - THIS ITEM'S OWN VOLUME CLAIM IS NOT UNIVERSAL (flows). "The 16+17
+    round ported exactly two files" was measured on some forks and
+    stated as fact for all; flows already carried the full item-16
+    port, so its real diff was 8ceca5c→4ac02e0. The detects were the
+    honest half and fired correctly there — which is the argument for
+    making a fork RUN them rather than trusting an item's prose about
+    what it will find.
   - SEATS-AND-CHECKOUTS' `<repo-name>` rule is wrong for four of the
     nine forks that have reported. leaflet's tree is `2plot_leaflet`
     and `dash-leaflet2` is a DIFFERENT private repo, not a stale
