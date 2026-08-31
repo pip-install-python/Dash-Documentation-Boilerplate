@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import CRAWLER_UA
+
 REPO = Path(__file__).resolve().parent.parent
 ALLOWED_DCC = {"Location", "Store", "Interval", "Upload", "Graph"}
 
@@ -624,7 +626,7 @@ def test_bold_spans_containing_inline_code_render(tmp_path):
     assert any("This file is the source." in str(x) for x in parts[1:])
 
 
-def test_battery_hidden_paths_match_the_registry(app_module):
+def test_battery_hidden_paths_match_the_registry(app_module, client):
     """Note 74: the battery's literal tuple is pinned against the registry,
     so a page added, renamed or deleted moves it in the same change.
 
@@ -654,10 +656,20 @@ def test_battery_hidden_paths_match_the_registry(app_module):
     assert not missing, (
         f"registered admin pages the battery never probes: {sorted(missing)}"
     )
-    fiction = [
-        p for p in HIDDEN_DOC_PATHS
-        if p not in required and not is_hidden(p.rsplit("/llms.txt", 1)[0])
-    ]
+    # Measured through the ROUTING STACK, not the package's registry
+    # (flexlayout, 2026-08-31). `is_hidden()` answers what the package
+    # believes; a crawler-lane request answers what a crawler receives, and
+    # this round's own lesson is that those can disagree — the whole
+    # mechanism-4 class was a registry-side belief the wire did not honour.
+    # Still fully in-process: conftest's client is Werkzeug's test client,
+    # so there is no egress and no network-less-CI flake.
+    fiction = []
+    for p in HIDDEN_DOC_PATHS:
+        if p in required:
+            continue
+        if is_hidden(p.rsplit("/llms.txt", 1)[0]) and client.get(p, user_agent=CRAWLER_UA).status == 404:
+            continue
+        fiction.append(p)
     assert fiction == [], (
         f"battery probes paths that are not hidden pages at all: {fiction} — "
         "a 404 for a page that does not exist is not evidence that a page is hidden"
