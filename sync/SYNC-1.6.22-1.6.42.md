@@ -1816,7 +1816,18 @@ round corrections (2026-08-31, folded back from the fan-out's own
     the realistic failure (a fork fixes the sites it noticed and the
     pin finds the ones it did not). `environ_base` is still the better
     shape, for excalidraw's reason: it cannot be forgotten at a call
-    site added later.
+    site added later. `environ_base["HTTP_USER_AGENT"]` IS the
+    recognised form — say so before a fork builds something else and
+    has to unbuild it: clerkhook had an `EnvironBuilder.__init__`
+    monkeypatch and replaced it, which is better on its own merits
+    (one attribute, no global patch leaking into another suite,
+    per-request `headers=` still winning so a lane test can drive the
+    crawler lane deliberately) and is what the pin recognises.
+    AND THE TELL, which is the round's lesson in one line (clerkhook):
+    its file-scoped pin read PROSE as evidence, so the module that
+    explains the UA contract at length **had to exclude itself by name
+    to stay green** — and it wrote that exclusion without hearing it.
+    A pin that must skip itself is matching the wrong thing.
   - MODULE PATH vs FILE PATH when you measure exec/source pairing:
     `.. exec::` takes `docs.events.events` and `.. source::` takes
     `docs/events/events.py`, so a naive string compare reports EVERY
@@ -1826,7 +1837,38 @@ round corrections (2026-08-31, folded back from the fan-out's own
     source: excalidraw's original mechanism-4 answer was
     `assert "create_parser" not in src`, which is a source pin about
     pages/api.py and says nothing about the docs pages that do run
-    directives. It replaced it with a byte-read of /events/llms.txt. Flask's client wants `environ_base` as an ATTRIBUTE,
+    directives. It replaced it with a byte-read of /events/llms.txt.
+    PAIRING IS AN AUTHORING CONVENTION, not luck, and it predicts who
+    is exposed (muicharts, whose 92 of 92 directives are paired
+    because every demo page here shows the chart and then its source):
+    a component-library fork that pairs by habit scores clean, a
+    prose-heavy fork does not. Split the fleet count that way rather
+    than expecting a uniform rate. muicharts also notes fencing was a
+    non-issue on its tree — 92 of 92 unfenced — so the fencing axis
+    would have returned the same number there and still been the wrong
+    question, which is the clearest statement of why the axis matters
+    independently of the answer it happens to give.
+    THREE PAIRING SHAPES, not two — the dedupe rule as shipped knows
+    only the first (flows, whose convention the rule would misfire
+    on): (i) SAME-target pairing, `.. exec::docs.X.demo` with
+    `.. source::docs/X/demo.py` — dedupe skips, correct; (ii) UNPAIRED
+    — the builder expands, which is the defect it exists for
+    (pannellum found one on its FIRST example page, `basic_panorama`,
+    whose code reached no machine lane at all); (iii) DELIBERATE
+    DIFFERENT-target pairing, where the exec runs an embeddable TWIN
+    and the `.. source::` shows the fuller original — 34 of flows' 44,
+    each twin's docstring saying so, each a strict TRIM of the file
+    shown. There the machine lane already carries a SUPERSET of the
+    executed code, and the shipped rule ("a different target does not
+    dedupe") would inject the trimmed twin redundantly beside the
+    fuller original. So the question the fork must answer is **does
+    the executed code reach a machine lane**, not "is the same file
+    named" — a fork with convention (iii) correctly declines the
+    builder, and flows' decline is recorded as right rather than as
+    an open item. The different-target pin stays, because it is what
+    stops the dedupe swallowing case (ii); it is a fork's own call
+    which of (ii) and (iii) it is looking at, and the byte-read of the
+    document is how it tells. Flask's client wants `environ_base` as an ATTRIBUTE,
     not an `__init__` kwarg (muischeduler). And strip comments and
     docstrings before grepping, or the WORDS pass while the header is
     gone (muicharts).
@@ -1879,6 +1921,25 @@ round corrections (2026-08-31, folded back from the fan-out's own
     not catch this — it holds only release headings, so it never asked
     what a NON-release heading does. ANY fork with a prose `##`
     section has phantom releases right now.
+    IT EXCLUDES WITHOUT DROPPING — the inverse risk pannellum asked
+    about, and the reason to prefer it to a narrower heading regex.
+    Measured on a synthetic changelog: `## Migration Guide` between
+    two releases parses to ['1.4.0', '1.3.0'] AND its prose survives,
+    folded into the preceding release's section rather than vanishing.
+    A parser that merely REFUSES to match prose headings (pannellum's
+    single-token form) drops that content off the timeline with no
+    signal — trading a visible wrong card for an invisible missing
+    one. Over-inclusion announces itself; omission does not.
+  - AUTHORING RULE, second instance in one round (modelviewer): a
+    NON-VACUITY GUARD MUST SKIP on the shapes a conformant fork can
+    legitimately have, and assert only on the shapes it cannot. The
+    repo-own changelog pin ended `assert prose`, requiring the file to
+    contain a non-release `##` heading so the exclusion half is
+    exercised — but a strictly-conformant Keep a Changelog file has
+    none by construction, so the guard asked forks to write prose they
+    had no reason to write. Same class as a guard assuming
+    `API_PACKAGES` is non-empty. `pytest.skip` on that shape since
+    1.6.43; the exclusion property is proven by the fixture anyway.
   - the layout-nesting positive control is derived from the REGISTRY
     alone since bd3fe82 (clerkhook): it named `lib.aside.ASIDE_PATHS`,
     a module a lockdown fork has no equivalent for, while its own
