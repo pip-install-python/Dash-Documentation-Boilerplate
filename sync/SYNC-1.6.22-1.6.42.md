@@ -218,8 +218,8 @@ every older rung by design; do not read those as the floor.
 # only for the imports and not for the interface. The README's two
 # questions were asked and answered too shallowly — asking them is not
 # the same as answering them about every seam the file TOUCHES, which
-# is the mirror question (1.6.30) applied one level deeper;
- test_traffic_rollup_v4.py
+# is the mirror question (1.6.30) applied one level deeper.
+# test_traffic_rollup_v4.py
 # imports daily_rollup / load_reads / vendor_rows from lib/traffic_rollup
 # and the package's _ledger — nothing under lib/auth, no conftest
 # fixture, no page. (1.6.41, note 61 — leaflet: `vendor_class` never
