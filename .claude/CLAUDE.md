@@ -135,9 +135,19 @@ they win.
   hit — the requirements line changing IS the cache bust, and floors
   live in several encodings (requirements, run.py's boot floor,
   tests, CI): grep the number, move every one.
-- `/healthz` build == HEAD is the deploy proof; a missing geo block
-  on dimll ≥2.7 means the cache trap fired (unless DIVERGENCES.md
-  says this host's healthz is deliberately minimal).
+- `/healthz` build == HEAD **of `release`** is the deploy proof on a
+  release-branch host — see the fuller trap below, and read that one
+  before acting on this line. Written unqualified here until
+  2026-09-01, when clerkhook found the two lines contradicting each
+  other 116 lines apart: a reader who met this one first was sent to
+  the wrong ref, and `main` ahead of `release` reads as drift instead
+  of what it is (an uncertified push pending). A missing geo block on
+  dimll ≥2.7 means the cache trap fired (unless DIVERGENCES.md says
+  this host's healthz is deliberately minimal).
+  The general form, since this file is long enough to contain its own
+  contradictions: when a trap is later corrected, AMEND THE ORIGINAL —
+  a correction that only appends leaves the wrong answer in the place a
+  reader looks first.
 - Always GET, never HEAD — and the mechanism, measured 2026-08-27
   after two rounds of wrong diagnoses: on the ASGI backends HEAD is
   answered by NOTHING AT ALL. Werkzeug derives a HEAD rule from
