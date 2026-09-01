@@ -239,6 +239,22 @@ host serves and paste the probe in your report.
 
 ## Authoring rules (earned, not invented)
 
+- **A detect or a pin that reads a source file must PARSE it — or strip
+  comments and strings first — AND assert non-vacuity** (it matched
+  something; it swept at least N files). Five instances in the 1.6.43
+  round read PROSE and called it code: item 15's detect, item 17's
+  og:image detect, the file-scoped `.test_client()` pin (red on a
+  comment ABOUT greps, then green by sweeping zero files after a
+  tokenize rewrite), excalidraw's `record_read` ordering pin matching
+  docstring order, and SYNC-1.6.43 item 3's two detects, which were
+  casing-bound to this format's own emphasis caps and returned 0 on the
+  tree that authored them. Case-insensitivity fixes those two; the rule
+  stops the class. Corollary, measured the hard way: parsing is not
+  automatically the safe alternative — a regex over a package constant
+  truncated on a `)` inside a comment (twice, two seats), and an AST
+  rewrite agreed with the wrong answer because both were reading a file
+  while the import read a different one. Where a value can be IMPORTED,
+  import it and print `__file__`.
 - **Floors are stated by `LLMS_PKG_FLOOR` semantics, never by
   grepping the number.** The rationale ladder retains old rungs BY
   DESIGN — a spec (or a session) that greps finds history and calls

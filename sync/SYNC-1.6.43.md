@@ -189,19 +189,23 @@ contract: three traps, all earned in the item-18 round:
     two above and as this seat's own `pytest … | tail -2 && git commit`,
     where the pipe's exit status was `tail`'s and a red suite committed
     anyway.
-detect: `grep -c "measured on a GREEN push" .claude/CLAUDE.md` = 0, or
+detect: `grep -ci "measured on a green push" .claude/CLAUDE.md` = 0, or
   `grep -ci "corpus is non-empty" .claude/CLAUDE.md` = 0.
-  CASE-INSENSITIVE, and corrected here after shipping (muicharts, fix
+  BOTH CLAUSES CASE-INSENSITIVE, and corrected here after shipping (muicharts, fix
   forward): the first cut grepped `"ASSERT THE CORPUS IS NON-EMPTY"` in
   the caps this spec uses for emphasis, while the trap ships in sentence
   case — so `grep -c` returned **0 on the template itself**, a detect
   that could not pass on the tree that authored it. A fork porting the
   trap correctly would still have read its detect as unsatisfied. In the
   item about checks that cannot fail, which is the joke telling itself.
-  Both other clauses were re-checked when this was found rather than
-  only the one reported: `measured on a GREEN push` = 1,
-  `WHEN A LANE DISAGREES` = 1, `Verify the artifact the claim is about`
-  = 1. Grep a fragment as it SHIPS, not as your prose styles it.
+  The other fragments were re-checked when this was found rather than
+  only the one reported: `WHEN A LANE DISAGREES` = 1,
+  `Verify the artifact the claim is about` = 1. And the FIRST clause,
+  which matched, was casing-bound too — it happened to agree with the
+  trap's own case, which is luck rather than correctness, so it is
+  `-ci` now as well (ops). Grep a fragment as it SHIPS, not as your
+  prose styles it, and prefer case-insensitive for any fragment whose
+  case is an emphasis choice rather than an identifier.
 acceptance: the three traps present in your traps section, adapted only
   where your host's shape differs; `tests/test_claude_kit.py` green.
 notes: if your fork's `.claude/CLAUDE.md` is its own guide with kit
