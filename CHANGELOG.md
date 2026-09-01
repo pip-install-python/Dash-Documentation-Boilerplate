@@ -103,6 +103,16 @@ looking for it.
   layout.
 
 ### Notes
+- Acceptance ran at the RESOLVED version, printed rather than assumed
+  (note 89): suite at dimll **2.8.0**, 467 passed, 3 skipped, exit codes
+  captured. **Production resolves 2.9.4**, which the sandbox does not
+  run, so the `record_read` fix is verified here at 2.8.0 and on the
+  wire by the ops seat at 2.9.4. `ua` IS in `EVENT_FIELDS` at BOTH —
+  read from the 2.9.4 wheel directly, not inferred: 2.8.0 has 16 fields,
+  2.9.4 has the same 16 (`vendor_class` arrived at 2.9.2 and is in both
+  by then). That matters because the drop keys on `ua`, and a key that
+  moved between versions would make the fix a silent no-op on
+  production while passing here.
 - Ships `sync/SYNC-1.6.43.md`: THREE items only — the `record_read` drop
   (port it first; its consequence accrues), pipdocs' two item-12 port
   corrections, and the kit's three new traps. Everything else in this

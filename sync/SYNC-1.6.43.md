@@ -58,8 +58,15 @@ acceptance: pipdocs' measurement shape, and **print the count beside the
   pass by dropping everything. Both directions in the same test.
   ALSO PRINT THE RESOLVED `dash-improve-my-llms` VERSION in that output
   (note 89), so your report says what was actually tested rather than
-  what the floor permits. Template's acceptance run: **dimll 2.8.0
-  resolved**, 467 passed, 3 skipped.
+  what the floor permits — and say it even when it differs from what
+  your production image resolves, because that gap is the interesting
+  part. Template's acceptance run: **suite at dimll 2.8.0**, 467 passed,
+  3 skipped, exit codes captured; **production resolves 2.9.4**.
+  `ua` is in `EVENT_FIELDS` at BOTH versions, read from the 2.9.4 wheel
+  rather than inferred — which is the check that matters here, since the
+  drop keys on `ua` and a field renamed between versions would make this
+  fix a silent no-op on production while passing in CI. Do that
+  comparison for YOUR resolved pair before reporting green.
 notes: found by pipdocs on a private host (69 rows where 67 were real)
   and REPRODUCED on the template before it was accepted — a habit worth
   copying, since the relay was a summary of a summary by the time it

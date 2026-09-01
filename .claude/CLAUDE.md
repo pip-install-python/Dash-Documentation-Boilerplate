@@ -325,3 +325,12 @@ they win.
   commit` committed over a red suite because a pipeline's exit status is
   the LAST command's (this seat, one hour after writing the note above).
   Capture the exit code; count what you swept; say both.
+- And the same family one turn later, worth keeping because it nearly
+  shipped a wrong fact into a spec: extracting a package constant with
+  `re.search(r"EVENT_FIELDS = \((.*?)\)", src, re.S)` truncated at a `)`
+  inside a COMMENT in the middle of the tuple, printed eight of sixteen
+  fields, and reported `'ua' present: False` — confidently, with a
+  number beside it. Caught only because eight looked too few. When you
+  parse a language construct out of source with a regex, check the count
+  against something independent (the file, `python -c "from … import X;
+  print(len(X))"`, the CHANGELOG) before you believe a negative.
