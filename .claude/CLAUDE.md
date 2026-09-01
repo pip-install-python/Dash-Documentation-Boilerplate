@@ -325,8 +325,9 @@ they win.
   commit` committed over a red suite because a pipeline's exit status is
   the LAST command's (this seat, one hour after writing the note above).
   Capture the exit code; count what you swept; say both.
-- And the same family one turn later, worth keeping because it nearly
-  shipped a wrong fact into a spec: extracting a package constant with
+- And the same family one turn later, MEASURED TWICE — this seat and
+  clerkhook hit it independently within the hour, so it is a property of
+  the technique and not one seat's slip: extracting a package constant with
   `re.search(r"EVENT_FIELDS = \((.*?)\)", src, re.S)` truncated at a `)`
   inside a COMMENT in the middle of the tuple, printed eight of sixteen
   fields, and reported `'ua' present: False` — confidently, with a
@@ -334,3 +335,19 @@ they win.
   parse a language construct out of source with a regex, check the count
   against something independent (the file, `python -c "from … import X;
   print(len(X))"`, the CHANGELOG) before you believe a negative.
+- A shell's CWD can shadow an installed package, and it produces the most
+  convincing wrong answer of the family: measuring `EVENT_FIELDS` across
+  two dimll versions, this seat ran the comparison with the cwd inside an
+  unpacked 2.9.4 wheel, so `import dash_improve_my_llms` resolved from
+  the CURRENT DIRECTORY rather than site-packages — and two readings of
+  ONE wheel were reported as two versions agreeing, in a CHANGELOG and a
+  shipped spec (2026-09-01, corrected the same day). The load-bearing
+  half was true and the supporting detail was invented. When comparing
+  versions, `print(mod.__file__)` and assert it is the path you meant, or
+  set PYTHONPATH explicitly and import in a fresh process per version;
+  and print the unpacked file count before the read (note 88 applied to
+  the check itself, leaflet). Note also that parsing the constant out of
+  source is not the safe alternative: the regex form truncated on a `)`
+  inside a comment (measured twice — this seat and clerkhook), and an AST
+  form written to replace it agreed with the wrong answer until the
+  import settled it. IMPORT THE THING.

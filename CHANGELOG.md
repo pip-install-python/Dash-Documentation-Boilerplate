@@ -107,12 +107,20 @@ looking for it.
   (note 89): suite at dimll **2.8.0**, 467 passed, 3 skipped, exit codes
   captured. **Production resolves 2.9.4**, which the sandbox does not
   run, so the `record_read` fix is verified here at 2.8.0 and on the
-  wire by the ops seat at 2.9.4. `ua` IS in `EVENT_FIELDS` at BOTH —
-  read from the 2.9.4 wheel directly, not inferred: 2.8.0 has 16 fields,
-  2.9.4 has the same 16 (`vendor_class` arrived at 2.9.2 and is in both
-  by then). That matters because the drop keys on `ua`, and a key that
-  moved between versions would make the fix a silent no-op on
-  production while passing here.
+  wire by the ops seat at 2.9.4. `ua` IS in `EVENT_FIELDS` at every
+  version the floor admits — measured by IMPORTING each wheel:
+  2.8.0/2.9.0/2.9.1 carry 15 fields, 2.9.2/2.9.4 carry 16
+  (`vendor_class` arrives at 2.9.2); `ua` is present in all five and
+  `user_agent` in none. That is what matters, because the drop keys on
+  `ua` and a key that moved between versions would make the fix a
+  silent no-op on production while passing here.
+  CORRECTED after shipping: this entry first said "2.8.0 has 16 fields,
+  2.9.4 has the same 16". Wrong — that was 2.9.4 measured twice. The
+  comparison ran with the shell's cwd inside the unpacked 2.9.4 wheel,
+  so `import dash_improve_my_llms` resolved from the CURRENT DIRECTORY
+  rather than site-packages, and two readings of one wheel were reported
+  as two versions agreeing. The load-bearing half (`ua` at both) was
+  true; the supporting detail was not.
 - Ships `sync/SYNC-1.6.43.md`: THREE items only — the `record_read` drop
   (port it first; its consequence accrues), pipdocs' two item-12 port
   corrections, and the kit's three new traps. Everything else in this

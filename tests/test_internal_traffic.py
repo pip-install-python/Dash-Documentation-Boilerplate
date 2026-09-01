@@ -267,3 +267,28 @@ def test_the_read_table_drops_internal_traffic_too(tmp_path, monkeypatch):
 
     tracker.record_read(event("Mozilla/5.0 (compatible; Googlebot/2.1)"))
     assert len(tracker._reads_buffer) == 1, "a real crawler read was dropped"
+
+
+def test_a_read_with_no_user_agent_is_KEPT(tmp_path, monkeypatch):
+    """An ABSENT UA is not internal traffic — it is the crawler lane.
+
+    `dash_improve_my_llms.classify()` has put a UA-less request on the
+    crawler lane since 2.8.0, so a `ua: None` read is a real fetch by
+    something that declined to identify itself and MUST be counted. The
+    drop reads `(event.get("ua") or "")`, and the hazard pannellum named
+    is that the `or ""` turns None into a value the token check might
+    swallow. It does not — `"" .lower()` cannot contain the token — but
+    the property is worth pinning rather than reasoning about, because
+    the same expression written as `event.get("ua", "").lower()` would
+    raise on None and a defensive rewrite could easily drop instead.
+    """
+    monkeypatch.setenv("ANALYTICS_FILE", str(tmp_path / "a.json"))
+    from lib.analytics_tracker import AnalyticsTracker
+
+    tracker = AnalyticsTracker()
+    tracker.record_read({"ts": "t", "host": "h", "path": "/llms.txt",
+                         "method": "GET", "tier": "public", "lane": "crawler",
+                         "status": 200, "bytes": 10, "ua": None,
+                         "client_ip": "203.0.113.9"})
+    assert len(tracker._reads_buffer) == 1, "a UA-less read was dropped as internal"
+    assert tracker._reads_buffer[0]["ua"] is None

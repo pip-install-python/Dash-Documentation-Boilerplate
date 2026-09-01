@@ -46,11 +46,20 @@ contract: `record_read` — the `on_document_read` hook the 2.8.0 floor
   Key on the event's `ua` field. `EVENT_FIELDS` has `ua`, not
   `user_agent`; a drop keyed on the wrong name is silently a no-op, which
   is this item's own failure mode.
-detect: in `record_read`, does the token check precede the row build?
-  `grep -n "INTERNAL_UA_TOKEN" lib/analytics_tracker.py` returning only
-  the `track_visit` occurrence means the hook never learned it. If your
-  tracker's read path has another name, look for whatever the package's
-  `on_document_read` is registered to in `run.py`.
+  AND A `ua: None` READ IS KEPT, not dropped (pannellum). An absent UA is
+  the CRAWLER LANE — `classify()` has put UA-less requests there since
+  2.8.0 — so it is a real fetch by something that declined to identify
+  itself. `(event.get("ua") or "")` is correct; `event.get("ua", "")`
+  raises on None, and a defensive rewrite can easily turn the None case
+  into a drop. Pin it.
+detect: LEAD WITH THE REGISTRATION, not the filename (pipdocs, whose
+  read path is `lib/traffic_reporter.record_read` per its DIVERGENCES 12
+  — the filename-first form reported it un-adopted while the contract
+  had held there for days). Step 1: `grep -n "on_document_read(" run.py`
+  and read what it registers. Step 2: in THAT function, does the token
+  check precede the row build? A `grep -n "INTERNAL_UA_TOKEN"` over the
+  resolved file returning only the `track_visit` occurrence means the
+  hook never learned it.
 acceptance: pipdocs' measurement shape, and **print the count beside the
   result** — a bare "no rows" is the negative this round learned not to
   trust. One probe carrying the internal token → zero `reads` rows; one
@@ -62,11 +71,31 @@ acceptance: pipdocs' measurement shape, and **print the count beside the
   your production image resolves, because that gap is the interesting
   part. Template's acceptance run: **suite at dimll 2.8.0**, 467 passed,
   3 skipped, exit codes captured; **production resolves 2.9.4**.
-  `ua` is in `EVENT_FIELDS` at BOTH versions, read from the 2.9.4 wheel
-  rather than inferred — which is the check that matters here, since the
-  drop keys on `ua` and a field renamed between versions would make this
-  fix a silent no-op on production while passing in CI. Do that
-  comparison for YOUR resolved pair before reporting green.
+  THE MUTATION LINE IS REQUIRED (leaflet, modelviewer, emojimart — four
+  forks produced the vacuous negative before adding it): after the
+  tokened probe (delta 0) and the crawler probe (delta 1), NEUTRALISE
+  the token and send the IDENTICAL probe; require delta 1. Without it a
+  delta 0 also passes when the probe never reached the read path at all,
+  and `record_read` doing nothing is indistinguishable from
+  `record_read` dropping correctly.
+  THE VERSION CHECK IS A RANGE, NOT A PAIR (pannellum). "Compare your CI
+  version against production" presumes a fork can SEE its production
+  version; pannellum and muicharts cannot (Docker layer cache, no wire
+  surface). Instead assert, across EVERY wheel your floor admits, that
+  `ua` is in `EVENT_FIELDS` and `user_agent` is not. Strictly stronger
+  and dashboard-free. MEASURED HERE, by IMPORTING each wheel rather than
+  parsing it, with the unpacked file count printed first (note 88
+  applied to the check itself): 2.8.0 files=45 n=15 · 2.9.0 files=45
+  n=15 · 2.9.1 files=46 n=15 · 2.9.2 files=46 n=16 · 2.9.4 files=46
+  n=16. `ua` True at all five, `user_agent` False at all five,
+  `vendor_class` arriving at 2.9.2.
+  A `>=` FLOOR DOES NOT PULL A NEWER WHEEL THROUGH A CACHED DOCKER
+  LAYER (muischeduler, seat-verified against its unchanged
+  requirements.txt). "The rebuild on this push picks up 2.9.x" is FALSE
+  on every fork whose requirements.txt did not change — the requirements
+  line changing IS the cache bust. Do not bust it as a side effect of
+  this port: `class: null` persists until 1.6.44's floor move does it
+  fleet-wide, deliberately.
 notes: found by pipdocs on a private host (69 rows where 67 were real)
   and REPRODUCED on the template before it was accepted — a habit worth
   copying, since the relay was a summary of a summary by the time it
@@ -161,12 +190,30 @@ contract: three traps, all earned in the item-18 round:
     where the pipe's exit status was `tail`'s and a red suite committed
     anyway.
 detect: `grep -c "measured on a GREEN push" .claude/CLAUDE.md` = 0, or
-  `grep -c "ASSERT THE CORPUS IS NON-EMPTY" .claude/CLAUDE.md` = 0.
+  `grep -ci "corpus is non-empty" .claude/CLAUDE.md` = 0.
+  CASE-INSENSITIVE, and corrected here after shipping (muicharts, fix
+  forward): the first cut grepped `"ASSERT THE CORPUS IS NON-EMPTY"` in
+  the caps this spec uses for emphasis, while the trap ships in sentence
+  case — so `grep -c` returned **0 on the template itself**, a detect
+  that could not pass on the tree that authored it. A fork porting the
+  trap correctly would still have read its detect as unsatisfied. In the
+  item about checks that cannot fail, which is the joke telling itself.
+  Both other clauses were re-checked when this was found rather than
+  only the one reported: `measured on a GREEN push` = 1,
+  `WHEN A LANE DISAGREES` = 1, `Verify the artifact the claim is about`
+  = 1. Grep a fragment as it SHIPS, not as your prose styles it.
 acceptance: the three traps present in your traps section, adapted only
   where your host's shape differs; `tests/test_claude_kit.py` green.
 notes: if your fork's `.claude/CLAUDE.md` is its own guide with kit
   content merged in (the batch-1 precedent — excalidraw, email), this is
   a MERGE into your traps section, never an install-over.
+  A KIT RULE THAT FELL OUT OF THIS (pipdocs): a trap written against a
+  PENDING OWNER STEP goes false the moment the step lands, and no kit
+  test can see it — pipdocs' "still deploys main" trap was stale for
+  three days. Write traps against MEASURABLE state, not against a
+  queue's contents; where a trap must reference a pending step, give it
+  the date and the discriminating observation so a reader can re-measure
+  rather than believe it.
 
 ---
 
