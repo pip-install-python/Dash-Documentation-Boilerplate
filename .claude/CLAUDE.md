@@ -289,6 +289,16 @@ they win.
   RED on main must leave `release` unmoved and the wire unchanged.
   Worth taking on every SECOND promote — it costs one background
   sampler and converts "asserted" into "strongly evidenced".
+  SAMPLE THE WIRE AND THE RUN STATE IN THE SAME LOOP — eight samples at
+  45 s, one timeline (pannellum's 15917bc promote, seat-verified; four
+  hosts now have a pair measured this way). Two separate reconstructions
+  invite exactly the arithmetic error the measurement exists to avoid:
+  flexlayout's retroactive read off CD step timestamps was coarser and
+  it said so. pannellum's live pair: push 21:55:44Z · promote 21:58:20Z ·
+  wire still OLD at 21:58:47Z · wire NEW at 21:59:33Z — 73 s after the
+  promote, 183 s after the push. The old-then-new bracket around the
+  promote is the whole evidence; a single "new" sample proves nothing
+  because it cannot say what it followed.
 - Verify the artifact the claim is about, and say which one you
   measured. Three hosts got this wrong in one round while holding the
   rule: a skip link checked in the received HTML lives in the RENDERED
