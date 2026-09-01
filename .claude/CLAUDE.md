@@ -311,3 +311,17 @@ they win.
   the layout rather than written into the template is invisible to the
   two artifacts curl can reach; assert it through the layout or a real
   browser, and say which you used.
+- Assert the corpus is NON-EMPTY before trusting any negative, and print
+  the count beside the result (note 88). A sweep that found nothing and a
+  sweep that swept nothing produce the same green, and only one of them
+  is evidence. Measured here 2026-09-01: this repo's `.flake8` excludes
+  `docs/*/`, so `flake8 docs/` exits 0 with a file in `docs/` containing
+  `def broken(:` — the linter is not passing that file, it is not reading
+  it; `py_compile` sees it at once. Same family, same day: a naive
+  substring count read fenced documentation as defects (this seat), a
+  file-scoped grep matched prose ABOUT the defect it was hunting
+  (muicharts, clerkhook), a `git show … && diff` printed "(empty = same)"
+  on a comparison that never ran (llms), and `pytest … | tail -2 && git
+  commit` committed over a red suite because a pipeline's exit status is
+  the LAST command's (this seat, one hour after writing the note above).
+  Capture the exit code; count what you swept; say both.

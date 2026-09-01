@@ -5,6 +5,131 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.43] - 2026-09-01
+
+What the item-18 fan-out taught the template, including four defects
+this seat introduced and the fleet caught. Twelve of thirteen forks
+reported, eleven live and wire-verified; seven of them found the
+fourth empty-page mechanism live in their own trees, none having been
+looking for it.
+
+### Fixed
+- `record_read` drops INTERNAL_UA_TOKEN traffic, as `track_visit` has
+  since the internal-traffic contract existed. The
+  `on_document_read` hook added at the 2.8.0 floor never learned to,
+  so the network's own probes — the hub's health sweep, every
+  satellite's link audit, every post-deploy battery — landed in the
+  `reads` table and became the busiest "vendor" on every board in the
+  fleet. Found by pipdocs (69 rows where 67 were real), reproduced
+  here before accepting it, dropped FIRST before any field is read.
+  "Counted nowhere" has to include the read table or the contract is
+  only half kept. Pinned both ways so it cannot pass by dropping
+  everything.
+- PHANTOM RELEASES on /changelog. 1.6.41 widened the heading match to
+  accept an unbracketed `## 2.0.0 — date` and free text came through
+  with it: muicharts rendered a Timeline card badged `Component
+  License Requirements` and a page claiming 15 releases where there
+  are 14; this repo had `## Migration Guides` and `## Support` and had
+  not noticed; flows found `## Migration Guide`. Unbracketed labels
+  must now look like a release; brackets stay trusted as intent. It
+  EXCLUDES WITHOUT DROPPING — the prose folds into the preceding
+  release rather than vanishing, which a narrower heading regex does
+  not do (pannellum asked; measured, not reasoned).
+- `scripts/audit_links.py` drove a bare in-process test client, so
+  the link audit read the CRAWLER document for every page and would
+  report this site's own `mark_hidden` admin pages as broken internal
+  links. Present in four trees. `AUDIT_UA` stays for the external
+  urllib probes — the audit's identity is the question there — and a
+  separate `AUDIT_BROWSER_UA` carries a real engine token plus the
+  internal token on the client via `environ_base`. It is not enough to
+  find a bare client: the UA it is handed may be on the wrong lane too
+  (llms, measuring the same thing independently).
+
+### Added
+- `.. exec::module` expands into the module's SOURCE for the machine
+  lane, through the same fence-aware pass `.. source::` uses — one
+  parse, two consumers (owner's decision 0aa, road (a)). Seven forks
+  had this class live: a directive that renders Dash components puts
+  its output only in the React tree while the machine lane, the
+  prerender and the crawler HTML are built from the markdown source
+  where the directive line is stripped. muischeduler's
+  `/event-calendar/llms.txt` carried 0 of 33 props; flexlayout's
+  `/basic/llms.txt` ran its prose straight into `### Notes`.
+- The DEDUPE rule (ops) and the `:code: false` GUARD (muischeduler),
+  which is where this release went wrong before it went right. The
+  first cut published to the machine lane exactly the source three
+  authors had withheld with `:code: false`, live on this wire between
+  d5675d8 and 9b2ad49, and the byte-growth reported as the round's win
+  WAS the defect. `:code: false` never meant "secret": three forks
+  measured it independently at 8 of 8, 10 of 11 and 27 of 28 always
+  accompanying an explicit `.. source::`, so it means "do not
+  auto-dump the code; here it is where I put it". Precedence is dedupe
+  first and silent, then the flag with a MARKER naming the module,
+  else expand — because broken, hidden and absent must not look alike.
+- `tests/test_exec_lane.py`: nine pins, content never headings,
+  negative fixtures for every branch, and a mutation check that
+  disables the expansion and requires the content pins to go red.
+
+### Changed
+- The test-client UA pin resolves per CALL SITE, not per file, and
+  requires a User-Agent specifically. The file-scoped `"headers=" in
+  src` form both over- and under-flagged and missed the only real
+  offender in four trees; `headers={"CF-IPCountry": "FR"}` satisfied
+  it while naming no lane at all (muischeduler). Comments and
+  docstrings are stripped first, after the pin flagged its own
+  explanatory comment (muicharts' rule, proven on itself).
+- The battery hidden-paths pin is SUBSET plus a reality check, and the
+  check measures the ROUTING STACK rather than the package's registry
+  (leaflet, muischeduler, flexlayout). Equality deleted real hidden
+  surfaces; subset alone lost the stale canaries it was catching on
+  five forks. `is_hidden()` answers what the package believes; a
+  crawler-lane request answers what a crawler receives, and this
+  round's whole defect class was a registry-side belief the wire did
+  not honour.
+- The corpus sweep covers the TIER DOCS, both clauses LINK-shaped. The
+  only real leak anyone found was in `/llms-full.txt`, not the index
+  (muicharts), and a changelog that cannot name the page it added is
+  not a changelog (emojimart).
+- The layout-nesting positive control derives from the REGISTRY, not
+  `lib.aside.ASIDE_PATHS` — a module a lockdown fork has no equivalent
+  for, while the docstring already claimed the registry (clerkhook).
+- `.claude/CLAUDE.md` gains two traps: leaflet's method for measuring
+  which branch Render builds on a GREEN push, by timing the swap
+  against the promote rather than the push (strong evidence, not
+  proof; four hosts correctly declined to call the fence row proven);
+  and the artifact rule in both directions — a props table absent from
+  the crawler document is a defect of the SITE, not the harness, and a
+  skip link absent from curl output is a feature that lives in the
+  layout.
+
+### Notes
+- Ships `sync/SYNC-1.6.43.md`: THREE items only — the `record_read` drop
+  (port it first; its consequence accrues), pipdocs' two item-12 port
+  corrections, and the kit's three new traps. Everything else in this
+  release is already ported and wire-verified on eleven forks from the
+  item-18 round, and its corrections live in SYNC-1.6.22-1.6.42's item
+  18. A detect that passes on arrival is not a vacuous spec — the
+  passing detect IS the proof the round landed.
+- Four defects in this release were introduced by this seat and caught
+  by forks measuring rather than accepting: the `:code: false`
+  over-publication (live on the wire), a UA pin accepting `headers=`
+  without a UA, a battery pin contradicting the item text it shipped
+  beside, and a wrong caution about a pin being network-dependent.
+- WHEN A LANE DISAGREES, THAT IS THE FINDING — never relocate the
+  assertion to the lane that passes. pannellum named it against
+  itself: it moved a props assertion onto the rendered layout and the
+  pin passed for a fortnight over a corpus serving zero props. Every
+  fork that shipped this class did some version of that move.
+- CENSUS BEFORE YOU ADOPT (muischeduler): measure what an incoming
+  change would DO to your tree before taking it. "A change from the
+  template is still a change, and 'it came from upstream' is not a
+  measurement." That refusal is the only reason the `:code: false`
+  guard existed before this fanned out to twelve hosts.
+- Neither of the two corrections that mattered most came from a pin.
+  One came from opening a file and seeing a fence on the next line;
+  the other from two greps disagreeing. Every pin involved was green
+  throughout.
+
 ## [1.6.42] - 2026-08-30
 
 The second wave of fork findings (notes 64–77): two more promote
