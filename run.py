@@ -100,7 +100,7 @@ from dash_improve_my_llms import (
 # `configure_seo` is deliberately imported AFTER this floor fires (see the
 # floors block) so a stale environment gets the floor's diagnosis instead of
 # a bare ImportError.
-LLMS_PKG_FLOOR = (2, 8, 0)
+LLMS_PKG_FLOOR = (2, 9, 4)
 
 # THE FORK POINT — claim this app's network identity before any
 # hub-facing module imports. Every module that names this app
@@ -131,6 +131,7 @@ from lib.constants import (
     SAME_AS,
     SITE_BRAND,
     SITE_DESCRIPTION,
+    SITE_SHORT_NAME,
     require_owned_base_url,
 )
 from lib import network_directory
@@ -195,6 +196,10 @@ if LLMS_PKG_FLOOR > _version(LLMS_PKG_VERSION):
     _dependency_floor(
         f"dash-improve-my-llms {LLMS_PKG_VERSION} is below the "
         f"{'.'.join(str(n) for n in LLMS_PKG_FLOOR)} floor in requirements.txt. "
+        "Below 2.9.2 the event carries no `vendor_class`, so every rollup's "
+        "per-vendor class is null; below 2.9.4 HEAD is not answered at the "
+        "route level, which is what HeadAsGetMiddleware's retirement rests "
+        "on (1.6.44 items 1-2). "
         "Below 2.8.0 there is no `classify()` and no `on_document_read`: the "
         "tracker cannot delegate bot classification and no read row is ever "
         "kept, so the ledger's `reads` table and rollup v4's vendors[] are "
@@ -591,7 +596,26 @@ ACCESS_ENABLED = _access.configure(
 # the Markdown byte for byte, browsers get it rendered behind the network
 # header. `?raw=1` and `?format=html` force either side, and both variants
 # send `Vary: Accept` so a CDN cannot hand cached HTML to the next agent.
-add_llms_routes(app, LLMSConfig(warn_missing_llms_doc=True))
+# THE HOST OWNS ITS API IDENTITY (1.6.44 item 1, dimll 2.9.4's three
+# `openapi_*` knobs). The package cannot read `/healthz` and must not
+# guess: without these the FastAPI lane's OpenAPI document is titled
+# "FastAPI" with version "0.1.0", which is what an agent discovering this
+# host through `/openapi.json` would read as the app's name. The knobs
+# exist so identity flows one way — from this repo's constants, which are
+# the same ones the browser title, the og: tags and the network registry
+# read.
+#
+# `openapi_version` is the API SURFACE's version, not the package's and
+# not this app's release: it moves when the routes change shape, so it is
+# pinned here rather than wired to a changelog. `llms_version` on
+# `/healthz` is where the resolved PACKAGE version is reported (item 1's
+# rider) — two different questions, deliberately not the same field.
+add_llms_routes(app, LLMSConfig(
+    warn_missing_llms_doc=True,
+    openapi_title=f"{SITE_SHORT_NAME} API",
+    openapi_description=SITE_DESCRIPTION,
+    openapi_version="1.0",
+))
 
 # The ledger row (1.6.34, dimll 2.8.0): the package emits one event per
 # corpus document it serves and does no I/O with it; the tracker keeps it

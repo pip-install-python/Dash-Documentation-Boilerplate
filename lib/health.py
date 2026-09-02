@@ -54,11 +54,44 @@ def _resolved_country(headers=None) -> str:
         return "unavailable"
 
 
+def _llms_version() -> dict:
+    """`{"llms_version": "2.9.4"}`, or `{}` if the package cannot be read.
+
+    Omitted rather than reported as "unknown": a health payload that
+    invents a version is worse than one that is silent about it, and the
+    boot floor in run.py already refuses to start below the floor — so an
+    absent key here means the import broke after boot, which is itself the
+    finding.
+    """
+    try:
+        import dash_improve_my_llms as _pkg
+
+        version = getattr(_pkg, "__version__", None)
+        return {"llms_version": version} if version else {}
+    except Exception:
+        return {}
+
+
 def health_payload(backend: str, headers=None) -> dict:
     payload = {
         "ok": True,
         "backend": backend,
         "dash_version": dash.__version__,
+        # The RESOLVED dash-improve-my-llms version (1.6.44 item 1's rider;
+        # excalidraw's name and shape, adopted verbatim so the fleet never
+        # carries two spellings of the same key). Additive: item 10's seven
+        # keys stay and a RENAME is still the failure.
+        #
+        # It exists because the CI-vs-production gap was otherwise
+        # SELF-REPORTED — no public surface on any host printed what the
+        # package actually resolved to. excalidraw's first wire reading
+        # proved the gap is real rather than theoretical: `llms_version`
+        # 2.9.4 while its own suite ran 2.8.0, on a host with no floor bump,
+        # because a `>=` floor cannot pull a new wheel through a cached
+        # Docker layer. A field whose whole job is to be readable from
+        # outside cannot be omitted on failure quietly, so it is omitted
+        # only when the import itself fails — see below.
+        **_llms_version(),
         # WHICH interpreter is actually serving. Before this field the repo
         # declared three different Pythons (Dockerfile 3.11.8, matrix 3.12,
         # render.yaml 3.12.0) and nothing on the wire could contradict any

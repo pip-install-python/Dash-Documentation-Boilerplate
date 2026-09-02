@@ -135,14 +135,43 @@ python-dotenv>=1.0.0
 # Below 2.7.x the history is in CHANGELOG.md; the rungs are not the floor.
 # 2.8.1 (policy on every event) is NOT waited on: `policy` is None until
 # then and the rollup groups it as "default".
+# 2.9.4 floor (1.6.44, note 84) — WHY 2.9.4, rung by rung: (1) `vendor_class`
+# ARRIVES ON THE EVENT at 2.9.2. Below it `EVENT_FIELDS` has 15 keys and no
+# class, so `{k: event[k] for k in EVENT_FIELDS}` dropped it at the app
+# boundary on every host and every rollup's per-vendor class was null —
+# measured across the five admitted wheels 2026-09-01: 2.8.0/2.9.0/2.9.1
+# n=15 without it, 2.9.2/2.9.4 n=16 with it, `ua` present at all five and
+# `user_agent` at none. (2) HEAD AT THE ROUTE LEVEL: the package walks the
+# router and adds HEAD wherever GET is allowed, INCLUDING Dash's own
+# routes and its lifespan-registered page catch-all — which nothing in
+# this repo could declare methods on. That is what retires
+# HeadAsGetMiddleware (item 2); below 2.9.4 removing it restores the 405s.
+# (3) The three `openapi_*` knobs, so the HOST owns its API identity —
+# dimll cannot read healthz.
 # run.py's boot floor and tests encode the same number — grep it, don't
 # move one. REMEMBER THE CACHE TRAP: this line changing IS the Docker
 # cache bust; a `>=` floor can never pull a new release through a cache
-# hit (see Dockerfile).
-dash-improve-my-llms[flask]>=2.8.0
-# dash-improve-my-llms[fastapi]>=2.8.0   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]>=2.8.0     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]>=2.8.0       # all three
+# hit (see Dockerfile) — and the corollary the fleet measured on this
+# very round (muischeduler): a fork whose requirements.txt did NOT change
+# keeps serving its old wheel, so `class: null` persists there until this
+# line moves. The bump is the fix, not the rebuild.
+#
+# PINNED, NOT FLOORED (owner decision 0bb, 2026-09-02): `==`, not `>=`.
+# The pin is what makes the cache trap above stop being a trap — an exact
+# version means the requirements line changes on every bump by
+# construction, so the Docker layer can never be reused across a version
+# change and a host can no longer serve a wheel its requirements do not
+# name. It also ends the CI-vs-production gap `llms_version` was added to
+# expose: with a floor, CI resolved 2.8.0 while production served 2.9.4
+# on the same declaration (excalidraw measured exactly that); with a pin
+# there is one answer and both lanes give it.
+# The deliberate move to 2.10.0 is 1.6.45's, after the seat reads this
+# template on the wire — 2.10 changes four surfaces and the fan-out rule
+# is template first.
+dash-improve-my-llms[flask]==2.9.4
+# dash-improve-my-llms[fastapi]==2.9.4   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]==2.9.4     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]==2.9.4       # all three
 
 # Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
 #
