@@ -177,9 +177,24 @@ they win.
   two ASGI forks consume it as spec item 11, and the hub plus four
   second-ring hosts had the same defect — if you serve a non-Flask
   backend, assume you have it until you have probed a route that is
-  NOT `/`. The middleware stays after dimll 2.7.2 fixes the
-  package's own routes: `/` is Dash's page catch-all and every Dash
-  route is an `APIRoute` too.
+  NOT `/`. The middleware stayed after dimll 2.7.2 fixed the
+  package's own routes, because `/` is Dash's page catch-all and every
+  Dash route is an `APIRoute` too — and it is RETIRED at 1.6.44, on the
+  pin to dimll 2.9.4, where the package walks the router itself and adds
+  HEAD wherever GET is allowed, Dash's lifespan-registered catch-all
+  included. Amended here rather than appended below, because the version
+  is the whole content of the claim and a reader who met "the middleware
+  stays" first would keep a shim that now MASKS the fix it was standing
+  in for: converting HEAD to GET above the router made every HEAD look
+  correct whatever the router did, so it would have hidden a regression
+  in the package's pass exactly as well as it hid the original defect.
+  Measured before removing (5 paths x 3 UAs, FastAPI lane, in-process):
+  15 of 15 HEAD/GET status pairs matched WITHOUT it, `/` to a browser UA
+  included — the one case the old text said would 405. The disable was
+  proved non-vacuous first by asserting the middleware stack contained
+  the class in one run and not the other. If your floor is below 2.9.4,
+  the shim is still load-bearing: this retirement is gated on the pin,
+  not on the date.
 - Any throwaway Python probe a session writes against a production
   host needs the certifi SSL context AND a retry guard. Fixing the
   shipped tools does not cover the next ad-hoc script: the template

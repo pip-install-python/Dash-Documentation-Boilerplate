@@ -13,72 +13,40 @@ from starlette.responses import Response
 from lib.analytics_tracker import tracker
 
 
-class HeadAsGetMiddleware:
-    """Answer ``HEAD`` wherever ``GET`` is served (1.6.32).
-
-    HTTP requires it, Werkzeug derives it from every ``GET`` rule for free,
-    and FastAPI does not: a route declared ``@router.get(...)``
-    answers ``405 Method Not Allowed`` to ``HEAD``. On the wire that meant
-    **every route of both FastAPI forks 405'd on HEAD** — measured on
-    pannellum and muischeduler, 2026-08-27 — including ``/healthz``, which
-    is the default probe method of most uptime monitors, and ``/robots.txt``
-    and ``/sitemap.xml``, whose entire job is to be fetched by crawlers that
-    may preflight with HEAD.
-
-    Why middleware and not ``methods=["GET", "HEAD"]`` on the declarations:
-    this tree only declares two of the affected surfaces. ``/llms.txt``,
-    ``/<page>/llms.txt``, ``/robots.txt``, ``/sitemap.xml`` and the policy
-    panel are registered GET-only by dash-improve-my-llms' own FastAPI
-    adapter, and ``/`` by Dash's page catch-all. Fixing the declarations we
-    own would leave three of the four crawler-facing surfaces 405ing, so the
-    fix has to sit above the router. Pure ASGI rather than
-    ``BaseHTTPMiddleware`` so it neither buffers the response nor breaks
-    streaming.
-
-    DO NOT REMOVE THIS WHEN THE PACKAGE FLOOR REACHES 2.7.2 (1.6.33).
-    dash-improve-my-llms 2.7.2 declares ``["GET", "HEAD"]`` on its own doc
-    routes, which removes one reason for this middleware and not the
-    others. ``/`` is Dash's page catch-all, and *every* Dash route is a
-    FastAPI ``APIRoute``: ``dash/backends/_fastapi.py::add_url_rule`` calls
-    ``add_api_route(..., methods=methods or ["GET"])``. Measured here with
-    this middleware removed, ``HEAD /`` answers 405 to a browser UA and 200
-    to a crawler UA — the 200 being the package's prerender replying before
-    the router, which is the shadow that hid this defect three times.
-    Nothing in this repo or in the package can declare methods on Dash's
-    routes; this is the only thing standing in front of them.
-
-    The re-dispatch is a full ``GET``: same status, same headers, same work.
-    The body is dropped here so the response is empty at every layer under
-    test — on the wire h11 (under both uvicorn and hypercorn) already frames
-    a HEAD response as content-length 0 and never writes those bytes, which
-    is why Quart needs nothing and gets nothing.
-    """
-
-    def __init__(self, app) -> None:
-        self.app = app
-
-    async def __call__(self, scope, receive, send) -> None:
-        if scope.get("type") != "http" or scope.get("method") != "HEAD":
-            await self.app(scope, receive, send)
-            return
-
-        sent_body = False
-
-        async def send_without_body(message) -> None:
-            nonlocal sent_body
-            if message["type"] != "http.response.body":
-                await send(message)
-                return
-            # A streaming handler emits many body messages; exactly one
-            # empty, final message goes out or the server raises on the
-            # message after the response completed.
-            if sent_body:
-                return
-            sent_body = True
-            await send({"type": "http.response.body", "body": b"",
-                        "more_body": False})
-
-        await self.app({**scope, "method": "GET"}, receive, send_without_body)
+# ``HeadAsGetMiddleware`` LIVED HERE FROM 1.6.32 TO 1.6.44, AND IS RETIRED.
+#
+# Why it existed: FastAPI's ``APIRoute`` takes ``methods`` literally, so a
+# route declared ``@router.get(...)`` answered 405 to HEAD — and Dash's page
+# catch-all is an ``APIRoute`` too, registered from the ASGI lifespan
+# startup, which nothing in this repo could declare methods on. Every route
+# of both FastAPI forks 405'd on HEAD (measured on pannellum and
+# muischeduler, 2026-08-27), ``/healthz`` included, which is the default
+# probe method of most uptime monitors.
+#
+# Why it is gone: at dash-improve-my-llms 2.9.4 the package walks the
+# router itself and adds HEAD wherever GET is allowed, INCLUDING Dash's
+# routes and its lifespan-registered catch-all — the one case this
+# middleware was left in for. Its own docstring said "DO NOT REMOVE THIS
+# WHEN THE PACKAGE FLOOR REACHES 2.7.2", and that was true AT 2.7.2, when
+# the package fixed only its own doc routes. It stopped being true at
+# 2.9.4, which is why the retirement is gated on the pin (item 1) and not
+# on the calendar.
+#
+# The reason to remove rather than leave harmless: it converts HEAD to GET
+# ABOVE the router, so every HEAD looked correct whatever the router did.
+# It MASKED the package's fix instead of conflicting with it, and would
+# have masked a regression in it just as well.
+#
+# MEASURED BEFORE REMOVING (1.6.44, dimll 2.9.4, FastAPI lane, in-process):
+# 5 paths x 3 UAs — /healthz, /llms.txt, /robots.txt, /sitemap.xml, / with
+# browser, crawler and internal-probe UAs — HEAD status == GET status in
+# all 15 pairs WITHOUT this middleware, including ``/`` to a browser UA,
+# the exact case the old docstring said would 405. The disable was proved
+# non-vacuous first: the middleware stack was asserted to contain
+# ``HeadAsGetMiddleware`` in the enabled run and not to contain it in the
+# disabled one, because a parity result from a run that never removed
+# anything would have been worthless. tests/test_head_method.py holds the
+# parity so this cannot regress silently.
 
 
 class AnalyticsMiddleware(BaseHTTPMiddleware):
@@ -108,10 +76,8 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
 def register_asgi_middleware(app) -> None:
     """Attach all ASGI middleware to ``app.server`` (a FastAPI instance).
 
-    Order matters twice over: Starlette runs the LAST-added middleware
-    outermost, so ``HeadAsGetMiddleware`` goes on after the tracker and the
-    HEAD becomes a GET before anything else — the package's bot middleware
-    and the prerender included — sees the request.
+    ``HeadAsGetMiddleware`` was removed here at 1.6.44 (item 2) once the
+    package answers HEAD at the route level — see the module docstring for
+    what was measured before removing it.
     """
     app.server.add_middleware(AnalyticsMiddleware)
-    app.server.add_middleware(HeadAsGetMiddleware)
