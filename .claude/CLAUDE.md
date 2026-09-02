@@ -309,6 +309,20 @@ they win.
   promote, 183 s after the push. The old-then-new bracket around the
   promote is the whole evidence; a single "new" sample proves nothing
   because it cannot say what it followed.
+  TIME AGAINST THE PROMOTE STEP'S `completed_at`, NEVER THE DEPLOY
+  JOB'S (emojimart 166e33a, seat-verified). The job CONTAINS the
+  build-match wait, so it completes after the swap by construction and
+  the arithmetic reads "swap before promote" every single time —
+  emojimart measured a 9 s impossible ordering before catching it. A
+  measurement that cannot produce a sane answer is worse than none,
+  because the number looks like data.
+  AND THE SAMPLER MUST RETRY: three attempts per sample, and record
+  "unreadable" as a state DISTINCT from "old" (emojimart). The container
+  restart lands exactly where the bracket needs its sample, so an
+  un-retried loop is systematically blind at the only moment that
+  matters — and collapsing unreadable into old invents a bracket that
+  was never observed. leaflet's run shows the shape: two consecutive
+  unreadable samples sit between its last old and first new.
 - Verify the artifact the claim is about, and say which one you
   measured. Three hosts got this wrong in one round while holding the
   rule: a skip link checked in the received HTML lives in the RENDERED
