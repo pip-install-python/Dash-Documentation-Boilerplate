@@ -323,6 +323,25 @@ they win.
   matters — and collapsing unreadable into old invents a bracket that
   was never observed. leaflet's run shows the shape: two consecutive
   unreadable samples sit between its last old and first new.
+  THE TEMPLATE'S OWN PAIR, run 33576940156 / ac20ed1, 2026-09-02, and it
+  reproduces BOTH corrections rather than merely following them:
+    00:50:07Z  run created (push)
+    00:51:59Z  STEP 'Promote to release' completed_at
+    00:52:03Z  wire still old (2b1edd5)
+    00:52:53Z  wire UNREADABLE   <- the restart, inside the bracket
+    00:53:38Z  wire NEW (ac20ed1)
+    00:53:51Z  JOB 'deploy to render' completed_at
+  promote STEP -> swap = **99 s** (sane; pannellum 73 s, leaflet ~123 s).
+  deploy JOB -> swap = **-13 s** — the impossible ordering, reproduced on
+  the first host to try the method, which is why the step/job distinction
+  is in this trap and not a footnote. The UNREADABLE sample fell exactly
+  between last-old and first-new: folding it into "old" would have
+  reported a 45 s bracket nobody observed.
+  The inference at its real strength: had Render reacted to the PUSH at
+  00:50:07Z, the same 99 s build+swap would have served the new build by
+  ~00:51:46Z, and the wire was still old at 00:52:03Z — so it reacted to
+  the PROMOTE. Fifth host with a measured pair; still not proof, and the
+  red push on main remains the discriminator.
 - Verify the artifact the claim is about, and say which one you
   measured. Three hosts got this wrong in one round while holding the
   rule: a skip link checked in the received HTML lives in the RENDERED
