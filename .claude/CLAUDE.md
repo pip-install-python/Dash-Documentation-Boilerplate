@@ -337,6 +337,19 @@ they win.
   is in this trap and not a footnote. The UNREADABLE sample fell exactly
   between last-old and first-new: folding it into "old" would have
   reported a 45 s bracket nobody observed.
+  A SECOND PAIR ON THE SAME HOST, run 33595792466 / 4e17525, 2026-09-02,
+  and it CORRECTS the sentence above: 05:42:53Z created · 05:45:08Z
+  promote STEP · 05:45:26Z old · 05:46:16Z UNREADABLE · 05:47:01Z NEW ·
+  05:47:01Z deploy JOB. promote STEP -> swap = **113 s** (so 99 s was the
+  host, not that push's weather — stable to ~14 s across two runs) and
+  push -> swap = 248 s. But deploy JOB -> swap = **0 s**, not negative.
+  The earlier wording — "reads swap before promote every time" — is MINE
+  and it overstates: the job completes when the build-match wait SEES the
+  swap, so it tracks the swap and never the promote, landing at or after
+  it. Useless for timing either way, which is the point; predicting the
+  SIGN was a claim two runs did not support. And the UNREADABLE sample
+  landed inside the bracket twice out of two, which makes the retry a
+  property of the restart rather than one host's luck.
   The inference at its real strength: had Render reacted to the PUSH at
   00:50:07Z, the same 99 s build+swap would have served the new build by
   ~00:51:46Z, and the wire was still old at 00:52:03Z — so it reacted to
