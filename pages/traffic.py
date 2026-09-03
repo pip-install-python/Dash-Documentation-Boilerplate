@@ -18,6 +18,16 @@ Render-cost rule (fleet fact 18, measured on the hub 2026-08-28): plain
 tables, NO charts, mount once, no interval callback. A 14 × 40 table of
 strings costs about a millisecond; five charts cost ten seconds. The day
 picker is the only control.
+
+THE BOARD LABELS ENFORCEMENT, IT NEVER HIDES IT (1.6.44 item 3). A read
+whose verdict is denied, blocked, rate_limited, priced or gated is not
+noise and not a failure of this page — it is the evidence that the policy
+did something, and it is the only place that evidence is visible. So the
+reads table carries a `verdict` column, rows are grouped by (path,
+verdict) rather than by path, and `serve_counts()` keeps served apart from
+the rest: a board that adds them together reports enforcement as traffic,
+and one that drops the non-served rows reports a policy that never fired.
+
 """
 from __future__ import annotations
 
@@ -94,19 +104,42 @@ def vendor_by_day(reads, days) -> tuple[list[tuple], dict, dict]:
     return rows, cells, nbytes
 
 
+# What the ledger's `verdict` may say (dash-improve-my-llms `_ledger.VERDICTS`):
+# served, priced, gated, denied, blocked, rate_limited. Only the first is a
+# fetch that got what it asked for.
+SERVED = "served"
+
+
 def top_paths(reads_day) -> list[tuple]:
-    """``[(key, verified, [(path, hits), ...]), ...]`` — top vendors, top paths."""
+    """``[(key, verified, [(path, verdict, hits), ...]), ...]``.
+
+    Grouped by (path, VERDICT), not by path alone (1.6.44 item 3). A denied
+    read and a served read of the same path are different events and the
+    board says which — see the module docstring for why they are never
+    folded together.
+    """
     by_vendor: dict = defaultdict(lambda: defaultdict(int))
     totals: dict = defaultdict(int)
     for r in reads_day:
         row = (r.get("vendor_key"), r.get("verified") or "n/a")
-        by_vendor[row][r.get("path") or "?"] += 1
+        cell = (r.get("path") or "?", r.get("verdict") or "—")
+        by_vendor[row][cell] += 1
         totals[row] += 1
     out = []
     for row in sorted(totals, key=lambda k: (-totals[k], k[0] or "~"))[:TOP_VENDORS]:
         paths = sorted(by_vendor[row].items(), key=lambda kv: (-kv[1], kv[0]))
-        out.append((row[0], row[1], paths[:TOP_PATHS]))
+        out.append((row[0], row[1], [(p, v, n) for (p, v), n in paths[:TOP_PATHS]]))
     return out
+
+
+def serve_counts(reads_day) -> tuple[int, int]:
+    """``(served, not_served)`` for one day.
+
+    The split exists so a denied read is never counted among serves. A board
+    that adds them together reports enforcement as traffic.
+    """
+    served = sum(1 for r in reads_day if (r.get("verdict") or "") == SERVED)
+    return served, len(reads_day) - served
 
 
 # -------------------------------------------------------------- the tables --
@@ -172,6 +205,25 @@ def vendor_tier_table(reads_day):
     return _table(head, body, id="traffic-vendor-tier")
 
 
+def _verdict_cell(verdict: str):
+    """A verdict, LABELLED — never a bare colour and never omitted.
+
+    Colour alone would put the whole meaning in a channel a screen reader
+    and a colour-blind reader do not get (the a11y rule this repo already
+    applies to links); the badge carries the word and the colour only
+    seconds it.
+    """
+    tone = {
+        SERVED: "gray",
+        "priced": "violet",
+        "gated": "blue",
+        "denied": "orange",
+        "blocked": "red",
+        "rate_limited": "yellow",
+    }.get(verdict, "gray")
+    return dmc.Badge(verdict, color=tone, variant="light", size="sm")
+
+
 def top_paths_block(reads_day):
     blocks = []
     for key, verified, paths in top_paths(reads_day):
@@ -179,7 +231,10 @@ def top_paths_block(reads_day):
             dmc.Stack(
                 [
                     dmc.Text(_vendor_label(key, verified), fw=600, size="sm"),
-                    _table(["path", "hits"], [[p, str(n)] for p, n in paths]),
+                    _table(
+                        ["path", "verdict", "hits"],
+                        [[p, _verdict_cell(v), str(n)] for p, v, n in paths],
+                    ),
                 ],
                 gap=4,
             )
