@@ -255,6 +255,25 @@ host serves and paste the probe in your report.
   rewrite agreed with the wrong answer because both were reading a file
   while the import read a different one. Where a value can be IMPORTED,
   import it and print `__file__`.
+  STRIPPING COMMENTS IS NOT THE FIX — it is the half-measure that looks
+  like the fix, and 1.6.44 produced three instances in one afternoon on
+  the template alone. A menu pin searched raw source for `aria-haspopup`
+  and matched the COMMENT explaining why there isn't one; a docs-page
+  pin searched for `markdown.py` and matched two comments describing how
+  those pages differ from it; and a guard on the retired
+  `HeadAsGetMiddleware` passed a comment strip and then matched the live
+  DOCSTRING recording the retirement. Strings are the other half of the
+  rule, and a docstring is a string. The progression to copy — it is
+  written out in the item-9 commit — is: raw grep, comment strip,
+  `ast.parse`. Only the third one is right, and it costs four lines:
+  walk the tree for `ClassDef`/`FunctionDef` names and `Name`/
+  `Attribute` ids, then assert the parse found definitions at all so an
+  unreadable file cannot pass as a clean one.
+  The reason this class keeps recurring is worth naming: a good comment
+  explains the absence of the thing the detect hunts, so the better the
+  code is documented, the more reliably a raw grep reports the defect it
+  is documenting the absence of. The detects most likely to be wrong are
+  the ones on the best-explained code.
 - **Floors are stated by `LLMS_PKG_FLOOR` semantics, never by
   grepping the number.** The rationale ladder retains old rungs BY
   DESIGN — a spec (or a session) that greps finds history and calls

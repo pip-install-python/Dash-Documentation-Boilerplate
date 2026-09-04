@@ -517,3 +517,49 @@ def test_the_kit_says_where_the_resolved_version_comes_from():
     assert "IMPORT THE THING" in kit, (
         "the cwd-shadowing trap is the mechanism this rule depends on"
     )
+
+
+# ------------------------------- the spec-format rule (1.6.44 item 13) --
+
+
+def test_the_spec_format_rule_names_strings_not_only_comments():
+    """Item 13. Stripping comments is the half-measure that looks like the
+    fix; a docstring is a string, and it is where the class actually bites.
+    """
+    readme = (REPO / "sync" / "README.md").read_text()
+    rule = readme.split("## Authoring rules", 1)[1].split("\n- **Floors", 1)[0]
+    assert "strip\n  comments and strings" in rule or "comments and strings" in rule
+    assert "DOCSTRING" in rule.upper(), (
+        "the rule must say that a docstring is a string — the comment-strip "
+        "half-measure passes every test that does not"
+    )
+    assert "ast.parse" in rule, "the rule must name the technique that works"
+
+
+def test_the_sync_1_6_43_item_3_detects_pass_on_this_tree():
+    """Item 13's acceptance, run rather than asserted.
+
+    These are the two detects that were casing-bound to the spec's own
+    emphasis caps and returned 0 on the tree that authored them. Read
+    case-insensitively, as the fix-forward specifies, they find the traps.
+    """
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text().lower()
+    for fragment in ("measured on a green push",
+                     "corpus is non-empty",
+                     "when a lane disagrees",
+                     "verify the artifact the claim is about"):
+        assert kit.count(fragment) >= 1, (
+            f"detect fragment {fragment!r} is absent from the kit"
+        )
+
+
+def test_a_case_bound_detect_would_still_fail_here():
+    """The mechanism behind the fix-forward, kept as evidence.
+
+    The traps ship in sentence case; the spec styles its fragments in caps.
+    A case-SENSITIVE grep for the capitalised form finds nothing — which is
+    exactly what happened, in the item about checks that cannot fail.
+    """
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    assert "ASSERT THE CORPUS IS NON-EMPTY" not in kit
+    assert "assert the corpus is non-empty" in kit.lower()
