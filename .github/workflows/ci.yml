@@ -92,6 +92,27 @@ jobs:
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
           ./actionlint -color
 
+      # docs/ is EXCLUDED from .flake8 (the exec'd examples are written for
+      # reading, not for the linter's rules), which made "flake8 is clean"
+      # the check that cannot fail on exactly the files a documentation site
+      # renders. Measured 2026-09-01: a file in docs/ containing `def
+      # broken(:` leaves `flake8 docs/` exiting 0 — the linter is not passing
+      # that file, it is not reading it. py_compile does read it.
+      #
+      # The count is printed and asserted non-empty on purpose: a sweep that
+      # found nothing and a sweep that swept nothing produce the same green,
+      # and only one of them is evidence.
+      - name: py_compile sweep of docs/
+        run: |
+          count="$(find docs -name '*.py' | wc -l | tr -d ' ')"
+          echo "sweeping $count Python file(s) under docs/"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::the docs/ sweep found no Python files — it is testing nothing"
+            exit 1
+          fi
+          find docs -name '*.py' -print0 | xargs -0 python3 -m py_compile
+          echo "py_compile clean over $count file(s)"
+
   test:
     # SINGLE quotes inside ${{ }}. GitHub Actions expressions accept no other
     # string delimiter, and a double quote is a LEX error — which invalidates

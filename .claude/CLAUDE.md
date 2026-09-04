@@ -432,3 +432,16 @@ they win.
   inside a comment (measured twice — this seat and clerkhook), and an AST
   form written to replace it agreed with the wrong answer until the
   import settled it. IMPORT THE THING.
+- NAME THE CHECK THAT ACTUALLY RAN, not the one you meant to run (1.6.44
+  item 7). `.flake8` excludes `docs/*/`, so for a year "flake8 is clean"
+  was reported as covering the exec'd examples a documentation site
+  RENDERS, and it never read one of them: a file in `docs/` containing
+  `def broken(:` leaves `flake8 docs/` at exit 0 with zero output —
+  measured again here 2026-09-04, alongside `py_compile` exiting 1 with
+  the SyntaxError on the same file. The general form of the reporting
+  rule: a report says which invocation produced the number, over how
+  many files, and with what exit code, because "lint passed" is a claim
+  about a command and everyone reads it as a claim about the code. CI
+  runs the sweep as its own step (`py_compile sweep of docs/`) and fails
+  when the corpus is EMPTY, since a sweep of nothing is the same green
+  as a sweep of something clean.
