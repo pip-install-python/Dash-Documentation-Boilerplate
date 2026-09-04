@@ -38,28 +38,37 @@ Accuracy notes (these are the things that quietly wreck the numbers):
   before device detection — the network's internal-traffic contract
   (https://2plot.ai/docs/satellite-analytics). ``/healthz`` is dropped there
   too. Both are write-time rules on purpose; see the comment in ``track_visit``.
-- **Client IP** comes from the proxy headers first (``CF-Connecting-IP``,
-  ``X-Forwarded-For``, ...). Behind Cloudflare/Render, ``remote_addr`` is the
-  *proxy*, so every visitor would collapse into one and geolocation would point
-  at a datacenter.
-- **Country** prefers Cloudflare's ``CF-IPCountry`` header — free, accurate and
-  instant. The ip-api.com lookup is only a fallback (set
-  ``ANALYTICS_GEO_LOOKUP=0`` to disable it entirely).
+- **No raw IP is stored** (1.6.44 item 16, owner decision 2026-09-01). The
+  client address is still RESOLVED from the proxy headers, because it is
+  needed to tell one visitor from another and because ``remote_addr`` behind
+  Cloudflare/Render is the proxy — every visitor would otherwise collapse
+  into one. It is then reduced to ``visitor_key``, a keyed one-way hash of
+  (address + User-Agent), and the address itself is dropped. Set
+  ``ANALYTICS_KEEP_CLIENT_IP=1`` to keep it — the same switch ``record_read``
+  has always honoured.
+- **Location comes from the edge, never from a lookup.** Cloudflare's
+  ``CF-IPCountry`` answers the country; ``CF-IPCity``, ``CF-Region``,
+  ``CF-IPLatitude`` and ``CF-IPLongitude`` answer more when the zone's
+  "Add visitor location headers" managed transform is on. Whatever ARRIVES
+  is stored; whatever does not is absent. There is no third-party lookup and
+  no fallback to one: the ip-api.com path was REMOVED at 1.6.44, not
+  defaulted off, because a disabled lookup is one environment variable away
+  from being an enabled one.
 - **Writes are buffered, locked and pruned.** Multiple gunicorn/uvicorn workers
   share this file; without an ``flock`` around the read-modify-write they
   silently overwrite each other's hits. The buffer keeps a docs site from
   rewriting the whole file on every request, and retention keeps it bounded.
 """
 import atexit
+import hashlib
+import hmac
 import json
 import os
+import secrets
 import threading
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
-from functools import lru_cache
-
-import requests
 
 from dash_improve_my_llms import classify
 from dash_improve_my_llms._ledger import EVENT_FIELDS
@@ -102,6 +111,26 @@ _IP_HEADERS = (
 )
 
 _PRIVATE_PREFIXES = ('10.', '172.', '192.168.', 'fe80:', 'fc00:', 'fd00:')
+
+# Cloudflare's visitor-location headers. `cf-ipcountry` is on by default;
+# the rest arrive only where the zone has "Add visitor location headers"
+# enabled (the owner's click, per zone). The read is DEFENSIVE — store what
+# arrives, never assume a set — so a host with the transform off records
+# country only and a host with it on records more, with no code change and
+# no lookup in either case.
+_GEO_HEADERS = {
+    "cf-ipcountry": "country_code",
+    "cf-ipcity": "city",
+    "cf-region": "region",
+    "cf-iplatitude": "latitude",
+    "cf-iplongitude": "longitude",
+}
+
+# Which of them this host has actually SEEN, logged once per boot and listed
+# additively on /healthz's geo block. A set, because the answer is "which
+# ones arrive here", not "how many requests carried them".
+_geo_headers_seen: set = set()
+_geo_headers_logged = False
 
 
 def analytics_path() -> Path:
@@ -147,70 +176,108 @@ def header_country(headers=None):
     return cc if cc and cc not in ("XX", "T1") else None
 
 
-_geo_cache: dict = {}
-_geo_inflight: set = set()
-_geo_lock = threading.Lock()
-_GEO_MAX_INFLIGHT = 4
+def header_geo(headers=None) -> dict:
+    """Everything the EDGE told us about where this request came from.
 
-
-@lru_cache(maxsize=2000)
-def _geolocate(ip_address):
-    """Geolocate an IP via ip-api.com (free, 45 req/min). Cached, including
-    misses, so one slow lookup never repeats for the same visitor."""
-    if not ip_address or ip_address in ('127.0.0.1', 'localhost', '::1'):
-        return None
-    if ip_address.startswith(_PRIVATE_PREFIXES):
-        return None
-    try:
-        response = requests.get(f'http://ip-api.com/json/{ip_address}', timeout=2)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('status') == 'success':
-                return {
-                    'country': data.get('country'),
-                    'country_code': data.get('countryCode'),
-                    'region': data.get('regionName'),
-                    'city': data.get('city'),
-                    'latitude': data.get('lat'),
-                    'longitude': data.get('lon'),
-                    'timezone': data.get('timezone'),
-                }
-    except Exception as e:
-        # Silently fail - geolocation is optional
-        print(f"Geolocation failed for {ip_address}: {e}")
-    return None
-
-
-def geo_for(ip_address):
-    """Non-blocking geolocation.
-
-    Returns the cached result if we already know this IP, otherwise kicks the
-    lookup off in the background and returns ``None``. Hits sit in the write
-    buffer for up to ``FLUSH_INTERVAL_S`` before landing on disk, and ``flush``
-    backfills whatever resolved in the meantime — so the country still gets
-    recorded without ever putting an HTTP round trip in front of a page view.
+    Defensive by construction (1.6.44 item 16): each header is read
+    independently and a missing one is simply absent from the result. A host
+    whose zone has the visitor-location transform off records country only; a
+    host with it on records city, region and coordinates too. Neither branch
+    reaches the network, and there is no configuration that makes it.
     """
-    if not ip_address:
-        return None
-    with _geo_lock:
-        if ip_address in _geo_cache:
-            return _geo_cache[ip_address]
-        # Bounded: a crawler sweep must not spawn a thread per address.
-        if ip_address in _geo_inflight or len(_geo_inflight) >= _GEO_MAX_INFLIGHT:
-            return None
-        _geo_inflight.add(ip_address)
+    global _geo_headers_logged
 
-    def _resolve():
-        try:
-            result = _geolocate(ip_address)
-        except Exception:
-            result = None
-        with _geo_lock:
-            _geo_cache[ip_address] = result
-            _geo_inflight.discard(ip_address)
+    lc = _lower_headers(headers)
+    out: dict = {}
+    for header, field in _GEO_HEADERS.items():
+        raw = lc.get(header)
+        if raw is None:
+            continue
+        value = str(raw).strip()
+        if not value:
+            continue
+        _geo_headers_seen.add(header)
+        if field == "country_code":
+            value = value.upper()
+            if value in ("XX", "T1"):    # unknown, Tor — not countries
+                continue
+            out["country"] = value
+        out[field] = value
 
-    threading.Thread(target=_resolve, name="geo-lookup", daemon=True).start()
-    return None
+    if out and not _geo_headers_logged:
+        _geo_headers_logged = True
+        print(f"[analytics] visitor-location headers seen: "
+              f"{', '.join(sorted(_geo_headers_seen))}", flush=True)
+    return out
+
+
+def geo_headers_seen() -> list:
+    """The visitor-location headers this process has received, sorted.
+
+    Read by ``/healthz``'s geo block so the answer to "is the transform on
+    for this zone?" is visible without reading logs.
+    """
+    return sorted(_geo_headers_seen)
+
+
+def _visitor_salt() -> bytes:
+    """The key for ``visitor_key``'s one-way hash.
+
+    ``ANALYTICS_VISITOR_SALT`` when set. Otherwise a random salt generated
+    once and kept beside the ledger — which means it survives restarts
+    exactly where the ledger does. On an ephemeral container filesystem it
+    rotates on every deploy, and that is a property rather than a bug: the
+    hashes stop being linkable across deploys, and the host that wanted
+    them linkable was told to mount a disk (item 22).
+    """
+    env = os.getenv("ANALYTICS_VISITOR_SALT")
+    if env:
+        return env.encode()
+    path = analytics_path().parent / ".visitor_salt"
+    try:
+        if path.exists():
+            return path.read_bytes()
+        salt = secrets.token_bytes(32)
+        path.write_bytes(salt)
+        return salt
+    except Exception:
+        # Unwritable directory: fall back to a process-lifetime salt rather
+        # than to no salt. An unsalted hash of an IP is an IP.
+        global _fallback_salt
+        if _fallback_salt is None:
+            _fallback_salt = secrets.token_bytes(32)
+        return _fallback_salt
+
+
+_fallback_salt = None
+
+
+def visitor_key(ip_address, user_agent) -> str:
+    """A keyed one-way hash identifying a visitor without storing them.
+
+    HMAC, not a bare digest: the IPv4 space is small enough to enumerate, so
+    an unkeyed hash of an address is a reversible encoding of the address.
+    Truncated to 16 hex characters — enough to separate visitors in a day's
+    ledger, not enough to be a durable identifier.
+    """
+    material = f"{ip_address or '?'}|{user_agent or '?'}".encode()
+    return hmac.new(_visitor_salt(), material, hashlib.sha256).hexdigest()[:16]
+
+
+# The ip-api.com lookup lived here from the first version until 1.6.44 and
+# is REMOVED, not defaulted off (item 16, owner: "I'm not a fan … I don't
+# think we are gaining much"). It sent a visitor's IP address to a third
+# party on a background thread, cached the answer, and backfilled the row at
+# flush; `ANALYTICS_GEO_LOOKUP=0` turned it off and one environment variable
+# turned it back on. Location now comes from the edge headers this app
+# already receives, or it is absent — see `header_geo`.
+#
+# Removed with it: `_geo_cache`, `_geo_inflight`, `_geo_lock`, `geo_for`,
+# `_geolocate`, `AnalyticsTracker.get_geolocation`, the `_geo_pending`
+# marker and the flush-time backfill that resolved it. The `requests`
+# import went too — this module no longer makes an outbound request of any
+# kind, which is the property worth keeping, and the one a reviewer can
+# check in one grep.
 
 
 class AnalyticsTracker:
@@ -284,17 +351,6 @@ class AnalyticsTracker:
         from, so what the site SAYS about a vendor and what it COUNTS agree."""
         return _classify(user_agent, client_ip)["bot_type"] or "unknown"
 
-    def get_geolocation(self, ip_address):
-        """Get geolocation data from IP address (ip-api.com fallback path).
-
-        Non-blocking: see ``geo_for``. Disable entirely with
-        ``ANALYTICS_GEO_LOOKUP=0`` (deployments behind Cloudflare don't need
-        it — ``CF-IPCountry`` already answers the question).
-        """
-        if os.getenv("ANALYTICS_GEO_LOOKUP", "1") == "0":
-            return None
-        return geo_for(ip_address)
-
     def track_visit(self, path, user_agent, ip_address=None, headers=None):
         """Track a visitor.
 
@@ -364,21 +420,20 @@ class AnalyticsTracker:
             for key in _VENDOR_KEYS:
                 visit_data[key] = c.get(key)
 
-        if ip_address:
+        # The address is resolved (above) so one visitor can be told from
+        # another, then REDUCED. `visitor_key` is what the ledger keeps; the
+        # address itself is kept only where the operator opted in.
+        visit_data["visitor_key"] = visitor_key(ip_address, user_agent)
+        if ip_address and KEEP_CLIENT_IP:
             visit_data["ip_address"] = ip_address
 
-        # Country first from the edge header (free + instant), then ip-api.
-        cc = header_country(headers)
-        if cc:
-            visit_data["location"] = {"country": cc, "country_code": cc}
-        elif ip_address and device_type != "bot":
-            geo_data = self.get_geolocation(ip_address)
-            if geo_data:
-                visit_data["location"] = geo_data
-            else:
-                # Lookup is in flight — flush() backfills it before the record
-                # hits disk (the marker never survives into the ledger).
-                visit_data["_geo_pending"] = ip_address
+        # Location from the edge, or not at all. No lookup, no pending
+        # marker, no backfill — whatever the headers carried is what the row
+        # gets, and a host whose zone sends only the country records only the
+        # country.
+        location = header_geo(headers)
+        if location:
+            visit_data["location"] = location
 
         self._enqueue(self._buffer, visit_data)
 
@@ -441,7 +496,6 @@ class AnalyticsTracker:
         if not pending and not reads:
             return
         try:
-            self._backfill_geo(pending)
             self._write(pending, reads)
         except Exception:
             # Never lose the app over analytics; put the hits back so the next
@@ -449,23 +503,6 @@ class AnalyticsTracker:
             with self._buffer_lock:
                 self._buffer = pending + self._buffer
                 self._reads_buffer = reads + self._reads_buffer
-
-    @staticmethod
-    def _backfill_geo(pending):
-        """Attach any background lookup that resolved while hits were buffered.
-
-        The marker is left in place — a flush that fails to write puts these
-        records back on the buffer, and the next attempt gets another chance at
-        a lookup that has since landed. ``_write`` strips it before serialising.
-        """
-        for v in pending:
-            ip = v.get("_geo_pending")
-            if not ip or v.get("location"):
-                continue
-            with _geo_lock:
-                loc = _geo_cache.get(ip)
-            if loc:
-                v["location"] = loc
 
     def _write(self, pending, reads=()):
         self._ensure_file_exists()
@@ -491,8 +528,7 @@ class AnalyticsTracker:
             stats = data.setdefault("stats", {})
             # Internal markers stay on the buffered copy (for a retry) and
             # never reach the ledger.
-            visits.extend({k: val for k, val in v.items() if k != "_geo_pending"}
-                          for v in pending)
+            visits.extend(dict(v) for v in pending)
             for v in pending:
                 dt = v["device_type"]
                 stats[dt] = stats.get(dt, 0) + 1

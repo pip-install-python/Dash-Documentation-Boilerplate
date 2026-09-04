@@ -187,3 +187,9 @@ KICKOFF-*.md
 !.claude/CLAUDE.md
 !.claude/settings.json
 !.claude/skills/
+
+# The visitor-key salt (1.6.44 item 16). Generated at runtime beside the
+# ledger when ANALYTICS_VISITOR_SALT is unset. It is key material: committing
+# it would make every visitor_key in every fork of this template computable
+# by anyone with the repo, which is the whole property the hash provides.
+.visitor_salt

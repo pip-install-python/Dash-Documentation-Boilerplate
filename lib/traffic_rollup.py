@@ -110,6 +110,21 @@ def load_visits(path=None):
 
 
 def visitor_key(v):
+    """Identify a visitor from a stored row.
+
+    Since 1.6.44 the tracker writes `visitor_key` — a keyed one-way hash of
+    address + User-Agent — and no longer stores the address at all. Rows
+    written BEFORE that release are still inside the retention window, so the
+    old composite stays as a fallback; without it, every historical row would
+    collapse to its User-Agent and the session counts for the days either
+    side of the deploy would not be comparable.
+
+    The fallback also covers `ANALYTICS_KEEP_CLIENT_IP=1` hosts, where the
+    address is present alongside the hash.
+    """
+    stored = v.get("visitor_key")
+    if stored:
+        return stored
     ua = hashlib.md5((v.get("user_agent") or "?").encode()).hexdigest()[:8]
     return f"{v.get('ip_address') or '?'}|{ua}"
 
@@ -257,7 +272,7 @@ def _session(key, hits):
 
 
 def _country(v):
-    """ISO code when we have one (CF-IPCountry / ip-api), else the name."""
+    """ISO code when the edge gave us one (CF-IPCountry), else the name."""
     loc = v.get("location") or {}
     return loc.get("country_code") or loc.get("country") or None
 

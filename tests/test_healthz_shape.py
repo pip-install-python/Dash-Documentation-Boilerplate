@@ -126,3 +126,28 @@ def test_the_live_route_serves_the_same_payload(client):
     # `build` alone is environment-dependent; the other six are not.
     missing = sorted((FLEET_KEYS - {"build"}) - set(payload))
     assert not missing, f"the route dropped {missing}; served {sorted(payload)}"
+
+
+def test_the_geo_block_lists_the_location_headers_this_host_has_seen():
+    """1.6.44 item 16. The Cloudflare visitor-location transform is an owner
+    click per zone, so the only honest answer to "is it on here?" is the set
+    of headers that have actually turned up — and it must be readable from
+    outside, or the answer lives in logs nobody reads."""
+    from lib.analytics_tracker import header_geo
+    from lib.health import health_payload
+
+    header_geo({"CF-IPCountry": "US", "CF-IPCity": "Austin"})
+    geo = health_payload("flask", headers={"CF-IPCountry": "US"}).get("geo", {})
+    assert "headers_seen" in geo, "the geo block does not report the headers"
+    assert isinstance(geo["headers_seen"], list)
+    assert "cf-ipcountry" in geo["headers_seen"]
+
+
+def test_the_geo_block_reports_headers_even_when_the_package_errors():
+    """The error branch is the one a host actually hits on an old package —
+    losing the field there would make it unreadable exactly when it matters.
+    """
+    src = (__import__("pathlib").Path(__file__).resolve().parent.parent
+           / "lib" / "health.py").read_text()
+    error_branch = src.split('"error": True', 1)[0][-400:]
+    assert "headers_seen" in error_branch
