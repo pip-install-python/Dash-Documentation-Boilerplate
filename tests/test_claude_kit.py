@@ -492,3 +492,28 @@ def test_every_guard_entry_points_at_something_that_still_exists():
     from dash import html
 
     assert "loading" not in html.Img()._prop_names
+
+
+def test_the_acceptance_output_rule_is_in_the_kit():
+    """Item 10's detect. An acceptance is a claim about a tree AT A VERSION,
+    and the version has to be in the sentence carrying the number."""
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    assert "PRINT THE RESOLVED VERSION BESIDE THE RESULT" in kit
+    rule = kit.split("PRINT THE RESOLVED VERSION BESIDE THE RESULT", 1)[1]
+    rule = rule.split("\n- ", 1)[0]
+    assert "__file__" in rule, (
+        "the rule must say HOW to resolve it — import and print the path, "
+        "not read requirements.txt"
+    )
+    assert "actionlint" in rule and "shellcheck" in rule, (
+        "the local-vs-CI half of the rule is missing"
+    )
+
+
+def test_the_kit_says_where_the_resolved_version_comes_from():
+    """The three wrong ways are all in this file as traps; the rule has to
+    point at the right one or it is a slogan."""
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    assert "IMPORT THE THING" in kit, (
+        "the cwd-shadowing trap is the mechanism this rule depends on"
+    )

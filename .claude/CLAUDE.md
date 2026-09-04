@@ -445,3 +445,22 @@ they win.
   runs the sweep as its own step (`py_compile sweep of docs/`) and fails
   when the corpus is EMPTY, since a sweep of nothing is the same green
   as a sweep of something clean.
+- PRINT THE RESOLVED VERSION BESIDE THE RESULT, and say which tool
+  produced it (1.6.44 item 10, note 89). An acceptance is a claim about
+  a tree at a version: "suite green" is not a result, "471 passed, 3
+  skipped, exit 0, dimll 2.9.4 imported from .venv/…/site-packages" is.
+  Resolve it by IMPORTING and printing `mod.__file__` — never by
+  reading requirements.txt, which states the intent, and never by
+  parsing source, which truncates (see the regex and cwd-shadowing
+  traps above). The gap this closes is real and was measured on
+  excalidraw 2026-09-01: `llms_version` 2.9.4 on the wire while its
+  suite ran 2.8.0, so its CI and its production disagreed about which
+  package's behaviour was being accepted, and every green tick meant
+  the older one.
+  The same rule names the tools whose LOCAL invocation is not CI's:
+  `actionlint` without shellcheck on PATH skips every `run:` block's
+  shell analysis, so "actionlint clean" locally is a weaker statement
+  than the CI job's; a local absence of the binary is weaker still,
+  and both must be reported as what they are. The general form: when
+  the check you ran differs from the check CI runs, the report says
+  so in the same sentence as the result.
