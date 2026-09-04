@@ -421,3 +421,74 @@ def test_divergences_posture_fence_is_wellformed():
                     "wrong about this repo's own tree"
                 )
                 break
+
+
+# ------------------------------- recorded conventions (1.6.44 item 9) --
+
+
+def test_divergences_has_the_recorded_conventions_subsection():
+    """Item 9's detect.
+
+    A DIVERGENCE says "this repo differs, on purpose". A RECORDED CONVENTION
+    says "this repo matches, and the match is a decision" — usually something
+    deliberately removed. Nothing in a diff tells the second from an
+    accident, so without the entry a sync restores it and nobody notices.
+    """
+    text = (REPO / "DIVERGENCES.md").read_text()
+    assert "## Recorded conventions (not divergences)" in text
+
+
+def test_the_header_explains_both_kinds_of_entry():
+    """Contract-class: the FILE's own text is what sync authors and the
+    fan-out read. A rule that lives only in a test docstring is invisible to
+    both of them."""
+    text = (REPO / "DIVERGENCES.md").read_text()
+    intro = text.split("## This repo's divergences", 1)[0]
+    assert "RECORDED CONVENTION" in intro
+    assert "DIVERGENCE" in intro
+
+
+def test_the_guard_entries_are_under_it_and_name_their_code():
+    """Acceptance: the template's own guard entries moved under the heading,
+    and each one names the thing a sync would restore."""
+    text = (REPO / "DIVERGENCES.md").read_text()
+    section = text.split("## Recorded conventions (not divergences)", 1)[1]
+    section = section.split("\n## ", 1)[0]
+
+    for needle in ("HeadAsGetMiddleware", "User-Agent list", "html.Img"):
+        assert needle in section, f"guard entry for {needle} is not recorded"
+
+    entries = [ln for ln in section.splitlines() if ln.startswith("- **")]
+    assert len(entries) >= 4, f"only {len(entries)} guard entries"
+
+
+def test_every_guard_entry_points_at_something_that_still_exists():
+    """A guard entry naming code nobody has any more costs the reader's
+    afternoon — the same rule the kit applies to traps."""
+    middleware = REPO / "lib" / "asgi_middleware.py"
+    assert middleware.exists(), (
+        "the module the entry names is gone — the guard points at nothing"
+    )
+    # PARSED, not grepped, and not merely comment-stripped either: the
+    # module names the retired class four times while explaining why it is
+    # gone — three times in comments and once in a live DOCSTRING, which a
+    # comment stripper keeps. Strings are the other half of item 13's rule,
+    # and this is the case that proves it: a detect that reads the
+    # documentation of an absence reports the absence as a presence.
+    import ast
+
+    tree = ast.parse(middleware.read_text())
+    defined = {node.name for node in ast.walk(tree)
+               if isinstance(node, (ast.ClassDef, ast.FunctionDef))}
+    referenced = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+    referenced |= {node.attr for node in ast.walk(tree)
+                   if isinstance(node, ast.Attribute)}
+    assert "HeadAsGetMiddleware" not in defined, "the shim came back"
+    assert "HeadAsGetMiddleware" not in referenced, (
+        "the shim is referenced in live code — retired means retired"
+    )
+    assert defined, "parsed no definitions at all — the AST read swept nothing"
+
+    from dash import html
+
+    assert "loading" not in html.Img()._prop_names

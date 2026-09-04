@@ -12,6 +12,15 @@ boundary between design and drift:
   line: what differs, why, and what the template would otherwise do.
 - An empty list is a statement too: it means this repo intends to
   match the template exactly.
+- Two kinds of entry live here, and the second is the one forks keep
+  losing (1.6.44 item 9). A DIVERGENCE says "this repo differs, on
+  purpose". A RECORDED CONVENTION says "this repo MATCHES, and the
+  match is a decision" — most often something deliberately REMOVED or
+  deliberately not added. Nothing in a diff distinguishes the second
+  from an accident, so a sync restores it and nobody notices; the
+  entry is what makes the absence legible. Both are read by the
+  fan-out machinery and by sync authors, which is why they belong in
+  this file rather than in a test docstring — neither reads those.
 
 Fleet precedents for what belongs here: flexlayout's own-source
 `_build_llms_doc` dedup and app-key sourcing; flows' own
@@ -26,12 +35,40 @@ host); muischeduler's no-npm dependabot scope.
 list at fork time; the fork-point identity ritual in run.py is the
 model for what a well-recorded decision looks like.)*
 
-## Recorded a11y decisions (1.6.44 item 6)
+## Recorded conventions (not divergences)
 
-Two of item 6's seven sub-items are RECORDED rather than fixed. Both
-are decisions, not omissions, and item 6's own wording allows the
-form ("identified and fixed **or recorded**"):
+Guard entries. Every line here documents something this repo MATCHES
+or deliberately does NOT carry — an absence a sync would otherwise
+read as drift and helpfully undo. Adding one costs a sentence; the
+alternative costs a fortnight of a defect walking back in.
 
+- **`HeadAsGetMiddleware` is GONE and must not come back** (1.6.44
+  item 2). It converted HEAD to GET ABOVE the router, so every HEAD
+  looked correct whatever the router did — it MASKED the package's
+  own fix rather than conflicting with it, and would have masked a
+  regression in it just as well. Retirement is gated on the dimll
+  `==2.9.4` pin, not on the date: a fork whose floor is below that
+  still needs the shim. `lib/asgi_middleware.py` keeps the full
+  reasoning where the code used to be.
+- **There is no User-Agent list in this app, and there must not be**
+  (1.6.34). `dash_improve_my_llms.classify()` is the one classifier.
+  The tracker carried a local list for a year; it filed ClaudeBot as
+  *search*, still named the retired `anthropic-ai` / `claude-web`
+  tokens, and counted every UA-less client as a human — on every host
+  in the fleet. `tests/test_analytics_classifier.py` greps the module
+  for the old tokens and goes red if one returns. A missing token is a
+  pushback to the package seat, never a table here. The same rule now
+  covers `vendor_class` (item 8): prefer the package's value, derive
+  from the package's REGISTRY when absent, never from a local map.
+- **Content images carry width/height and NOT `loading`/`decoding`**
+  (1.6.44 item 6f). Neither attribute is a prop of dash 4.4.1's
+  `html.Img` and Dash RAISES on an unknown one — adding them takes the
+  whole site down at import, not at render.
+  `tests/test_a11y_block.py` pins the reason and goes red the day Dash
+  learns them.
+- **Two of item 6's a11y sub-items are recorded rather than fixed**,
+  a form the item's own wording allows ("identified and fixed **or
+  recorded**"):
 - **(d) the mobile console error** seen on leaflet, llms and
   pannellum — NOT REPRODUCED on this host. Measured 2026-09-04 in the
   owner's Chrome against the deployed build c9a5458: page load
