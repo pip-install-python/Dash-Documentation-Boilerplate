@@ -49,6 +49,37 @@ def slugify(text: str) -> str:
     return "-".join(text.lower().split())
 
 
+_SIZE_CACHE: dict = {}
+
+
+def _intrinsic_size(url: str):
+    """(width, height) for an image this repo serves, else (None, None).
+
+    Local only, and deliberately: a remote URL cannot be measured at render
+    time without fetching it, and a render that reaches the network is a
+    render that can hang. Pillow is a transitive dependency here rather than
+    a declared one, so its absence is a silent no-op, not a crash.
+    """
+    if url in _SIZE_CACHE:
+        return _SIZE_CACHE[url]
+    size = (None, None)
+    if not url.startswith(("http://", "https://", "//", "data:")):
+        try:
+            from pathlib import Path
+
+            from PIL import Image
+
+            rel = url.split("?", 1)[0].lstrip("/")
+            path = Path(__file__).resolve().parents[2] / rel
+            if path.is_file():
+                with Image.open(path) as im:
+                    size = im.size
+        except Exception:
+            size = (None, None)
+    _SIZE_CACHE[url] = size
+    return size
+
+
 def plain_text(node: Any) -> str:
     """Flatten a rendered inline tree (strings + Dash components) to text."""
     if isinstance(node, str):
@@ -92,7 +123,25 @@ def patch_renderer() -> None:
     def image(self, text, url, title=None, **attrs):
         from dash import html
 
+        # Explicit width/height where they can be KNOWN (1.6.44 item 6f).
+        # Markdown carries no dimensions, so an image reserves no box and the
+        # prose under it jumps when it loads. For an image served out of this
+        # repo's own `assets/` the intrinsic size is readable off the file,
+        # and the two attributes give the browser an aspect-ratio to reserve;
+        # `maxWidth: 100%` + `height: auto` keep it responsive, which is the
+        # combination that fixes layout shift instead of trading it for
+        # overflow. A REMOTE image (a shields.io badge) has no readable size
+        # at render time and gets none — recorded in DIVERGENCES rather than
+        # guessed, because a wrong box is worse than no box.
+        # `loading="lazy"` and `decoding="async"` are NOT available: neither
+        # is a prop of dash 4.4.1's html.Img (measured — `_prop_names` has
+        # width and height and neither of the other two), and Dash raises
+        # rather than passing an unknown attribute through. So the box is
+        # reserved and the load is not deferred; that is the whole of what
+        # this renderer can do today.
+        width, height = _intrinsic_size(url)
+        extra = {"width": width, "height": height} if width else {}
         return html.Img(src=url, alt=plain_text(text), title=title,
-                        style={"maxWidth": "100%", "height": "auto"})
+                        style={"maxWidth": "100%", "height": "auto"}, **extra)
 
     m2d_renderer.DashRenderer.image = image

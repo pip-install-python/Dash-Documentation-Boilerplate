@@ -509,6 +509,16 @@ if IS_FLASK:
         except Exception:
             pass
 
+    @app.server.after_request
+    def _asset_cache_lifetime(response):
+        """Give /assets/ a lifetime (1.6.44 item 6g). See lib/static_cache."""
+        from lib.static_cache import cache_control_for
+
+        value = cache_control_for(_flask_request.path)
+        if value and response.status_code == 200:
+            response.headers["Cache-Control"] = value
+        return response
+
 elif BACKEND == "quart":
     from quart import request as _quart_request
 

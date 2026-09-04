@@ -26,6 +26,28 @@ host); muischeduler's no-npm dependabot scope.
 list at fork time; the fork-point identity ritual in run.py is the
 model for what a well-recorded decision looks like.)*
 
+## Recorded a11y decisions (1.6.44 item 6)
+
+Two of item 6's seven sub-items are RECORDED rather than fixed. Both
+are decisions, not omissions, and item 6's own wording allows the
+form ("identified and fixed **or recorded**"):
+
+- **(d) the mobile console error** seen on leaflet, llms and
+  pannellum — NOT REPRODUCED on this host. Measured 2026-09-04 in the
+  owner's Chrome against the deployed build c9a5458: page load
+  produced 16 console messages, all of them `LOG` (Clerk theme and
+  session lines, the text-animation and sun-rotation scripts), and
+  ZERO errors or warnings. Nothing to fix here; a fork that DOES see
+  it should not read this line as clearance for its own tree.
+- **(e) shipped CSS/JS are not minified**, deliberately. The wire
+  serves them `content-encoding: gzip` (measured the same day on
+  `/assets/main.css` and `/assets/llms_copy.js`), the whole of
+  `assets/` is ~29 KB of text before compression, and this repo is a
+  TEMPLATE — the stylesheet a fork opens on day one should be the one
+  a human wrote. A build step would trade that for a saving the
+  transfer encoding has already taken. Revisit if `assets/` grows past
+  a few hundred KB.
+
 ## Byte-owned paths
 
 Paths this fork owns byte-for-byte. The F3b fan-out never overwrites

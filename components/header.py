@@ -108,7 +108,13 @@ def create_other_apps_menu():
                 }},
             ),
         ],
-        trigger="hover",
+        # a11y (1.6.44 item 6a): the TARGET was already a real `dmc.Button`
+        # — role=button, in the tab order, never a div with aria-haspopup —
+        # but `trigger="hover"` made it unopenable without a pointer: focus
+        # it, press Enter, nothing happens, and the only listing of the
+        # network in the app is keyboard-unreachable. "click-hover" keeps the
+        # hover behaviour the owner asked for and adds the click/Enter path.
+        trigger="click-hover",
         openDelay=100,
         closeDelay=200,
     )

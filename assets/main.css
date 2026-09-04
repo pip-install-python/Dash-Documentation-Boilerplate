@@ -612,3 +612,45 @@ img[alt=logo] { width: 100%; }
 .skip-link:focus {
     left: 0;
 }
+
+/* ==========================================================================
+   a11y — 1.6.44 item 6 (b) and (c)
+   ========================================================================== */
+
+/* (b) Prose links do not rely on colour alone.
+   The global Anchor default is `underline: "hover"` (components/appshell.py),
+   which is right for chrome — nav rows, footer icons, cards — where position
+   and shape already say "control". Inside running prose it is the failure
+   WCAG 1.4.1 names: a link in a paragraph differs from the text around it by
+   hue only, so a reader who cannot separate those hues cannot find it. Scoped
+   to #main-content (the skip link's target, i.e. the page body) so the chrome
+   keeps its look. */
+#main-content p a,
+#main-content li a,
+#main-content td a,
+#main-content blockquote a {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+/* Never underline a link that is a wrapper around an icon or a card — the
+   underline would be a stray rule under an image. */
+#main-content a:has(> img),
+#main-content a:has(> .m2d-admonition),
+#main-content a.no-underline {
+    text-decoration: none;
+}
+
+/* (c) Touch targets at phone width.
+   The iOS/Android minimum is 44x44. The mobile drawer's rows already meet it
+   (see .mobile-nav .navbar-link above); the icon controls did not — a
+   Mantine ActionIcon size="lg" is 34px, and the header and footer are made of
+   them. Widened only at phone width so the desktop chrome keeps its density. */
+@media only screen and (max-width: 750px) {
+    .mantine-AppShell-header .mantine-ActionIcon-root,
+    .mantine-AppShell-footer .mantine-ActionIcon-root,
+    .mantine-AppShell-header .mantine-Burger-root {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}

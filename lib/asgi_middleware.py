@@ -73,6 +73,24 @@ class AnalyticsMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class StaticCacheMiddleware(BaseHTTPMiddleware):
+    """Give ``/assets/`` a cache lifetime (1.6.44 item 6g).
+
+    The ASGI half of the Flask ``after_request`` in ``run.py``; the policy
+    itself lives in ``lib/static_cache`` so the two lanes cannot drift into
+    serving different lifetimes for the same file.
+    """
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        from lib.static_cache import cache_control_for
+
+        value = cache_control_for(request.url.path)
+        if value and response.status_code == 200:
+            response.headers["Cache-Control"] = value
+        return response
+
+
 def register_asgi_middleware(app) -> None:
     """Attach all ASGI middleware to ``app.server`` (a FastAPI instance).
 
@@ -81,3 +99,4 @@ def register_asgi_middleware(app) -> None:
     what was measured before removing it.
     """
     app.server.add_middleware(AnalyticsMiddleware)
+    app.server.add_middleware(StaticCacheMiddleware)
