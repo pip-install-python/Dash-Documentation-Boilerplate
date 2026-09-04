@@ -47,24 +47,32 @@ def wired(battery, client, monkeypatch):
 
     The signature is `fetch(url, ua=..., method=..., body=..., headers=...)`
     and it returns `(status, lowercased_headers, text)`. The battery is a
-    GET battery with exactly ONE exception — `HEAD /healthz`, which asks
-    whether HEAD works at all (1.6.32) — so anything else non-GET is still
-    a bug in the script rather than something to emulate. Before 1.6.32
-    this stub asserted GET outright, which is why the assertion below names
-    the one path allowed to be different instead of dropping the guard.
+    GET battery with two deliberate exceptions, both of which ASK whether
+    HEAD works rather than using it to read a document: `HEAD /healthz`
+    (1.6.32) and item 5's parity sweep, which probes the five infrastructure
+    paths in three lanes precisely because `/` alone can answer for reasons
+    the router knows nothing about. Anything else non-GET is still a bug in
+    the script rather than something to emulate, so the allowance names its
+    paths instead of dropping the guard.
+
+    Headers come back as the battery's own `_Headers`, not a plain dict: the
+    repeated-`Link` accessor is part of the interface under test, and a stub
+    that flattened it would make item 5's lane check unable to fail.
     """
     seen_agents = []
+    HEAD_OK = {"/healthz", "/llms.txt", "/robots.txt", "/sitemap.xml", "/"}
 
     def fetch(url, ua=battery.UA, method="GET", body=None, headers=None,
               timeout=None, retries=1):
         path = url[len(BASE):] if url.startswith(BASE) else url
-        assert method == "GET" or (method == "HEAD" and path == "/healthz"), (
+        assert method == "GET" or (method == "HEAD" and (path or "/") in HEAD_OK), (
             f"the satellite battery issued a {method} to {path}"
         )
         seen_agents.append(ua)
         accept = (headers or {}).get("Accept")
         response = client.open(path or "/", method, user_agent=ua, accept=accept)
-        return response.status, dict(response.headers), response.text
+        return (response.status, battery._Headers(response.headers.items()),
+                response.text)
 
     monkeypatch.setattr(battery, "fetch", fetch)
     monkeypatch.setattr(battery, "_RESULTS", [])
@@ -143,3 +151,92 @@ def test_the_batterys_default_ua_is_browser_lane_and_still_internal():
     assert INTERNAL_UA_TOKEN in ns.UA and ns.UA.endswith("network-smoke")
     assert classify(ns.CRAWLER_UA)["lane"] == "crawler"
     assert INTERNAL_UA_TOKEN in ns.CRAWLER_UA
+
+
+# ------------------------------------------- the four fleet invariants (5) --
+
+
+def test_the_four_fleet_invariants_are_registered_by_name(battery):
+    """Item 5's detect: the four checks exist, by the names the fleet uses.
+
+    A fork renaming one of these has not kept the invariant — the fan-out and
+    every report read these names, and CD's log is where they are read.
+    """
+    import inspect
+
+    source = inspect.getsource(battery.satellite_checks)
+    for name in ("head_get_parity_three_uas", "api_llms_rows_present",
+                 "discovery_link_headers_per_lane",
+                 "directory_counts_are_derived"):
+        assert f'("{name}", {name})' in source, (
+            f"{name} is not registered in the battery's check list"
+        )
+        assert f"def {name}()" in source, f"{name} has no definition"
+
+
+def test_repeated_link_headers_survive_the_header_mapping(battery):
+    """The trap this mapping exists for: a dict keeps only the LAST value.
+
+    Both shapes are legal and both must read the same — several `Link`
+    headers (HTTP/1.1, the CI container) and one folded comma-joined value
+    (HTTP/2, the wire read of this host on 2026-09-04).
+    """
+    repeated = battery._Headers([
+        ("Link", '</llms.txt>; rel="alternate"; type="text/markdown"'),
+        ("link", '</llms.txt>; rel="describedby"'),
+        ("Content-Type", "text/html"),
+    ])
+    assert len(repeated.get_all("link")) == 2
+    assert repeated["content-type"] == "text/html"
+    assert dict(repeated)["link"].endswith('rel="describedby"'), (
+        "the dict view should still be last-wins — existing callers rely on it"
+    )
+
+    folded = battery._Headers([
+        ("link", '</llms.txt>; rel="alternate"; type="text/markdown", '
+                 '</llms.txt>; rel="describedby"'),
+    ])
+    import re
+    for headers in (repeated, folded):
+        rels = set(re.findall(r'rel="?([a-zA-Z-]+)"?',
+                              ", ".join(headers.get_all("link"))))
+        assert rels == {"alternate", "describedby"}, rels
+
+
+def test_a_check_that_cannot_apply_skips_and_never_passes(battery, monkeypatch):
+    """`skip` is a verdict of its own — a pass here would be note 88's defect."""
+    monkeypatch.setattr(battery, "_RESULTS", [])
+
+    def cannot_apply():
+        battery.skip("nothing to sweep")
+
+    battery.check("a_check_with_no_corpus", cannot_apply)
+    (name, verdict, detail), = battery._RESULTS
+    assert (verdict, detail) == (battery.SKIP, "nothing to sweep")
+    assert verdict != battery.PASS
+
+
+def test_the_api_index_check_skips_only_while_the_host_declares_nothing(
+        wired, monkeypatch):
+    """Both directions, so the skip cannot pass as a constant.
+
+    Empty API_PACKAGES (the template's own state) → skip. Non-empty → the
+    check RUNS and reaches the wire; here that means a verdict other than
+    skip, which is the whole point of the mutation.
+    """
+    import lib.constants as constants
+
+    monkeypatch.setattr(constants, "API_PACKAGES", [])
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    verdicts = {n: v for n, v, _ in wired._RESULTS}
+    assert verdicts["api_llms_rows_present"] == wired.SKIP
+
+    monkeypatch.setattr(constants, "API_PACKAGES", ["dash_mantine_components"])
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    verdicts = {n: v for n, v, _ in wired._RESULTS}
+    assert verdicts["api_llms_rows_present"] != wired.SKIP, (
+        "the check still skipped with packages declared — it is a constant, "
+        "not a check"
+    )
