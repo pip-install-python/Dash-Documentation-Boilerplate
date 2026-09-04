@@ -464,3 +464,22 @@ they win.
   and both must be reported as what they are. The general form: when
   the check you ran differs from the check CI runs, the report says
   so in the same sentence as the result.
+- A CD LANE THAT CALLS ci.yml MUST NOT ALSO LET ci.yml RUN ITSELF on a
+  push to main (1.6.44 item 12, clerkhook 44c0c27). Both runs resolve to
+  the concurrency group `ci-${{ github.ref }}` with
+  `cancel-in-progress: true`, so one is killed at random; when the
+  standalone run wins, CD's `test` job is CANCELLED, `deploy` skips,
+  `release` never moves — and `main` ahead of `release` then reads as an
+  ordinary pending push instead of as the accident it is. Detect:
+  `ci.yml` declares `push: branches: [main]` AND `cd.yml` has
+  `uses: ./.github/workflows/ci.yml`. Acceptance: a `workflow_call`
+  creates NO run of its own, so the next push to main adds ZERO rows to
+  the CI workflow list and the matrix appears exactly once, as `ci / *`
+  jobs INSIDE the CD run. The template has the correct shape
+  (pull_request + workflow_dispatch + workflow_call) and the pin is in
+  `tests/test_cd_promotes_release.py` so it cannot drift back.
+  Sub-trap, met while writing that pin: PyYAML parses an unquoted `on:`
+  key as the BOOLEAN `True`, so `workflow["on"]` raises KeyError on
+  every workflow file in this repo. A test that reads triggers must try
+  both keys — one that catches the KeyError and moves on asserts
+  nothing at all.
