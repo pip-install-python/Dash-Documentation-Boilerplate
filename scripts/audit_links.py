@@ -96,11 +96,11 @@ SSL_CONTEXT = _ssl_context()
 # as a visitor (or as a "bot") in another satellite's ledger. See
 # lib/constants.INTERNAL_UA. Third-party hosts simply ignore it.
 try:
-    from lib.constants import INTERNAL_UA as _INTERNAL_UA
+    from lib.constants import PROBE_UA_SUFFIX as _PROBE
 except Exception:  # pragma: no cover — running outside a checkout
-    _INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
+    _PROBE = "2plot-internal/probe"
 
-AUDIT_UA = f"Mozilla/5.0 (compatible; link-audit/1.0) {_INTERNAL_UA}"
+AUDIT_UA = f"Mozilla/5.0 (compatible; link-audit/1.0) {_PROBE}"
 
 # The IN-PROCESS client is a different question from the external probe, and
 # this script had it wrong until 2026-08-31 (pannellum found the same defect in
@@ -112,7 +112,7 @@ AUDIT_UA = f"Mozilla/5.0 (compatible; link-audit/1.0) {_INTERNAL_UA}"
 # does not land in a ledger as N desktop humans.
 AUDIT_BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    f"(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 {_INTERNAL_UA}"
+    f"(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 {_PROBE}"
 )
 
 

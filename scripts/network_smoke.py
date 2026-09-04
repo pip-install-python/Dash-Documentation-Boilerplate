@@ -47,9 +47,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 TIMEOUT = 30
 try:
-    from lib.constants import INTERNAL_UA as _INTERNAL_UA
+    from lib.constants import PROBE_UA_SUFFIX as _PROBE
 except Exception:  # running outside a repo checkout — keep the token intact
-    _INTERNAL_UA = "2plot-internal/1.0 (+https://2plot.ai/docs/satellite-analytics)"
+    _PROBE = "2plot-internal/probe"
 # The default UA names the BROWSER lane first (1.6.40; muischeduler's
 # finding on its item-12 port): at dash-improve-my-llms >= 2.8 a UA with
 # no browser engine token is classified crawler-lane, so a bare internal
@@ -61,11 +61,11 @@ except Exception:  # running outside a repo checkout — keep the token intact
 # and is deliberately untouched.
 BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 "
-    + _INTERNAL_UA + " network-smoke"
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 " + _PROBE
+    + " network-smoke"
 )
 UA = BROWSER_UA
-CRAWLER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1) " + _INTERNAL_UA
+CRAWLER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1) " + _PROBE
 
 
 def _ssl_context() -> ssl.SSLContext:

@@ -38,6 +38,12 @@ concurrency:
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   SITE_URL: ${{ inputs.target_url || 'https://boilerplate.2plot.dev' }}
+  # The fleet probe convention (1.6.44 item 4). Every curl in this workflow
+  # that fetches a network host sends it, so the far side's tracker drops the
+  # row at write time and a deploy does not inflate its own ledger. The engine
+  # token leads (dimll classifies on it); `2plot-internal/probe` is the
+  # suppression half. Mirrors lib/constants.PROBE_UA_SUFFIX — one spelling.
+  PROBE_UA: "curl/8 2plot-internal/probe"
 
 jobs:
   test:
@@ -158,7 +164,7 @@ jobs:
           ok=0
           checked=""
           for _ in $(seq 1 100); do
-            body="$(curl -fsS "$SITE_URL/healthz" 2>/dev/null || true)"
+            body="$(curl -fsS -A "$PROBE_UA" "$SITE_URL/healthz" 2>/dev/null || true)"
             if [ -n "$body" ]; then
               build="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("build",""))' 2>/dev/null || true)"
               if [ "$build" = "$want" ]; then
@@ -212,7 +218,7 @@ jobs:
         # a workflow_dispatch against another host (its shas are not ours).
         if: github.event_name == 'push' || inputs.target_url == ''
         run: |
-          build="$(curl -fsS "$SITE_URL/healthz" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("build",""))')"
+          build="$(curl -fsS -A "$PROBE_UA" "$SITE_URL/healthz" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("build",""))')"
           if [ "$build" != "$GITHUB_SHA" ]; then
             echo "::error::verify refuses: $SITE_URL serves build '${build:-<none>}', this run is $GITHUB_SHA — nothing this run shipped is on the wire to verify"
             exit 1

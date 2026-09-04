@@ -54,6 +54,12 @@ env:
   # off RENDER / APP_ENV, and the satellite reporter keys off the webhook
   # secret. Both must stay inert here.
   APP_ENV: ci
+  # The fleet probe convention (1.6.44 item 4). Every curl in this workflow
+  # that fetches a network host sends it, so the far side's tracker drops the
+  # row at write time and a deploy does not inflate its own ledger. The engine
+  # token leads (dimll classifies on it); `2plot-internal/probe` is the
+  # suppression half. Mirrors lib/constants.PROBE_UA_SUFFIX — one spelling.
+  PROBE_UA: "curl/8 2plot-internal/probe"
 
 jobs:
   lint:
@@ -206,14 +212,14 @@ jobs:
         run: |
           gunicorn run:server -b 127.0.0.1:8550 --daemon --access-logfile - --error-logfile -
           for _ in $(seq 1 30); do
-            curl -sf http://127.0.0.1:8550/healthz && break
+            curl -sf -A "$PROBE_UA" http://127.0.0.1:8550/healthz && break
             sleep 1
           done
           # A page that renders under the test client can still fail under a
           # real WSGI worker — different import path, different working
           # directory, no test-client conveniences.
-          curl -sf http://127.0.0.1:8550/ > /dev/null
-          curl -sf http://127.0.0.1:8550/networks > /dev/null
+          curl -sf -A "$PROBE_UA" http://127.0.0.1:8550/ > /dev/null
+          curl -sf -A "$PROBE_UA" http://127.0.0.1:8550/networks > /dev/null
           # The battery, against the same server a satellite deploys.
           python3 scripts/network_smoke.py --base-url http://127.0.0.1:8550
 
@@ -276,7 +282,7 @@ jobs:
         run: |
           docker run -d --name docs -p 8550:8550 dash-docs-boilerplate:ci
           for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:8550/healthz > /dev/null; then
+            if curl -sf -A "$PROBE_UA" http://127.0.0.1:8550/healthz > /dev/null; then
               echo "healthy after ~$((i*2))s"
               exit 0
             fi

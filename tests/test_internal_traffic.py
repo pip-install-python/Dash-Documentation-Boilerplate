@@ -292,3 +292,133 @@ def test_a_read_with_no_user_agent_is_KEPT(tmp_path, monkeypatch):
                          "client_ip": "203.0.113.9"})
     assert len(tracker._reads_buffer) == 1, "a UA-less read was dropped as internal"
     assert tracker._reads_buffer[0]["ua"] is None
+
+
+# ------------------------------------------------- the fleet probe convention --
+#
+# Item 4 of 1.6.44. A PROBE is machinery fetching a network host to check it —
+# a workflow's `curl /healthz`, a battery, a link audit, the container's own
+# HEALTHCHECK. The convention: a real vendor-or-engine token LEADS, and
+# `2plot-internal/probe` follows. The engine token decides the lane; the suffix
+# carries INTERNAL_UA_TOKEN, so the write-time drop is what suppresses the row.
+# Nothing here trusts that comment: the lane table is re-measured against the
+# installed dash_improve_my_llms, because a floor bump is exactly what would
+# move it.
+
+
+def test_probe_ua_leads_with_the_engine_and_carries_the_token():
+    from lib.constants import PROBE_UA_SUFFIX, probe_ua
+
+    assert PROBE_UA_SUFFIX == f"{INTERNAL_UA_TOKEN}/probe"
+    ua = probe_ua("curl/8.7.1")
+    assert ua.startswith("curl/8.7.1")
+    assert ua.endswith(PROBE_UA_SUFFIX)
+    assert INTERNAL_UA_TOKEN in ua
+
+
+def test_probe_ua_refuses_an_engineless_probe():
+    """A UA carrying only the suffix is crawler-lane, whatever it meant.
+
+    That is the defect the convention exists to prevent: an engineless probe
+    silently swaps the document out from under a browser-lane assertion.
+    """
+    from lib.constants import PROBE_UA_SUFFIX, probe_ua
+
+    for engine in ("", "   ", None):
+        with pytest.raises(ValueError):
+            probe_ua(engine)
+
+    from dash_improve_my_llms import classify
+
+    bare = classify(PROBE_UA_SUFFIX)
+    lane = bare["lane"] if isinstance(bare, dict) else bare.lane
+    assert lane == "crawler", (
+        "the engineless case stopped being crawler-lane — the reason for the "
+        f"guard changed, re-read it before relaxing it (got {lane!r})"
+    )
+
+
+@pytest.mark.parametrize(
+    "engine,lane,vendor",
+    [
+        ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", "browser", None),
+        ("Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+         "crawler", "googlebot"),
+        ("curl/8.7.1", "crawler", None),
+    ],
+)
+def test_the_suffix_moves_no_lane_no_vendor(engine, lane, vendor):
+    """Lane, vendor and bot_type hold BY CONSTRUCTION — measured, not asserted.
+
+    The suppression layer is the tracker's write-time drop. If appending the
+    suffix ever moves one of these three, every probe in the fleet is
+    measuring a different document than the one it was sent to check, and this
+    test is the thing that says so.
+    """
+    from dash_improve_my_llms import classify
+
+    from lib.constants import probe_ua
+
+    def read(ua):
+        r = classify(ua)
+        r = r if isinstance(r, dict) else vars(r)
+        return (r.get("lane"), r.get("bot_type"), r.get("vendor_key"))
+
+    bare = read(engine)
+    probed = read(probe_ua(engine))
+    assert bare == probed, f"the suffix moved the classification: {bare} -> {probed}"
+    assert bare[0] == lane and bare[2] == vendor, (
+        f"the ENGINE token's own classification moved: {bare}"
+    )
+
+
+def test_every_host_fetching_probe_carries_the_convention():
+    """Workflows, batteries and the container HEALTHCHECK, swept by name.
+
+    Non-vacuity (note 88): the sweep asserts it found files AND that each one
+    really does fetch a host, so a renamed workflow cannot turn this green by
+    sweeping nothing.
+    """
+    from conftest import REPO_ROOT
+
+    from lib.constants import PROBE_UA_SUFFIX
+
+    targets = sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml"))
+    targets += [REPO_ROOT / "scripts" / f"{n}.py"
+                for n in ("network_smoke", "smoke_live", "audit_links")]
+    targets += [REPO_ROOT / "Dockerfile"]
+
+    assert len(targets) >= 6, f"swept only {len(targets)} files"
+
+    fetchers, missing = [], []
+    for path in targets:
+        text = path.read_text()
+        if "curl" not in text and "urllib" not in text:
+            continue
+        fetchers.append(path.name)
+        if PROBE_UA_SUFFIX not in text:
+            missing.append(path.name)
+
+    assert len(fetchers) >= 6, f"only {len(fetchers)} of {len(targets)} fetch a host"
+    assert missing == [], f"host-fetching files with no probe UA: {missing}"
+
+
+def test_the_probe_caller_tag_never_breaks_the_token_or_the_lane():
+    """Same shape as `internal_ua()`'s caller suffix, and the same guarantee.
+
+    The tag is for reading the far side's log; the contract is the token, and
+    the lane must not move — a caller tag that reclassified would make the
+    battery measure the other document under its own name.
+    """
+    from dash_improve_my_llms import classify
+
+    from lib.constants import PROBE_UA_SUFFIX, probe_ua
+
+    engine = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    tagged = probe_ua(engine, "network-smoke")
+    assert tagged.endswith("network-smoke")
+    assert PROBE_UA_SUFFIX in tagged and INTERNAL_UA_TOKEN in tagged
+    assert probe_ua(engine, "  ") == probe_ua(engine)
+    assert classify(tagged)["lane"] == classify(engine)["lane"] == "browser"
