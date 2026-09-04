@@ -539,17 +539,49 @@ def _prune(rows, stamp=_visit_stamp):
     return rows
 
 
+def _vendor_class_from_registry(vendor_key):
+    """The package's own registry answer for ``vendor_key``, or None.
+
+    Not a second opinion and not a local table — ``get_vendor()`` reads the
+    same registry ``classify()`` does. It exists only for the version window
+    where the event carries a vendor and no class.
+    """
+    if not vendor_key:
+        return None
+    try:
+        from dash_improve_my_llms.vendors import get_vendor
+
+        vendor = get_vendor(vendor_key)
+        return getattr(vendor, "cls", None) if vendor else None
+    except Exception:
+        return None
+
+
 def _classify(user_agent, client_ip=None):
-    """The one classifier, made total: never raises, always has ``lane``."""
+    """The one classifier, made total: never raises, always has ``lane``.
+
+    PREFER, THEN DERIVE (1.6.44 item 8). dash-improve-my-llms 2.9.x puts
+    ``vendor_class`` on the classification itself. A fork that computes the
+    class unconditionally OVERWRITES the package's answer with its own, and
+    the two disagree the moment the registry learns a vendor the fork's table
+    does not have — which is the whole reason there is one classifier. So the
+    package's value is taken whenever it is present, and the registry is
+    consulted only where it is absent (a floor below 2.9, or a vendor the
+    classifier matched without a class). Never a hand-written map.
+    """
     try:
         c = classify(user_agent or "", client_ip)
     except Exception:
         c = {}
+    vendor_key = c.get("vendor_key")
+    vendor_class = c.get("vendor_class")
+    if vendor_class is None:
+        vendor_class = _vendor_class_from_registry(vendor_key)
     return {
         "lane": c.get("lane") or "browser",
         "bot_type": c.get("bot_type"),
-        "vendor_key": c.get("vendor_key"),
-        "vendor_class": c.get("vendor_class"),
+        "vendor_key": vendor_key,
+        "vendor_class": vendor_class,
         "verified": c.get("verified") or "n/a",
     }
 

@@ -112,3 +112,84 @@ def test_the_module_carries_no_user_agent_list():
                  if t in code]
     assert survivors == [], f"a hand-written UA list is back: {survivors}"
     assert "from dash_improve_my_llms import classify" in src
+
+
+# ------------------------------------------- prefer, then derive (item 8) --
+
+
+def test_a_package_provided_vendor_class_passes_through_untouched():
+    """Item 8's acceptance. The package's answer wins, always.
+
+    Deliberately conflicting fixture: the classification says `search` for a
+    vendor whose registry entry says something else. A fork that derives
+    unconditionally would return the registry's answer and silently disagree
+    with the package that produced the row.
+    """
+    import lib.analytics_tracker as tracker_mod
+
+    fixture = {
+        "lane": "crawler",
+        "bot_type": "search",
+        "vendor_key": "googlebot",
+        "vendor_class": "a-class-only-the-package-knows",
+        "verified": "yes",
+    }
+    original = tracker_mod.classify
+    tracker_mod.classify = lambda ua, ip=None: dict(fixture)
+    try:
+        result = tracker_mod._classify("anything")
+    finally:
+        tracker_mod.classify = original
+
+    assert result["vendor_class"] == "a-class-only-the-package-knows"
+    assert result["verified"] == "yes"
+
+
+def test_the_class_is_derived_only_when_the_event_omits_it():
+    """The other direction, so "prefer" cannot pass as "always derive".
+
+    A floor below 2.9 (or a vendor matched without a class) leaves the field
+    absent; the registry — the package's own, never a local table — fills it.
+    """
+    import lib.analytics_tracker as tracker_mod
+
+    original = tracker_mod.classify
+    tracker_mod.classify = lambda ua, ip=None: {
+        "lane": "crawler", "bot_type": "traditional",
+        "vendor_key": "googlebot", "verified": "n/a",
+    }
+    try:
+        result = tracker_mod._classify("anything")
+    finally:
+        tracker_mod.classify = original
+
+    from dash_improve_my_llms.vendors import get_vendor
+
+    assert result["vendor_class"] == get_vendor("googlebot").cls
+    assert result["vendor_class"] is not None, (
+        "the registry no longer classes googlebot — the derive path is dead"
+    )
+
+
+def test_the_derivation_reads_the_packages_registry_and_not_a_local_table():
+    """There is ONE classifier, and there is one registry with it."""
+    from conftest import REPO_ROOT
+
+    src = "\n".join(
+        line for line in
+        (REPO_ROOT / "lib" / "analytics_tracker.py").read_text().splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    assert "from dash_improve_my_llms.vendors import get_vendor" in src
+    block = src.split("def _vendor_class_from_registry", 1)[1].split("\ndef ", 1)[0]
+    assert "{" not in block.replace("{}", ""), (
+        "a literal mapping in the derive path is a second registry"
+    )
+
+
+def test_an_unknown_vendor_derives_nothing_rather_than_guessing():
+    from lib.analytics_tracker import _vendor_class_from_registry
+
+    assert _vendor_class_from_registry("not-a-real-vendor") is None
+    assert _vendor_class_from_registry(None) is None
+    assert _vendor_class_from_registry("") is None
