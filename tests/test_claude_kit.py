@@ -563,3 +563,75 @@ def test_a_case_bound_detect_would_still_fail_here():
     kit = (REPO / ".claude" / "CLAUDE.md").read_text()
     assert "ASSERT THE CORPUS IS NON-EMPTY" not in kit
     assert "assert the corpus is non-empty" in kit.lower()
+
+
+# --------------------------- traps-section currency (1.6.44 item 14) --
+
+
+def test_the_traps_counter_reads_this_repos_section():
+    """Item 14's detect needs a counter that works before it can print a
+    pair. Non-vacuity first: it must find this repo's own traps."""
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from kit_traps import trap_entries
+
+    entries = trap_entries((REPO / ".claude" / "CLAUDE.md").read_text())
+    assert len(entries) >= 20, (
+        f"the template's traps section reads as {len(entries)} entries — the "
+        "counter is looking at the wrong thing, or traps were lost"
+    )
+    assert all(e.strip() for e in entries)
+
+
+def test_the_counter_reports_a_fork_that_is_behind():
+    """The pair the fan-out prints. A counter that cannot report a gap is
+    the check-that-cannot-fail again — so the gap is constructed here.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from kit_traps import compare
+
+    template_text = (REPO / ".claude" / "CLAUDE.md").read_text()
+    head, tail = template_text.split("### Verification traps", 1)
+    truncated = head + "### Verification traps" + "\n".join(
+        tail.splitlines()[:80])
+
+    fork_n, template_n, missing = compare(truncated, template_text)
+    assert template_n >= 20
+    assert fork_n < template_n, "the truncated fork did not read as behind"
+    assert missing, "no missing entries reported for a fork that is behind"
+
+
+def test_a_fork_that_reworded_a_trap_is_not_reported_as_missing_it():
+    """Merged, never installed over. A fork adapting a trap to its own host
+    must not read as absence, or the check trains people to paste."""
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from kit_traps import compare
+
+    template_text = (REPO / ".claude" / "CLAUDE.md").read_text()
+    reworded = template_text.replace(
+        "- Always GET, never HEAD — and the mechanism",
+        "- Always GET, never HEAD — and the mechanism (on this host too)",
+        1,
+    )
+    _fork_n, _template_n, missing = compare(reworded, template_text)
+    assert not any("always get, never head" in m.lower() for m in missing), (
+        "a trap with an added clause read as missing — the check would push "
+        "forks to overwrite their own adaptations"
+    )
+
+
+def test_a_fork_with_no_traps_section_reads_as_zero_not_as_equal():
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from kit_traps import compare
+
+    template_text = (REPO / ".claude" / "CLAUDE.md").read_text()
+    fork_n, template_n, missing = compare("# a kit with no traps\n", template_text)
+    assert fork_n == 0 and template_n >= 20
+    assert len(missing) == template_n

@@ -483,3 +483,16 @@ they win.
   every workflow file in this repo. A test that reads triggers must try
   both keys — one that catches the KeyError and moves on asserts
   nothing at all.
+- A FORK'S TRAPS SECTION DRIFTS BEHIND THE TEMPLATE'S SILENTLY (1.6.44
+  item 14, emojimart 166e33a). The kit is contract-class, so the sync
+  never copies it, and nothing printed the gap: emojimart carried 7
+  entries against the template's 22, and its HEAD trap still held the
+  diagnosis 1.6.32 had corrected — a fork can be reading, and acting
+  on, a fact the fleet retired months ago. Detect, printed as a PAIR:
+  `python3 scripts/kit_traps.py <fork>/.claude/CLAUDE.md` reports
+  `fork N / template M` and names what is missing. Matching is by
+  token overlap of each trap's opening sentence, not by exact text,
+  because a fork is EXPECTED to merge a trap into its own wording —
+  the check exists to find a trap that never arrived, never to police
+  prose, and a strict check would train forks to paste over their own
+  adaptations. MERGED, NEVER INSTALLED OVER, in both directions.
