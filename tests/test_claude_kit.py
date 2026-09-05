@@ -744,3 +744,18 @@ def test_the_sampler_verifies_certificates():
     src = (REPO / "scripts" / "promote_sampler.py").read_text()
     assert "certifi" in src and "create_default_context" in src
     assert "ATTEMPTS = 3" in src
+
+
+def test_the_verify_contract_line_and_its_traps_are_in_the_kit():
+    """Item 18's detect: the contract line and the trap phrases."""
+    kit = " ".join((REPO / ".claude" / "CLAUDE.md").read_text().lower().split())
+    assert "metering evidence, never sole authorisation" in kit
+    assert "gated by a secret that host holds" in kit
+    for phrase in (
+        "a test that exercises a dependency's absence is not a test of that "
+        "dependency's policy",
+        "a fixture cannot falsify the assumption it was built from",
+        "a defaulted argument hides its own default",
+        "a test at the wrong level",
+    ):
+        assert phrase in kit, f"the kit does not carry: {phrase!r}"

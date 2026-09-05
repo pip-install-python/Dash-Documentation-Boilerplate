@@ -131,6 +131,32 @@ def check(path: str) -> str:
         return "allow"
 
     # No session: an agent, or an anonymous browser. Only a key can help now.
+    #
+    # THE VERDICT IS NOT THE AUTHORISATION (1.6.44 item 18, from the
+    # 2026-09-02 hub incident, 0.26.0 → 0.26.1). The hub gated two admin-data
+    # routes on this same endpoint, whose all-unknown-tier fallback answered
+    # "allow" WITHOUT READING THE KEY, and the lane was open for 24 minutes.
+    # The contract the fleet took from it: a host's own data is gated by a
+    # secret THAT HOST HOLDS; a verify verdict may be a second factor and is
+    # metering evidence first; "ask the authority" is the wrong shape for a
+    # gate, because a tier the authority has not learned yet is UNVERIFIED,
+    # not permitted.
+    #
+    # Why this call is within the contract, stated rather than assumed:
+    #
+    #   * it is the machine lane only. Human and admin access never reach
+    #     here — `resolve_page_access` answers those locally, from Clerk,
+    #     and `check` has already returned for a signed-in user above.
+    #   * the host-held secret is CROSS_APP_WEBHOOK_SECRET. `hub_client`
+    #     cannot even ask without it (`enabled()`), and with no secret the
+    #     answer is `gated`. So the secret this host holds is load-bearing
+    #     on every path through this call, which is exactly what the
+    #     contract requires.
+    #   * every fallback is CLOSED, in the opposite direction to the
+    #     incident: no key, no secret, no response, an unrecognised verdict
+    #     — all four return `gated`. `tests/test_access.py` source-pins
+    #     those four, because a behavioural suite cannot see a restored
+    #     default that pre-empts its own guard.
     key = _request_key()
     if not key:
         return "gated"

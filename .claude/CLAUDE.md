@@ -508,3 +508,37 @@ they win.
   the check exists to find a trap that never arrived, never to police
   prose, and a strict check would train forks to paste over their own
   adaptations. MERGED, NEVER INSTALLED OVER, in both directions.
+- A VERIFY VERDICT IS METERING EVIDENCE, NEVER SOLE AUTHORISATION
+  (1.6.44 item 18; the security incident of 2026-09-02, hub 0.26.0 →
+  0.26.1, 2plot.dev `5ca793c`). The hub gated two admin-data routes on
+  2plot.dev's `/api/agent-key/verify`, whose all-unknown-tier fallback
+  answered "allow" WITHOUT READING THE KEY; the lane was open
+  00:52–01:16Z. The contract: a host's own data is gated by a secret
+  THAT HOST HOLDS. A verify verdict may be a second factor, and it is
+  metering evidence first. A new tier is UNVERIFIED until the authority
+  learns it, so "ask the authority" is the wrong SHAPE for a gate —
+  the failure mode of an unreachable or ignorant authority must be
+  closed, and an authority that answers "allow" to a question it did
+  not understand is worse than no authority.
+  Four traps from the same family, each paid for by a different host:
+  *a test that exercises a dependency's ABSENCE is not a test of that
+  dependency's policy* — the bogus-key tests refused only because the
+  verifier was unreachable locally, and would have passed against a
+  verifier that allowed everything. *A fixture cannot falsify the
+  assumption it was built from* — a `measured_at` test agreed with a
+  fixture built from an invented key while the live field was null.
+  *A defaulted argument hides its own default* — every test that passes
+  the argument proves nothing about the branch that COMPUTES it, and the
+  caller that omits it is usually the one in production; the check is
+  "for any defaulted argument, is there a test that omits it?". *A test
+  at the wrong level* — a flush test asserted against the inner function
+  and passed; rewritten against the reporter production actually calls,
+  it failed for an unrelated reason nobody had seen. Two more in the
+  same shape: *a port takes the half it was looking for* (port a
+  mechanism's CALLERS' contract, not just the mechanism), and *verified
+  with an input the real caller does not use* (a serialiser tested with
+  Central-bounded windows while production passed UTC-bounded ones).
+  And from pipdocs' fix: pin the GOOD rows as well as the bypass rows;
+  reject case and whitespace lookalikes of a tier rather than one
+  literal; and SOURCE-PIN a default, because a behavioural suite cannot
+  see a restored default that pre-empts its own guard.

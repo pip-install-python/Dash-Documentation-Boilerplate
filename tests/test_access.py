@@ -550,3 +550,115 @@ def test_run_py_pins_the_funnel_public(app_module):
     the regression net for those pins."""
     for path in ("/", "/getting-started", "/llms-small.txt", "/llms-full.txt"):
         assert page_tiers.local_tier(path) == "public", path
+
+
+# ------------- verify is metering evidence, not authorisation (item 18) --
+
+
+def _verify_source():
+    from conftest import REPO_ROOT
+
+    return (REPO_ROOT / "lib" / "hub_client.py").read_text().split(
+        "def verify(", 1)[1].split("\ndef ", 1)[0]
+
+
+def test_every_verify_fallback_is_closed_in_the_source():
+    """SOURCE-pinned, and that is the point (pipdocs).
+
+    A behavioural suite cannot see a restored default that pre-empts its own
+    guard: if someone reinstates an `allow` fallback ABOVE these branches,
+    every behavioural test still passes because it never reaches them. So
+    the four closed exits are pinned in the text, and the count is pinned
+    too — an added early return would change it.
+    """
+    source = _verify_source()
+    assert source.count('return "gated"') == 4, (
+        "the number of closed exits in hub_client.verify changed — read it "
+        "before adjusting this number"
+    )
+    assert 'return "allow"' not in source, (
+        "verify has an unconditional allow path — this is the hub incident"
+    )
+
+
+def test_the_host_held_secret_gates_the_call_at_all():
+    """The contract: a host's own data is gated by a secret that host holds.
+
+    `enabled()` is CROSS_APP_WEBHOOK_SECRET. Without it there is nobody to
+    authenticate as, and the answer must be `gated` rather than a shrug.
+    """
+    source = _verify_source()
+    assert "if not enabled():" in source
+    after = source.split("if not enabled():", 1)[1].split("\n\n", 1)[0]
+    assert 'return "gated"' in after
+
+
+def test_an_unreachable_hub_denies_rather_than_allows(monkeypatch):
+    """The behavioural half. Both halves are needed: this one would pass
+    against a verifier that allowed everything, which is trap one."""
+    from lib import hub_client
+
+    monkeypatch.setattr(hub_client, "enabled", lambda: True)
+    monkeypatch.setattr(hub_client, "_cache_get", lambda *a, **k: None)
+    monkeypatch.setattr(hub_client, "_post", lambda *a, **k: None)
+    assert hub_client.verify("k2p_whatever", "/backends", "auth") == "gated"
+
+
+def test_an_unrecognised_verdict_is_gated_not_trusted(monkeypatch):
+    """A tier the authority has not learned is UNVERIFIED, not permitted."""
+    from lib import hub_client
+
+    monkeypatch.setattr(hub_client, "enabled", lambda: True)
+    monkeypatch.setattr(hub_client, "_cache_get", lambda *a, **k: None)
+    for verdict in ("maybe", "", "ALLOW_ALL", "unknown-tier", None):
+        monkeypatch.setattr(hub_client, "_post",
+                            lambda *a, **k: {"verdict": verdict})
+        assert hub_client.verify("k2p_x", "/backends", "auth") == "gated"
+
+
+def test_the_good_rows_are_pinned_as_well_as_the_bypass_rows(monkeypatch):
+    """pipdocs: a suite that only pins refusals cannot tell a working gate
+    from a gate that refuses everything."""
+    from lib import hub_client
+
+    monkeypatch.setattr(hub_client, "enabled", lambda: True)
+    monkeypatch.setattr(hub_client, "_cache_get", lambda *a, **k: None)
+    monkeypatch.setattr(hub_client, "_cache_put", lambda *a, **k: None)
+    for verdict in ("allow", "gated", "deny"):
+        monkeypatch.setattr(hub_client, "_post",
+                            lambda *a, **k: {"verdict": verdict})
+        assert hub_client.verify("k2p_x", "/backends", "auth") == verdict
+
+
+def test_a_tier_lookalike_is_rejected_rather_than_matched():
+    """Case and whitespace variants must not become a tier.
+
+    The override store is a FILE; a hand-edited "Admin " must not be read as
+    admin, and must not silently become something weaker either — it is
+    rejected, and the page falls through to its frontmatter registration.
+    """
+    from lib import page_visibility
+
+    for lookalike in ("Admin", "admin ", " admin", "ADMIN", "aDmIn"):
+        assert lookalike not in page_visibility.TIERS
+        with pytest.raises(ValueError):
+            page_visibility.set_visibility("/probe-path", lookalike)
+
+
+def test_the_human_lane_never_asks_the_hub_at_all():
+    """The architectural half of the acceptance: verify is the MACHINE
+    lane's second factor. A browser layout is decided locally, from Clerk.
+    """
+    import ast
+
+    from conftest import REPO_ROOT
+
+    tree = ast.parse((REPO_ROOT / "lib" / "access.py").read_text())
+    resolve = next(n for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef)
+                   and n.name == "resolve_page_access")
+    called = {n.func.attr for n in ast.walk(resolve)
+              if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)}
+    assert "verify" not in called, (
+        "the interactive verdict consults the hub — keys never unlock layouts"
+    )
