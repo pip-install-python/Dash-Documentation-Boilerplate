@@ -151,3 +151,151 @@ def test_the_geo_block_reports_headers_even_when_the_package_errors():
            / "lib" / "health.py").read_text()
     error_branch = src.split('"error": True', 1)[0][-400:]
     assert "headers_seen" in error_branch
+
+
+# ------------------------------- the ledger block (1.6.44 item 20) --
+
+
+def test_the_ledger_block_has_its_four_keys_and_their_types():
+    from lib.health import health_payload
+
+    ledger = health_payload("flask")["ledger"]
+    assert set(ledger) == {"path", "persistent", "visits", "reads"}
+    assert isinstance(ledger["persistent"], bool)
+    assert isinstance(ledger["visits"], int)
+    assert isinstance(ledger["reads"], int)
+    assert ledger["path"] is None or isinstance(ledger["path"], str)
+
+
+def test_persistent_is_measured_from_the_path_not_declared(monkeypatch, tmp_path):
+    """BOTH directions, so the boolean cannot pass as a constant.
+
+    leaflet ran for weeks with a declared disk and no disk. A blueprint's
+    declaration is an intention; this reports the filesystem.
+    """
+    import lib.analytics_tracker as tracker_mod
+    from conftest import REPO_ROOT
+    from lib.health import health_payload
+
+    outside = tmp_path / "ledger.json"
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: outside)
+    assert health_payload("flask")["ledger"]["persistent"] is True
+
+    inside = REPO_ROOT / "visitor_analytics.json"
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: inside)
+    assert health_payload("flask")["ledger"]["persistent"] is False, (
+        "a path under the app tree is the container filesystem, whatever "
+        "the blueprint says"
+    )
+
+
+def test_a_missing_ledger_is_zeros_and_not_an_error(monkeypatch, tmp_path):
+    """/healthz must stay 200. A diagnostic that can take the health probe
+    down with it is a liability."""
+    import lib.analytics_tracker as tracker_mod
+    from lib.health import health_payload
+
+    monkeypatch.setattr(tracker_mod, "analytics_path",
+                        lambda: tmp_path / "nothing-here.json")
+    payload = health_payload("flask")
+    assert payload["ok"] is True
+    assert payload["ledger"]["visits"] == 0 and payload["ledger"]["reads"] == 0
+    assert payload["ledger"]["path"].endswith("nothing-here.json")
+
+
+def test_a_corrupt_ledger_is_zeros_and_not_an_error(monkeypatch, tmp_path):
+    import lib.analytics_tracker as tracker_mod
+    from lib.health import health_payload
+
+    broken = tmp_path / "half-written.json"
+    broken.write_text('{"visits": [{"path": "/a"}')
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: broken)
+    payload = health_payload("flask")
+    assert payload["ok"] is True
+    assert payload["ledger"]["visits"] == 0
+
+
+def test_the_counts_are_the_rows_of_the_file_the_tracker_writes(monkeypatch,
+                                                                tmp_path):
+    import json as _json
+
+    import lib.analytics_tracker as tracker_mod
+    from lib.health import health_payload
+
+    ledger = tmp_path / "a.json"
+    ledger.write_text(_json.dumps({
+        "visits": [{"path": "/a"}, {"path": "/b"}, {"path": "/c"}],
+        "reads": [{"path": "/llms.txt"}],
+    }))
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: ledger)
+    block = health_payload("flask")["ledger"]
+    assert (block["visits"], block["reads"]) == (3, 1)
+
+
+def test_the_block_never_carries_row_contents(monkeypatch, tmp_path):
+    """Counts, a boolean and a path. Nothing about a visitor."""
+    import json as _json
+
+    import lib.analytics_tracker as tracker_mod
+    from lib.health import health_payload
+
+    ledger = tmp_path / "a.json"
+    ledger.write_text(_json.dumps({
+        "visits": [{"path": "/secret", "user_agent": "SECRET-UA",
+                    "visitor_key": "deadbeefdeadbeef"}],
+        "reads": [],
+    }))
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: ledger)
+    serialised = _json.dumps(health_payload("flask")["ledger"])
+    for leaked in ("SECRET-UA", "deadbeefdeadbeef", "/secret"):
+        assert leaked not in serialised
+
+
+def test_item_10s_keys_are_still_there(client):
+    """A RENAME is still the failure; this block is additive."""
+    import json as _json
+
+    body = _json.loads(client.get("/healthz").text)
+    for key in ("ok", "backend", "dash_version", "python", "ledger"):
+        assert key in body, f"/healthz lost {key}"
+
+
+def test_the_two_lanes_serve_the_same_keys(client):
+    """The ASGI lane's response_model must not narrow the payload.
+
+    Found while building item 20 and it was already live: a pydantic
+    response_model drops undeclared fields SILENTLY, so `llms_version` —
+    item 1's rider, added two days earlier precisely so the CI-vs-production
+    gap would stop being self-reported — was on the Flask lane and absent
+    from this one. The template's production is Flask, so nothing said so;
+    the fleet's two ASGI forks would have shipped a healthz without it.
+
+    This test is the guard for the CLASS, not for those two keys: every key
+    `health_payload` produces must reach the wire, whichever lane answers.
+    """
+    import json as _json
+
+    from lib.backend import get_backend_info
+    from lib.health import health_payload
+
+    served = _json.loads(client.get("/healthz").text)
+    expected = health_payload(get_backend_info().name)
+
+    missing = sorted(set(expected) - set(served))
+    assert missing == [], (
+        f"the {get_backend_info().name} lane's /healthz drops {missing} — a "
+        "response_model that narrows the payload is the two-lanes trap with "
+        "a type annotation on it"
+    )
+
+
+def test_the_asgi_model_keeps_keys_it_does_not_know_about():
+    """Belt to the test above: the next additive key must survive without
+    anyone remembering to declare it."""
+    from lib.asgi_routes import HealthResponse
+
+    widened = HealthResponse(backend="fastapi", dash_version="4.4.1",
+                             python="3.14.7", a_future_key="kept")
+    assert widened.model_dump().get("a_future_key") == "kept", (
+        "an undeclared key is dropped — declare extra='allow'"
+    )

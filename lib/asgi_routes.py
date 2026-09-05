@@ -20,7 +20,7 @@ from typing import List, Optional
 
 import dash
 from fastapi import APIRouter, FastAPI, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +62,22 @@ class HealthResponse(BaseModel):
     (found on llms-2plot-dev, 2026-08-23).
     """
 
+    # ADDITIVE KEYS ARE KEPT (1.6.44 item 20, and the reason is item 1).
+    # A pydantic response_model DROPS every field it does not declare, in
+    # silence. That is how `llms_version` — added to health_payload two days
+    # ago as item 1's rider, and specifically so the CI-vs-production gap
+    # would stop being self-reported — was present on the Flask lane and
+    # ABSENT on this one, on a template whose production runs Flask so
+    # nothing said so. The two ASGI forks in the fleet would have shipped a
+    # healthz with no llms_version and no way to notice.
+    #
+    # Two defences, because either alone has failed here: the known keys are
+    # declared below (so Swagger documents them), and `extra="allow"` keeps
+    # anything health_payload adds NEXT. A model that silently narrows the
+    # payload is the "two lanes are different documents" trap wearing a
+    # type annotation.
+    model_config = ConfigDict(extra="allow")
+
     ok: bool = True
     backend: str
     dash_version: str
@@ -74,6 +90,11 @@ class HealthResponse(BaseModel):
     build: Optional[str] = None
     app: Optional[str] = None
     geo: Optional[dict] = None
+    # The resolved dash-improve-my-llms version (item 1's rider) and the
+    # ledger block (item 20). Optional because health_payload omits
+    # llms_version when the import itself fails, which is the finding.
+    llms_version: Optional[str] = None
+    ledger: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
