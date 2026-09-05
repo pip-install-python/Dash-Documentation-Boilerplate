@@ -635,3 +635,112 @@ def test_a_fork_with_no_traps_section_reads_as_zero_not_as_equal():
     fork_n, template_n, missing = compare("# a kit with no traps\n", template_text)
     assert fork_n == 0 and template_n >= 20
     assert len(missing) == template_n
+
+
+# ------------------------------- the timing sampler (1.6.44 item 17) --
+
+
+def test_the_sampler_trap_carries_its_three_phrases():
+    """Item 17's detect. Each phrase is a correction some host paid for.
+
+    Whitespace is normalised before matching, and that is not tidiness: the
+    first version of this test failed because "eight samples at 45 s" wraps
+    across a line break in the kit. A detect keyed on where a line happens
+    to break is a detect on formatting — item 13's rule, one more time, in
+    the same file that records it.
+    """
+    kit = " ".join((REPO / ".claude" / "CLAUDE.md").read_text().lower().split())
+    for phrase in ("eight samples at 45", "completed_at", "unreadable"):
+        assert phrase in kit, f"the trap does not carry {phrase!r}"
+    assert "promote step" in kit
+
+
+def test_the_trap_points_at_the_script_rather_than_describing_it():
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    assert "scripts/promote_sampler.py" in kit
+    assert (REPO / "scripts" / "promote_sampler.py").exists()
+
+
+def test_the_sampler_records_unreadable_as_its_own_state():
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from promote_sampler import NEW, OLD, UNREADABLE, classify
+
+    assert classify(None, "abc123") == UNREADABLE
+    assert UNREADABLE != OLD, (
+        "collapsing unreadable into old invents a bracket nobody observed"
+    )
+    assert classify("abc123def456", "abc123def456") == NEW
+    assert classify("999999999999", "abc123def456") == OLD
+
+
+def test_the_sampler_refuses_a_bracket_it_did_not_observe(capsys):
+    """A single NEW sample proves nothing: it cannot say what it followed.
+
+    This is the difference between evidence and a number, and it is the one
+    thing a sampler must not get wrong.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    import promote_sampler
+
+    original = promote_sampler.read_build
+    try:
+        promote_sampler.read_build = lambda url: "abc123def456"   # NEW always
+        code = promote_sampler.main(
+            ["prog", "--sha", "abc123def456", "--samples", "2", "--interval", "0"]
+        )
+    finally:
+        promote_sampler.read_build = original
+
+    assert code == 1, "a run with no OLD sample reported a bracket"
+    assert "cannot say what the swap followed" in capsys.readouterr().out
+
+
+def test_the_sampler_reports_a_real_bracket(capsys):
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    import promote_sampler
+
+    sequence = iter(["oldbuild0000", None, "abc123def456"])
+    original = promote_sampler.read_build
+    try:
+        promote_sampler.read_build = lambda url: next(sequence)
+        code = promote_sampler.main(
+            ["prog", "--sha", "abc123def456", "--samples", "3", "--interval", "0"]
+        )
+    finally:
+        promote_sampler.read_build = original
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "last OLD" in out and "first NEW" in out
+    assert "inside the bracket" in out, (
+        "the unreadable sample between old and new was not surfaced — that "
+        "sample is the restart, and it landed inside the bracket twice out "
+        "of two on this host"
+    )
+
+
+def test_the_sampler_probe_carries_the_internal_token():
+    import sys
+
+    sys.path.insert(0, str(REPO / "scripts"))
+    from promote_sampler import PROBE_UA
+
+    from lib.constants import INTERNAL_UA_TOKEN
+
+    assert INTERNAL_UA_TOKEN in PROBE_UA
+    assert PROBE_UA.startswith("curl/"), "an engineless probe is crawler-lane"
+
+
+def test_the_sampler_verifies_certificates():
+    """Every ad-hoc probe against production needs this, and shipping the
+    fix inside the live tools did not stop the next hand-written script
+    from hitting CERTIFICATE_VERIFY_FAILED an hour later."""
+    src = (REPO / "scripts" / "promote_sampler.py").read_text()
+    assert "certifi" in src and "create_default_context" in src
+    assert "ATTEMPTS = 3" in src

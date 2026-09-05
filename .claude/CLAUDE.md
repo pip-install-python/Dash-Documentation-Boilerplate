@@ -370,6 +370,18 @@ they win.
   ~00:51:46Z, and the wire was still old at 00:52:03Z — so it reacted to
   the PROMOTE. Fifth host with a measured pair; still not proof, and the
   red push on main remains the discriminator.
+  THE SAMPLER IS A SCRIPT NOW (1.6.44 item 17), so nobody re-derives it
+  under time pressure at the moment a promote is landing:
+  `python3 scripts/promote_sampler.py --sha <run sha>` — eight samples at
+  45 s, one loop over the wire and the run state, three attempts per
+  sample, `unreadable` recorded as its own state, and it REFUSES to
+  report a bracket it did not observe (no OLD sample before the first
+  NEW is an error, not a result, because a single "new" sample cannot
+  say what it followed). Start it BEFORE the promote. It prints the
+  bracket and then tells you to time against the promote STEP's
+  `completed_at`; it deliberately does not read the job's, because the
+  only thing that number can produce is a wrong answer that looks like
+  data.
 - Verify the artifact the claim is about, and say which one you
   measured. Three hosts got this wrong in one round while holding the
   rule: a skip link checked in the received HTML lives in the RENDERED
