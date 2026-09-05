@@ -140,3 +140,100 @@ def test_a_pre_1_6_34_ledger_gains_reads_without_losing_visits(tmp_path):
     t.flush()
     data = json.loads(p.read_text())
     assert len(data["visits"]) == 1 and len(data["reads"]) == 1
+
+
+# ------------------------- reads are never pruned by count (item 21) --
+
+
+def _read_rows(count, hours_ago=1):
+    from datetime import datetime, timedelta
+
+    stamp = (datetime.now() - timedelta(hours=hours_ago)).timestamp()
+    return [{"ts": stamp, "path": f"/p{i}", "kind": "read"}
+            for i in range(count)]
+
+
+def test_reads_keep_every_row_inside_the_retention_window():
+    """Item 21's acceptance, built to the number the item names.
+
+    20,001 read rows inside the window plus one outside it: all 20,001 stay,
+    the dated one goes. On a corpus served to every crawler in the world the
+    READ table fills fastest, so a shared count cap deletes the oldest reads
+    first — the ledger eating its own history while its own retention window
+    says those rows should still be there.
+    """
+    from datetime import datetime, timedelta
+
+    from lib import analytics_tracker as tracker_mod
+
+    cap = tracker_mod.MAX_VISITS
+    assert cap > 0, "no cap configured — this test would prove nothing"
+
+    old = (datetime.now() - timedelta(days=tracker_mod.RETENTION_DAYS + 5)).timestamp()
+    rows = _read_rows(cap + 1) + [{"ts": old, "path": "/ancient", "kind": "read"}]
+
+    kept = tracker_mod._prune(rows, stamp=tracker_mod._read_stamp, cap=False)
+
+    assert len(kept) == cap + 1, (
+        f"{len(kept)} rows kept of {cap + 1} inside the window — the count "
+        "cap is still touching the reads table"
+    )
+    assert not any(r["path"] == "/ancient" for r in kept), (
+        "the dated row survived — retention is not being applied at all"
+    )
+
+
+def test_the_same_rows_lose_one_under_the_old_behaviour():
+    """The mutation, proven rather than asserted (item 21 asks for exactly
+    this): the identical corpus, pruned WITH the cap, silently loses an
+    in-window row. That difference is the whole item."""
+    from datetime import datetime, timedelta
+
+    from lib import analytics_tracker as tracker_mod
+
+    cap = tracker_mod.MAX_VISITS
+    old = (datetime.now() - timedelta(days=tracker_mod.RETENTION_DAYS + 5)).timestamp()
+    rows = _read_rows(cap + 1) + [{"ts": old, "path": "/ancient", "kind": "read"}]
+
+    with_cap = tracker_mod._prune(rows, stamp=tracker_mod._read_stamp)
+    assert len(with_cap) == cap
+    assert len(with_cap) < cap + 1, (
+        "the pre-item behaviour kept everything — the test cannot show the "
+        "defect it exists to describe"
+    )
+
+
+def test_visits_keep_the_count_cap():
+    """The other half: item 21 moves the reads table, and only that. A
+    visits table with no cap is an unbounded file on a container disk."""
+    from datetime import datetime, timedelta
+
+    from lib import analytics_tracker as tracker_mod
+
+    cap = tracker_mod.MAX_VISITS
+    stamp = (datetime.now() - timedelta(hours=1)).isoformat()
+    visits = [{"timestamp": stamp, "path": f"/v{i}"} for i in range(cap + 50)]
+    assert len(tracker_mod._prune(visits)) == cap
+
+
+def test_the_writer_prunes_the_two_tables_by_different_rules():
+    """Source-pinned: the call site is where the two rules are chosen, and a
+    behavioural test cannot see a `cap=True` restored above it."""
+    import ast
+
+    from conftest import REPO_ROOT
+
+    tree = ast.parse((REPO_ROOT / "lib" / "analytics_tracker.py").read_text())
+    calls = [n for n in ast.walk(tree)
+             if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "_prune"]
+    assert calls, "no _prune call found — the AST read swept nothing"
+
+    reads_calls = [c for c in calls
+                   if any(k.arg == "stamp" and getattr(k.value, "id", "") ==
+                          "_read_stamp" for k in c.keywords)]
+    assert reads_calls, "no reads-table prune call found"
+    for call in reads_calls:
+        cap = next((k.value for k in call.keywords if k.arg == "cap"), None)
+        assert cap is not None and cap.value is False, (
+            "the reads table is pruned with the count cap enabled"
+        )

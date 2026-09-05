@@ -536,7 +536,9 @@ class AnalyticsTracker:
 
             data["visits"] = _prune(visits)
             read_rows.extend(reads)
-            data["reads"] = _prune(read_rows, stamp=_read_stamp)
+            # cap=False: reads keep every row inside the retention window
+            # (item 21). The count cap is the visits table's rule.
+            data["reads"] = _prune(read_rows, stamp=_read_stamp, cap=False)
 
             # Atomic replace: a crash mid-write can't leave a truncated ledger.
             tmp = path.with_suffix(path.suffix + ".tmp")
@@ -565,12 +567,25 @@ def _read_stamp(r):
         return ""
 
 
-def _prune(rows, stamp=_visit_stamp):
-    """Drop rows older than the retention window, then cap the total."""
+def _prune(rows, stamp=_visit_stamp, cap=True):
+    """Drop rows older than the retention window; cap the total only if asked.
+
+    THE COUNT CAP IS FOR `visits` ONLY (1.6.44 item 21; note 94, measured on
+    llms, muicharts and pannellum). It applied to BOTH tables, and on a
+    corpus served to every crawler in the world the READ table fills fastest
+    — so the oldest read rows went first and the ledger ate its own history
+    while its retention window said the rows should still be there. A cap
+    that silently deletes inside the window is not a cap, it is a different
+    retention policy nobody wrote down.
+
+    `reads` prune by DATE only. If the read table grows beyond what a host
+    can hold, the answer is a shorter retention window — a number an
+    operator sets and can see — not a silent truncation.
+    """
     if RETENTION_DAYS > 0:
         cutoff = (datetime.now() - timedelta(days=RETENTION_DAYS)).isoformat()
         rows = [v for v in rows if stamp(v) >= cutoff]
-    if MAX_VISITS > 0 and len(rows) > MAX_VISITS:
+    if cap and MAX_VISITS > 0 and len(rows) > MAX_VISITS:
         rows = rows[-MAX_VISITS:]
     return rows
 
