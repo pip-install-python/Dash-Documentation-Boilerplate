@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.44] - 2026-09-04
+
+Twenty-three items: nineteen from the notes-78–90 drop, four from the
+2026-09-04 rider written after the crash-recovery survey. The release
+pins the network's own package exactly, retires a shim on the strength
+of that pin, stops storing visitor IP addresses, and spends a lot of its
+length on the difference between a check that passed and a check that
+ran.
+
+### Added
+- `Legal` nav section with template-owned `/terms` and `/privacy`. One
+  markdown string per page serves the browser and the machine lane, so
+  the site cannot hold two versions of its own terms. The privacy page
+  is generated from the mechanism and BOUND to it: a test reads a real
+  visit row out of a real tracker and fails if the tracker stores a
+  field the page does not describe (item 15).
+- `ledger` on `/healthz` — path, `persistent`, `visits`, `reads`.
+  `persistent` is measured from the resolved path, not declared: a path
+  under the app tree is the container filesystem and reads false even
+  where a blueprint declares a disk (item 20).
+- `geo.headers_seen` on `/healthz`: which Cloudflare visitor-location
+  headers this process has actually received, so "is the transform on
+  for this zone?" is answerable from outside (item 16).
+- A boot warning when `TRAFFIC_ANALYTICS_FILE` is unset, mirroring the
+  `[visibility]` guard so one habit covers both stores (item 22).
+- The fleet probe convention: `lib.constants.probe_ua()`, used by both
+  workflows, the three batteries and the container HEALTHCHECK. Measured
+  on dimll 2.9.4 — the suffix moves neither lane, vendor nor bot_type on
+  any engine, so suppression is the tracker's write-time drop and lane
+  classification holds by construction (item 4).
+- Four battery invariants that now run against the DEPLOYED host on
+  every CD, plus `skip` as a real verdict and a header mapping that
+  keeps repeated `Link` values (items 5, 19).
+- `scripts/promote_sampler.py` and `scripts/kit_traps.py` (items 17, 14).
+- `py_compile sweep of docs/` in CI — the check `flake8` cannot make,
+  because `.flake8` excludes `docs/*/` (item 7).
+
+### Changed
+- `dash-improve-my-llms` is pinned EXACTLY at 2.9.4. No `>=` floors
+  anywhere (item 1, owner decision 0bb).
+- The tracker no longer stores raw client IP addresses. The address is
+  resolved, used to compute a keyed one-way `visitor_key`, and dropped;
+  `ANALYTICS_KEEP_CLIENT_IP=1` still keeps it. Location comes from the
+  edge's headers or not at all (item 16).
+- `reads` prune by retention date only. The count cap was shared with
+  `visits`, so on a corpus served to every crawler the oldest READ rows
+  went first — the ledger eating its own history inside its own
+  retention window (item 21).
+- `vendor_class` prefers the package's value and derives from the
+  package's REGISTRY only when absent — never a local map (item 8).
+- `/assets/` is served with a cache lifetime. It was going out as
+  `cache-control: no-cache` with `cf-cache-status: DYNAMIC`, so the edge
+  stored nothing and every visitor revalidated the stylesheet and three
+  scripts on every page load (item 6g; fleet-wide on four hosts).
+- The Other Apps menu opens from the keyboard; prose links no longer
+  rely on colour alone; touch targets reach 44px at phone width; content
+  images carry intrinsic width/height (item 6).
+- `DIVERGENCES.md` distinguishes a DIVERGENCE from a RECORDED
+  CONVENTION — a match kept on purpose, which nothing in a diff tells
+  from an accident (item 9).
+
+### Fixed
+- **`llms_version` was absent from `/healthz` on the FastAPI lane** from
+  the moment item 1 added it. A pydantic `response_model` drops every
+  field it does not declare, silently; the template serves Flask in
+  production, so nothing said so. The model now declares the known keys
+  AND takes `extra="allow"`, and a test asserts every key
+  `health_payload` produces reaches the wire on whichever lane answers
+  (found while building item 20).
+- `HeadAsGetMiddleware` is retired, gated on the 2.9.4 pin rather than
+  on the date. It converted HEAD to GET above the router, so it MASKED
+  the package's own fix instead of conflicting with it (item 2).
+
+### Kit
+- Six traps and two contract clauses: name the check that actually ran;
+  print the resolved version beside the result; the CD double-run trap
+  (and PyYAML parsing `on:` as the boolean True); traps-section currency
+  per fork; a verify verdict is metering evidence, never sole
+  authorisation; a proxied robots.txt is not your robots.txt; and the
+  owner's standing build-word sentence, carried verbatim with the
+  reading that keeps it from pre-authorising its own amendment (items 7,
+  10, 12, 14, 18, 19, 23).
+- The spec-format rule learns that a docstring is a STRING. Five
+  formatting-bound detects on this tree in one release — a raw grep
+  matching the comment that explains an absence, a comment-strip
+  matching the live docstring doing the same, a fragment that wraps
+  across a line, and a blockquote's `> ` markers. `ast.parse` for code,
+  flattened whitespace for prose (item 13).
+
 ## [1.6.43] - 2026-09-01
 
 What the item-18 fan-out taught the template, including four defects
