@@ -24,6 +24,7 @@ the key appears — rather than asserting its absence means nothing.
 from __future__ import annotations
 
 import json
+import os
 import platform
 
 import pytest
@@ -291,8 +292,29 @@ def test_the_two_lanes_serve_the_same_keys(client):
 
 def test_the_asgi_model_keeps_keys_it_does_not_know_about():
     """Belt to the test above: the next additive key must survive without
-    anyone remembering to declare it."""
-    from lib.asgi_routes import HealthResponse
+    anyone remembering to declare it.
+
+    `lib.asgi_routes` imports fastapi at module level, and CI's matrix
+    installs each leg's backend ONLY — so this import is a hard dependency
+    that the flask and quart legs do not have. It went red on both
+    (ModuleNotFoundError at lib/asgi_routes.py:22) after passing locally,
+    because this machine has all three backends installed: running
+    `DASH_BACKEND=flask` here proves the flask CODE PATH, never the flask
+    leg's DEPENDENCY SET. `importorskip` is the tree's existing precedent
+    (test_llms_routes.py:216) and it performs the import rather than asking
+    find_spec, which answers yes for an importable-but-broken module.
+
+    THE POSITIVE CONTROL below is the point. A bare skip would make this the
+    fourth check-that-cannot-fail in a release about checks that cannot
+    fail: on the leg that DOES have fastapi, the import must SUCCEED, and
+    skipping there would be a silent loss of the only coverage this test
+    provides.
+    """
+    if os.environ.get("DASH_BACKEND") == "fastapi":
+        from lib.asgi_routes import HealthResponse   # must import, never skip
+    else:
+        pytest.importorskip("fastapi")
+        from lib.asgi_routes import HealthResponse
 
     widened = HealthResponse(backend="fastapi", dash_version="4.4.1",
                              python="3.14.7", a_future_key="kept")
