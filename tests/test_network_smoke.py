@@ -240,3 +240,83 @@ def test_the_api_index_check_skips_only_while_the_host_declares_nothing(
         "the check still skipped with packages declared — it is a constant, "
         "not a check"
     )
+
+
+# ------------------------ a proxied robots.txt is not yours (item 19) --
+
+
+def test_the_ai_bot_posture_row_is_registered(battery):
+    import inspect
+
+    source = inspect.getsource(battery.satellite_checks)
+    assert '("ai_bot_posture", ai_bot_posture)' in source
+    assert "def ai_bot_posture()" in source
+
+
+def test_the_row_compares_the_two_documents_and_passes_when_they_agree(wired):
+    """The app's generated robots.txt against the one the world is served."""
+    wired.satellite_checks(BASE)
+    verdicts = {name: verdict for name, verdict, _ in wired._RESULTS}
+    assert verdicts["ai_bot_posture"] == wired.PASS, [
+        r for r in wired._RESULTS if r[0] == "ai_bot_posture"
+    ]
+
+
+def test_an_injected_disallow_reads_red(battery, wired, monkeypatch):
+    """Item 19's acceptance. An edge can rewrite the file in valid syntax:
+    the injected stanza below would sail past any `User-agent:` grep, and it
+    turns off the entire crawl this network exists to serve."""
+    real_fetch = wired.fetch
+
+    def injected(url, *args, **kwargs):
+        status, headers, text = real_fetch(url, *args, **kwargs)
+        if url.endswith("/robots.txt"):
+            text = ("# BEGIN Cloudflare Managed content\n"
+                    "User-agent: GPTBot\nDisallow: /\n"
+                    "# END Cloudflare Managed content\n") + text
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", injected)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+
+    row = [r for r in wired._RESULTS if r[0] == "ai_bot_posture"]
+    assert row and row[0][1] == battery.FAIL, row
+    detail = row[0][2]
+    assert "not the one this app wrote" in detail
+    assert "Cloudflare Managed" in detail or "disallow" in detail.lower()
+
+
+def test_a_comment_only_edge_marker_still_reads_red(battery, wired, monkeypatch):
+    """The marker IS the tell, and a marker with no directives under it is
+    the shape a grep is least likely to notice."""
+    real_fetch = wired.fetch
+
+    def marked(url, *args, **kwargs):
+        status, headers, text = real_fetch(url, *args, **kwargs)
+        if url.endswith("/robots.txt"):
+            text = "# BEGIN Cloudflare Managed content\n" + text
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", marked)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    row = [r for r in wired._RESULTS if r[0] == "ai_bot_posture"]
+    assert row and row[0][1] == battery.FAIL
+    assert "edge marker" in row[0][2]
+
+
+def test_the_row_skips_rather_than_inventing_one_side(battery, wired, monkeypatch):
+    """A comparison with only one side is not a comparison. The battery runs
+    against hosts whose checkout it does not have."""
+    import lib.robots_expected as expected
+
+    def unavailable():
+        raise RuntimeError("no checkout here")
+
+    monkeypatch.setattr(expected, "expected_directives", unavailable)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    row = [r for r in wired._RESULTS if r[0] == "ai_bot_posture"]
+    assert row and row[0][1] == battery.SKIP, row
+    assert row[0][1] != battery.PASS

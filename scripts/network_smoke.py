@@ -484,6 +484,56 @@ def satellite_checks(base: str) -> None:
                    f"{lane} lane's Link headers do not point at /llms.txt: "
                    f"{values}")
 
+    def ai_bot_posture():
+        """The SERVED robots.txt against the one this app GENERATES.
+
+        1.6.44 item 19, from the 2plot.dev proxy canary. An edge can inject,
+        rewrite or replace robots.txt in perfectly valid syntax, with no tell
+        beyond a comment marker — a grep for `User-agent:` sails straight
+        past it. To learn what the APP declares you must generate it in
+        process or read the config; to learn what the WORLD is told you fetch
+        it; and WHEN THEY DIFFER, THE DIFFERENCE IS THE FINDING. Same family
+        as "verify the artifact the claim is about, and say which one".
+
+        SKIPPED where the app cannot be generated beside this script (a copy
+        of the battery run against another host) — a comparison with only
+        one side is not a comparison.
+        """
+        status, _, served = get("/robots.txt")
+        expect(status == 200, f"/robots.txt {status}")
+
+        try:
+            from lib.robots_expected import expected_directives
+            generated = expected_directives()
+        except Exception as exc:
+            skip(f"cannot generate this app's robots.txt here ({type(exc).__name__})")
+
+        if not generated:
+            skip("the app generated no directives to compare against")
+
+        def directives(text):
+            out = []
+            for line in text.splitlines():
+                line = line.split("#", 1)[0].strip()
+                if line and ":" in line:
+                    name, _, value = line.partition(":")
+                    out.append((name.strip().lower(), value.strip()))
+            return out
+
+        served_directives = directives(served)
+        expect(served_directives,
+               "the served robots.txt carries no directives at all")
+
+        injected = [d for d in served_directives if d not in generated]
+        markers = [ln.strip() for ln in served.splitlines()
+                   if ln.strip().startswith("#")
+                   and ("BEGIN" in ln or "Managed" in ln or "END" in ln)]
+        expect(not injected and not markers,
+               "the served robots.txt is not the one this app wrote"
+               + (f" — {len(injected)} directive(s) the app did not "
+                  f"generate, first: {injected[0]}" if injected else "")
+               + (f" — edge marker: {markers[0]!r}" if markers else ""))
+
     def directory_counts_are_derived():
         """The Network section lists exactly the peers the module names.
 
@@ -512,6 +562,7 @@ def satellite_checks(base: str) -> None:
         ("api_llms_rows_present", api_llms_rows_present),
         ("discovery_link_headers_per_lane", discovery_link_headers_per_lane),
         ("directory_counts_are_derived", directory_counts_are_derived),
+        ("ai_bot_posture", ai_bot_posture),
         ("head_healthz_matches_get", head_healthz_matches_get),
         ("python_matches_declared", python_matches_declared),
         ("llms_txt_identity", llms_txt_identity),

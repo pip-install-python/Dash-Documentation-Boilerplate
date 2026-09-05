@@ -759,3 +759,11 @@ def test_the_verify_contract_line_and_its_traps_are_in_the_kit():
         "a test at the wrong level",
     ):
         assert phrase in kit, f"the kit does not carry: {phrase!r}"
+
+
+def test_the_proxied_robots_trap_is_in_the_kit():
+    """Item 19's detect."""
+    kit = " ".join((REPO / ".claude" / "CLAUDE.md").read_text().lower().split())
+    assert "a proxied robots.txt is not your robots.txt" in kit
+    assert "when they differ, the difference is the finding" in kit
+    assert "ai_bot_posture" in kit

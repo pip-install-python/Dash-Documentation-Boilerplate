@@ -542,3 +542,19 @@ they win.
   reject case and whitespace lookalikes of a tier rather than one
   literal; and SOURCE-PIN a default, because a behavioural suite cannot
   see a restored default that pre-empts its own guard.
+- A PROXIED robots.txt IS NOT YOUR robots.txt (1.6.44 item 19; pipdocs,
+  the 2plot.dev proxy canary, 2026-09-02). An edge can inject, rewrite or
+  replace the file in perfectly valid syntax, with no tell beyond a
+  comment marker (`# BEGIN Cloudflare Managed content`) — and a grep for
+  `User-agent:` sails straight past it, because the injected file has
+  those too. To learn what the APP declares, generate it in process or
+  read the config (`block_ai_training` / `allow_ai_search`); to learn
+  what the WORLD is told, fetch it; WHEN THEY DIFFER, THE DIFFERENCE IS
+  THE FINDING. Same family as "verify the artifact the claim is about,
+  and say which one you measured".
+  The battery's `ai_bot_posture` row does exactly that and names the
+  injected directive or the marker; it SKIPS rather than passing where
+  the app cannot be generated beside the script, because a comparison
+  with one side is not a comparison. Companion rule for every host:
+  after any proxy flip, run the crawler probe (training AND
+  user-directed agents) and a robots.txt diff, in the same hour.
