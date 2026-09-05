@@ -52,13 +52,66 @@ def slugify(text: str) -> str:
 _SIZE_CACHE: dict = {}
 
 
+def _size_from_header(raw: bytes):
+    """(width, height) parsed from an image file's own header, or (None, None).
+
+    STDLIB ONLY, and that is the point. The first version of this used
+    Pillow, which is installed by two BUILD-TIME scripts here
+    (`make_social_card`, `make_favicons`) and is deliberately absent from
+    `requirements.txt` — so on any machine that had not run those tools, and
+    in production, `_intrinsic_size` silently returned nothing and item 6f
+    reserved no box at all. The feature was inert everywhere except the one
+    laptop that happened to have Pillow, and CI said so on every matrix leg
+    (run 33941955814 / 33942828583).
+
+    PNG, JPEG and GIF cover every content image this template ships and
+    essentially all documentation imagery. Anything else — SVG, WebP, an
+    unreadable file — returns (None, None), which the renderer already
+    treats as "no box", exactly as it does for a remote image.
+    """
+    # PNG: 8-byte signature, then a 25-byte IHDR whose width/height are
+    # big-endian uint32 at offsets 16 and 20.
+    if raw[:8] == b"\x89PNG\r\n\x1a\n" and len(raw) >= 24:
+        return (int.from_bytes(raw[16:20], "big"),
+                int.from_bytes(raw[20:24], "big"))
+
+    # GIF: "GIF87a"/"GIF89a", then little-endian uint16 width/height.
+    if raw[:6] in (b"GIF87a", b"GIF89a") and len(raw) >= 10:
+        return (int.from_bytes(raw[6:8], "little"),
+                int.from_bytes(raw[8:10], "little"))
+
+    # JPEG: walk the segment chain to a Start-Of-Frame marker, whose payload
+    # carries height then width as big-endian uint16. Every other segment
+    # declares its own length, so this is a walk and not a scan — a scan
+    # would find the marker bytes inside compressed data.
+    if raw[:2] == b"\xff\xd8":
+        i = 2
+        while i + 9 < len(raw):
+            if raw[i] != 0xFF:
+                return (None, None)          # not where a marker should be
+            marker = raw[i + 1]
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                i += 2                       # standalone marker, no payload
+                continue
+            length = int.from_bytes(raw[i + 2:i + 4], "big")
+            # SOF0-3, SOF5-7, SOF9-11, SOF13-15 carry the dimensions; the
+            # gaps (C4 DHT, C8 JPG, CC DAC) are not frame headers.
+            if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                          0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                return (int.from_bytes(raw[i + 7:i + 9], "big"),
+                        int.from_bytes(raw[i + 5:i + 7], "big"))
+            if length <= 0:
+                return (None, None)
+            i += 2 + length
+    return (None, None)
+
+
 def _intrinsic_size(url: str):
     """(width, height) for an image this repo serves, else (None, None).
 
     Local only, and deliberately: a remote URL cannot be measured at render
     time without fetching it, and a render that reaches the network is a
-    render that can hang. Pillow is a transitive dependency here rather than
-    a declared one, so its absence is a silent no-op, not a crash.
+    render that can hang.
     """
     if url in _SIZE_CACHE:
         return _SIZE_CACHE[url]
@@ -67,13 +120,11 @@ def _intrinsic_size(url: str):
         try:
             from pathlib import Path
 
-            from PIL import Image
-
             rel = url.split("?", 1)[0].lstrip("/")
             path = Path(__file__).resolve().parents[2] / rel
             if path.is_file():
-                with Image.open(path) as im:
-                    size = im.size
+                with open(path, "rb") as handle:
+                    size = _size_from_header(handle.read(4096))
         except Exception:
             size = (None, None)
     _SIZE_CACHE[url] = size

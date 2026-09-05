@@ -101,10 +101,12 @@ def test_flake8_alone_would_not_have_caught_it():
     and would be especially rich in the module about checks that cannot
     fail.
     """
-    if importlib.util.find_spec("flake8") is None:
-        pytest.skip("flake8 is not installed in this environment (CI runs it "
-                    "in the lint job, not the test job) — the config-level "
-                    "assertion above covers the same fact here")
+    try:
+        importlib.import_module("flake8")
+    except Exception as exc:
+        pytest.skip(f"flake8 unavailable here ({exc}) — CI runs it in the "
+                    "lint job, not the test job; the config-level assertion "
+                    "above covers the same fact")
 
     probe = REPO_ROOT / "docs" / "_flake8_probe_tmp2.py"
     probe.write_text("def broken(:\n    pass\n")

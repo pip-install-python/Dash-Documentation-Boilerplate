@@ -204,3 +204,69 @@ def test_the_preconnect_count_stays_small():
         "preconnecting the CSS host without the FILE host is the half that "
         "does not help"
     )
+
+
+def test_the_size_reader_needs_no_third_party_package():
+    """Item 6(f) must work where the app actually runs.
+
+    The first version used Pillow, which is installed by two BUILD-TIME
+    scripts here and is deliberately not in requirements.txt. So the feature
+    was inert in production and on every CI leg, and green only on the one
+    machine that happened to have Pillow — which is exactly what CI said, on
+    every matrix leg of runs 33941955814 and 33942828583.
+
+    This test asserts the parser itself imports nothing outside the stdlib.
+    """
+    import ast
+
+    src = (REPO_ROOT / "lib" / "directives" / "headings.py").read_text()
+    tree = ast.parse(src)
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "_size_from_header")
+    imports = [n for n in ast.walk(fn) if isinstance(n, (ast.Import, ast.ImportFrom))]
+    assert imports == [], f"the header parser imports {imports}"
+    assert "PIL" not in src, "Pillow is back in the render path"
+
+
+def test_dimensions_are_read_from_the_file_header():
+    """The formats this template ships, parsed from their own bytes."""
+    from lib.directives.headings import _size_from_header
+
+    png = (REPO_ROOT / "assets" / "intro_img.png").read_bytes()[:4096]
+    jpg = (REPO_ROOT / "assets" / "intro_img.jpg").read_bytes()[:4096]
+    assert _size_from_header(png) == (673, 202)
+    assert _size_from_header(jpg) == (673, 202)
+
+
+def test_an_unparseable_file_reserves_no_box_rather_than_guessing():
+    from lib.directives.headings import _size_from_header
+
+    assert _size_from_header(b"") == (None, None)
+    assert _size_from_header(b"not an image at all") == (None, None)
+    svg = (REPO_ROOT / "assets" / "logo.svg").read_bytes()[:4096]
+    assert _size_from_header(svg) == (None, None), (
+        "an SVG has no raster dimensions — a guessed box is worse than none"
+    )
+
+
+def test_the_reader_agrees_with_pillow_where_pillow_exists():
+    """A cross-check against the reference implementation, SKIPPED where it
+    is absent — which is most places, including CI, which is the whole
+    reason the reader is hand-rolled."""
+    # try/except rather than find_spec: a module can be importABLE and
+    # unimportable (a broken install, or the stub used to reproduce CI's
+    # environment locally). find_spec finds it and the import still raises,
+    # which is the second time this release that a "is it installed?" guard
+    # answered yes about something that could not run.
+    try:
+        from PIL import Image
+    except Exception as exc:
+        pytest.skip(f"Pillow unavailable here ({exc}) — it is a "
+                    "build-script dependency, not a runtime one")
+
+    from lib.directives.headings import _size_from_header
+
+    for name in ("intro_img.png", "intro_img.jpg"):
+        path = REPO_ROOT / "assets" / name
+        with Image.open(path) as reference:
+            assert _size_from_header(path.read_bytes()[:4096]) == reference.size
