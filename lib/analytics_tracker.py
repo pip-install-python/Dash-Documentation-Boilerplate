@@ -143,6 +143,49 @@ def analytics_path() -> Path:
                 or _REPO_ROOT / "visitor_analytics.json")
 
 
+def _ledger_persistence_warning() -> None:
+    """Loud when the ledger would not survive a deploy (1.6.44 item 22).
+
+    Mirrors `lib.page_visibility._persistence_warning` deliberately — same
+    shape, same two failure modes, same place in the boot output — because
+    the two stores fail for identical reasons and an operator who has learnt
+    to look for one should find the other beside it.
+
+    `analytics_path()` falls back SILENTLY to the repository root, which is
+    the container filesystem and is replaced wholesale on every deploy.
+    `PAGE_VISIBILITY_FILE` has warned about exactly this since the pilot
+    host lost its toggles twice; the ledger, which is the more expensive
+    thing to lose, said nothing (note 96: muischeduler, email, emojimart).
+
+    Pairs with item 20: this says it once at boot, and `/healthz`'s
+    `ledger.persistent` says it continuously to anyone who asks.
+    """
+    configured = os.environ.get("TRAFFIC_ANALYTICS_FILE")
+    if not configured:
+        print(
+            f"[analytics] WARNING: TRAFFIC_ANALYTICS_FILE unset — ledger at "
+            f"{analytics_path()} is on the container filesystem and will not "
+            "survive a deploy. Set TRAFFIC_ANALYTICS_FILE=/var/data/"
+            "visitor_analytics.json on the service (render.yaml declares the "
+            "disk, but only a Blueprint sync or a dashboard add makes it "
+            "live).",
+            flush=True,
+        )
+        return
+    path = Path(configured)
+    if str(path).startswith("/var/"):
+        anchor = (Path("/") / path.parts[1] / path.parts[2]
+                  if len(path.parts) > 2 else path.parent)
+        if not os.path.ismount(str(anchor)):
+            print(
+                f"[analytics] WARNING: {anchor} is not a mounted disk on this "
+                "instance — the ledger will vanish on the next deploy. An app "
+                "can mkdir a path under /var and everything works until the "
+                "deploy that replaces the filesystem.",
+                flush=True,
+            )
+
+
 def _lower_headers(headers) -> dict:
     """Normalise any header mapping (Flask, Starlette, dict) to lowercase."""
     if not headers:
@@ -636,6 +679,8 @@ def _classify(user_agent, client_ip=None):
         "verified": c.get("verified") or "n/a",
     }
 
+
+_ledger_persistence_warning()
 
 # Global tracker instance
 tracker = AnalyticsTracker()
