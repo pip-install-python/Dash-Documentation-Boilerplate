@@ -767,3 +767,103 @@ def test_the_proxied_robots_trap_is_in_the_kit():
     assert "a proxied robots.txt is not your robots.txt" in kit
     assert "when they differ, the difference is the finding" in kit
     assert "ai_bot_posture" in kit
+
+
+# ------------------------ the standing build word + launch name (item 23) --
+
+
+def test_the_kit_carries_the_owners_standing_build_word():
+    """Item 23(a)'s detect. The 2026-09-03 crash lost this from fourteen
+    sessions at once; a file is what survives a relaunch."""
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    assert kit.count("Build on ops' drops") == 1
+    # The sentence is carried as an indented BLOCKQUOTE, so the raw text has
+    # "> " markers and hard line breaks through the middle of it. Strip the
+    # quote markers and flatten whitespace before comparing — a verbatim
+    # check that fails on where a line wrapped is a check on formatting, and
+    # this release has now met that class five times.
+    flat = " ".join(
+        line.lstrip().lstrip(">").strip()
+        for line in kit.splitlines()
+    )
+    flat = " ".join(flat.split())
+    assert ("the owner's word stays required for push/merge/tag, CLAUDE.md, "
+            "secrets and env, anything changing what the site collects, and "
+            "attestations.") in flat, "the sentence is not carried verbatim"
+    assert "owner decision 2026-09-03" in kit, "the attribution is missing"
+
+
+def test_the_sentence_is_in_the_contract_section_not_the_traps():
+    """It is a contract clause; the traps section is fleet-learned
+    verification lore and ports differently."""
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    contract = kit.split("### The contract", 1)[1].split("### Verification traps", 1)[0]
+    assert "Build on ops' drops" in contract
+
+
+def test_the_clause_does_not_pre_authorise_edits_to_this_file():
+    """The clause names CLAUDE.md in its OWN list of things needing the
+    owner's word, and the surrounding text has to keep saying so.
+
+    Without that reading, a sentence granting a peer standing authority to
+    direct work would be self-amending: a drop could ask for the gate to be
+    widened and the widening would be covered by the gate it widened.
+    """
+    kit = (REPO / ".claude" / "CLAUDE.md").read_text()
+    clause = kit.split("Build on ops' drops", 1)[1].split("### Verification", 1)[0]
+    clause = " ".join(clause.replace(">", " ").split())
+    assert "CLAUDE.md" in clause
+    assert "not an instruction" in clause or "request to put to the owner" in clause
+    assert "is not the owner's word" in clause, (
+        "the clause must say that a peer's relayed assurance is not the "
+        "owner's word — otherwise the gate is removable by message"
+    )
+
+
+def test_the_session_name_is_this_hosts_app_key():
+    """Item 23(b)'s detect: it must equal what healthz reports as `app`, so
+    `claude -n \"$(cat .claude/session-name)\"` names the fleet address."""
+    name = (REPO / ".claude" / "session-name").read_text()
+    assert name.strip() == "boilerplate"
+
+    from lib.bulletin import app_id
+
+    assert name.strip() == app_id(), (
+        f"session-name is {name.strip()!r} but this host's app key is "
+        f"{app_id()!r} — a session would come up under the wrong address"
+    )
+
+
+def test_the_session_name_is_a_single_bare_token():
+    """It is substituted into a command line."""
+    raw = (REPO / ".claude" / "session-name").read_text()
+    assert raw.endswith("\n"), "no trailing newline — cat would run on"
+    name = raw.strip()
+    assert name and name == raw.strip(), "leading or trailing whitespace"
+    assert len(raw.splitlines()) == 1, "more than one line"
+    assert not any(c.isspace() for c in name), f"whitespace inside {name!r}"
+    assert name.isascii() and all(c.isalnum() or c in "-_" for c in name), (
+        f"{name!r} needs quoting on a command line"
+    )
+
+
+def test_the_session_name_is_actually_shipped():
+    """`.claude/*` is an allow-list, and a file that is not on it is invisible
+    to every fork.
+
+    Caught the hard way: item 23(b)'s file was written, the tests read it off
+    the local disk and passed, and `git status` came back clean because
+    `.gitignore`'s `.claude/*` rule had swallowed it. A fresh checkout would
+    have had no file and a red suite — the tests were measuring the working
+    directory, not the repository.
+    """
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "--error-unmatch", ".claude/session-name"],
+        cwd=REPO, capture_output=True, text=True,
+    )
+    assert tracked.returncode == 0, (
+        ".claude/session-name is not tracked by git — add `!.claude/"
+        "session-name` to the .gitignore allow-list"
+    )

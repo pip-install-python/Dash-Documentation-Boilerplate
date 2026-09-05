@@ -187,6 +187,13 @@ KICKOFF-*.md
 !.claude/CLAUDE.md
 !.claude/settings.json
 !.claude/skills/
+# The launch name (1.6.44 item 23b) is SHIPPED and per-fork: its content is
+# this host's app key, so `claude -n "$(cat .claude/session-name)"` starts a
+# session under its fleet address. It was written and silently ignored by
+# the `.claude/*` rule above until the commit that added it showed a clean
+# status — an allow-list needs a line per file, and a file the fan-out reads
+# has to be one of them.
+!.claude/session-name
 
 # The visitor-key salt (1.6.44 item 16). Generated at runtime beside the
 # ledger when ANALYTICS_VISITOR_SALT is unset. It is key material: committing
