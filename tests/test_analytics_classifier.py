@@ -268,8 +268,14 @@ def test_the_lookup_is_gone_from_the_code_not_merely_disabled():
             imported |= {a.name.split(".")[0] for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
-    assert "requests" not in imported and "urllib" not in imported, (
-        f"the tracker can still make an outbound request: {sorted(imported)}"
+    # Every module that can open an outbound connection, not just the two the
+    # first version named: http.client, socket, httpx and aiohttp would all
+    # have sailed past it (Fable audit, 1.6.44).
+    OUTBOUND = {"requests", "urllib", "urllib3", "http", "httpx", "aiohttp",
+                "socket", "ftplib", "telnetlib", "smtplib"}
+    reachable = OUTBOUND & imported
+    assert not reachable, (
+        f"the tracker can still make an outbound request via {sorted(reachable)}"
     )
 
     defined = {n.name for n in ast.walk(tree)

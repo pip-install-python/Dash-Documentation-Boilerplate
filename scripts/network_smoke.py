@@ -524,14 +524,22 @@ def satellite_checks(base: str) -> None:
         expect(served_directives,
                "the served robots.txt carries no directives at all")
 
+        # BOTH directions. An edge that REMOVES a directive is as much a
+        # rewrite as one that adds a stanza — dropping this host's `Allow:`
+        # rules for the AI search agents would be invisible to an
+        # added-only comparison, and it is the change most likely to be
+        # made on your behalf by a "security" default.
         injected = [d for d in served_directives if d not in generated]
+        missing = [d for d in generated if d not in served_directives]
         markers = [ln.strip() for ln in served.splitlines()
                    if ln.strip().startswith("#")
                    and ("BEGIN" in ln or "Managed" in ln or "END" in ln)]
-        expect(not injected and not markers,
+        expect(not injected and not missing and not markers,
                "the served robots.txt is not the one this app wrote"
                + (f" — {len(injected)} directive(s) the app did not "
                   f"generate, first: {injected[0]}" if injected else "")
+               + (f" — {len(missing)} directive(s) the app wrote that are "
+                  f"NOT served, first: {missing[0]}" if missing else "")
                + (f" — edge marker: {markers[0]!r}" if markers else ""))
 
     def directory_counts_are_derived():

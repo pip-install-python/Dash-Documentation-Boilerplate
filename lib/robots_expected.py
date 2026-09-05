@@ -21,13 +21,24 @@ def generated_text() -> str:
     answers the route. Anything else would be comparing the edge against a
     guess about the app rather than against the app.
     """
-    import run  # noqa: F401 — importing wires the config onto the app
+    import sys
+
+    # REUSE an already-imported app. `import run` executes run.py, and in a
+    # process that has already done so (the suite imports it as `runmod`)
+    # that boots a SECOND app: every docs page re-parsed, every callback
+    # re-registered. The Fable audit measured it — GLOBAL_CALLBACK_LIST 0 ->
+    # 2 — and tests/test_healthz_shape.py's own comment warns against
+    # exactly this. In the CD battery there is no prior import and this
+    # falls through to a single one, which is the intended cost.
+    mod = sys.modules.get("run") or sys.modules.get("runmod")
+    if mod is None:
+        import run as mod
 
     from dash_improve_my_llms.robots_generator import generate_robots_txt
 
     from lib.constants import BASE_URL
 
-    config = getattr(run.app, "_robots_config", None)
+    config = getattr(mod.app, "_robots_config", None)
     if config is None:
         raise RuntimeError("this app registers no RobotsConfig")
     return generate_robots_txt(

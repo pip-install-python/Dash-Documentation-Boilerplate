@@ -108,7 +108,23 @@ def test_the_privacy_page_names_every_field_the_tracker_stores(client):
         tracker.flush()
         import json
 
-        row = json.loads((Path(tmp) / "a.json").read_text())["visits"][-1]
+        # A CRAWLER row too — the first version of this test only built a
+        # browser row, so the five keys a bot row carries were never checked
+        # against the page at all (Fable audit, 1.6.44).
+        tracker.track_visit(
+            "/backends",
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+            "203.0.113.10",
+            headers={"CF-IPCountry": "US"},
+        )
+        tracker.flush()
+        visits = json.loads((Path(tmp) / "a.json").read_text())["visits"]
+        row = {}
+        for stored in visits:
+            row.update(stored)          # union of the browser and bot shapes
+        assert any(v.get("device_type") == "bot" for v in visits), (
+            "no crawler row was produced — the bot-only keys are unchecked"
+        )
 
     described = {
         "timestamp": "time",
@@ -117,6 +133,15 @@ def test_the_privacy_page_names_every_field_the_tracker_stores(client):
         "user_agent": "User-Agent",
         "visitor_key": "visitor key",
         "location": "location",
+        # The crawler-row extras. The page describes them in one sentence
+        # ("Crawler rows additionally carry the vendor identity the
+        # classifier determined — which bot it was, and whether it
+        # verified"), so they map to that phrase rather than to five.
+        "bot_type": "vendor identity",
+        "vendor_key": "vendor identity",
+        "vendor_class": "vendor identity",
+        "verified": "vendor identity",
+        "lane": "vendor identity",
     }
     undescribed = sorted(set(row) - set(described))
     assert undescribed == [], (
@@ -156,7 +181,15 @@ def test_the_privacy_page_claims_no_outbound_lookup_and_the_code_agrees():
             imported |= {a.name.split(".")[0] for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
-    assert "requests" not in imported and "urllib" not in imported
+    # Every module that can open an outbound connection, not just the two the
+    # first version named: http.client, socket, httpx and aiohttp would all
+    # have sailed past it (Fable audit, 1.6.44).
+    OUTBOUND = {"requests", "urllib", "urllib3", "http", "httpx", "aiohttp",
+                "socket", "ftplib", "telnetlib", "smtplib"}
+    reachable = OUTBOUND & imported
+    assert not reachable, (
+        f"the tracker can still make an outbound request via {sorted(reachable)}"
+    )
 
 
 def test_the_privacy_page_names_the_headers_the_tracker_reads():

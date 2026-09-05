@@ -210,6 +210,23 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
+          cache: pip
+
+      # The battery's `ai_bot_posture` row (1.6.44 item 19) compares the
+      # SERVED robots.txt against the one this app GENERATES, and generating
+      # it needs the app importable. Without this step the row cannot build
+      # its own side, takes its `skip` path, and the battery is green having
+      # never made the comparison — which is what it did on every CD run
+      # between 1.6.44 landing and this fix (found by the Fable audit, not
+      # by the battery, because a skip is not a failure).
+      #
+      # The verify job is the ONLY place the comparison means anything: CI's
+      # copy runs against 127.0.0.1 with no edge in front of it, so it can
+      # never see an injected block. Here there is a real proxy in the path.
+      - name: Install the app (the battery generates robots.txt in-process)
+        run: |
+          pip install -r requirements.txt
+          pip install --no-deps markdown2dash==0.1.2
 
       - name: The live build IS this run's sha
         # Belt to the `if:` above's braces, and stronger: it also catches a

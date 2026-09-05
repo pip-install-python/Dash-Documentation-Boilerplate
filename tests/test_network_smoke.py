@@ -320,3 +320,46 @@ def test_the_row_skips_rather_than_inventing_one_side(battery, wired, monkeypatc
     row = [r for r in wired._RESULTS if r[0] == "ai_bot_posture"]
     assert row and row[0][1] == battery.SKIP, row
     assert row[0][1] != battery.PASS
+
+
+def test_a_removed_directive_reads_red_too(battery, wired, monkeypatch):
+    """The direction the first version was blind to (Fable audit, 1.6.44).
+
+    An edge that REMOVES a directive is as much a rewrite as one that adds a
+    stanza — and dropping this host's `Allow:` rules for the AI search agents
+    is the change most likely to be made on your behalf by a "security"
+    default. An added-only comparison calls that green.
+    """
+    real_fetch = wired.fetch
+
+    def stripped(url, *args, **kwargs):
+        status, headers, text = real_fetch(url, *args, **kwargs)
+        if url.endswith("/robots.txt"):
+            text = "\n".join(ln for ln in text.splitlines()
+                             if not ln.strip().lower().startswith("allow:"))
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", stripped)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+
+    row = [r for r in wired._RESULTS if r[0] == "ai_bot_posture"]
+    assert row and row[0][1] == battery.FAIL, row
+    assert "NOT served" in row[0][2], row[0][2]
+
+
+def test_the_cd_verify_job_can_generate_the_apps_side(battery):
+    """Item 19's row is only meaningful where a real edge is in the path —
+    the CD verify job — and generating the app's side needs the app.
+
+    Without the install step the row takes its `skip` path and the battery
+    is green having never made the comparison. That is what it did on every
+    CD run between 1.6.44 landing and this fix, and a skip is not a failure,
+    so nothing said so.
+    """
+    cd = (REPO_ROOT / ".github" / "workflows" / "cd.yml").read_text()
+    verify = cd.split("Network smoke battery", 1)[0]
+    assert "pip install -r requirements.txt" in verify, (
+        "the verify job does not install the app — ai_bot_posture will skip "
+        "and the battery will be green without comparing anything"
+    )

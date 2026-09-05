@@ -144,14 +144,39 @@ def test_the_geo_block_lists_the_location_headers_this_host_has_seen():
     assert "cf-ipcountry" in geo["headers_seen"]
 
 
-def test_the_geo_block_reports_headers_even_when_the_package_errors():
+def test_the_geo_block_reports_headers_even_when_the_package_errors(monkeypatch):
     """The error branch is the one a host actually hits on an old package —
     losing the field there would make it unreadable exactly when it matters.
+
+    BEHAVIOURAL, after the first version was proved vacuous by the 1.6.44
+    Fable audit. It read the 400 characters before `"error": True` in
+    lib/health.py and asserted `headers_seen` appeared in them — but that
+    window also contains the SUCCESS branch's `headers_seen`, so deleting
+    the key from the error branch alone left the test green. It could not
+    detect the regression it was named for.
+
+    This one takes the branch: `geo.is_configured` is made to raise, and the
+    payload is asserted to still carry the field.
     """
-    src = (__import__("pathlib").Path(__file__).resolve().parent.parent
-           / "lib" / "health.py").read_text()
-    error_branch = src.split('"error": True', 1)[0][-400:]
-    assert "headers_seen" in error_branch
+    import dash_improve_my_llms
+
+    from lib.health import health_payload
+
+    def explode(*_args, **_kwargs):
+        raise RuntimeError("simulating a package too old to answer")
+
+    monkeypatch.setattr(dash_improve_my_llms.geo, "is_configured", explode)
+
+    geo = health_payload("flask", headers={"CF-IPCountry": "US"}).get("geo", {})
+    assert geo.get("error") is True, (
+        "the error branch was not taken — this test is measuring the happy "
+        "path and would pass whatever the error branch contained"
+    )
+    assert "headers_seen" in geo, (
+        "the error branch drops headers_seen — unreadable exactly when a "
+        "reader needs it most"
+    )
+    assert isinstance(geo["headers_seen"], list)
 
 
 # ------------------------------- the ledger block (1.6.44 item 20) --
