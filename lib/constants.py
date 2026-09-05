@@ -280,6 +280,14 @@ CATEGORY_ORDER = [
     "Content",
     "Network",
     "Auth",
+    # Legal sits LAST among the app's own sections and therefore directly
+    # above Admin, which the navbar renders separately (1.6.44 item 15). The
+    # drop words this as "between Components and Admin"; the template has no
+    # Components category — that is a fork's, for the component it documents
+    # — so last-of-the-app's-own is the same position expressed in this
+    # repo's vocabulary. A fork with Components gets the drop's literal
+    # placement for free, since Components is declared above this line.
+    "Legal",
 ]
 
 # Network-wide community links — identical on every host.
