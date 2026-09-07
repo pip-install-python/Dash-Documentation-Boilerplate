@@ -165,13 +165,34 @@ python-dotenv>=1.0.0
 # expose: with a floor, CI resolved 2.8.0 while production served 2.9.4
 # on the same declaration (excalidraw measured exactly that); with a pin
 # there is one answer and both lanes give it.
-# The deliberate move to 2.10.0 is 1.6.45's, after the seat reads this
-# template on the wire — 2.10 changes four surfaces and the fan-out rule
-# is template first.
-dash-improve-my-llms[flask]==2.9.4
-# dash-improve-my-llms[fastapi]==2.9.4   # Dash 4.4+ FastAPI backend
-# dash-improve-my-llms[quart]==2.9.4     # Dash 4.4+ Quart backend
-# dash-improve-my-llms[all]==2.9.4       # all three
+# 2.10.0 (1.6.45 item 1, owner decision 0bb) — the ladder EXTENDS; the
+# rungs above are why 2.9.4 was the floor and stay as history. WHY 2.10.0,
+# read off the wheel rather than off the drop (note 98 — the wheel is the
+# artifact, the drop is a description of it; downloaded from PyPI
+# 2026-09-07 and unpacked, 47 files):
+#   (1) `wellknown.py` — a new module, and three routes this app did not
+#       previously serve: `/.well-known/agent-skills/index.json`,
+#       `/.well-known/api-catalog`, `/.well-known/mcp/server-card.json`.
+#       Item 3's battery lines exist because those are new SURFACES, and a
+#       surface nobody probes is a surface nobody knows the shape of.
+#   (2) `robots_generator.content_signal()` — the Content-Signal line,
+#       derived from the host's own RobotsConfig rather than declared.
+#   (3) A `wellknown` tier, alongside the existing tiers.
+#   (4) Accept negotiation, so `Accept: text/markdown` on a page is a
+#       second representation of the same URL rather than a second URL.
+# Verified before the pin moved: the suite ran GREEN against 2.10.0 with
+# every encoding still saying 2.9.4 (612 passed, 3 skipped), so this bump
+# is a deliberate move and not a repair.
+#
+# THE PIN RULE, which is the contract half of this item: every future bump
+# is a sync item carrying its own detect and acceptance, rolled out
+# TEMPLATE FIRST, and never an accidental resolve. If you are reading this
+# because you want a newer package, the answer is a spec item, not an edit
+# to this line.
+dash-improve-my-llms[flask]==2.10.0
+# dash-improve-my-llms[fastapi]==2.10.0   # Dash 4.4+ FastAPI backend
+# dash-improve-my-llms[quart]==2.10.0     # Dash 4.4+ Quart backend
+# dash-improve-my-llms[all]==2.10.0       # all three
 
 # Clerk authentication (dash-clerk-auth, vendored — not on PyPI).
 #

@@ -57,7 +57,7 @@ def _resolved_country(headers=None) -> str:
 
 
 def _llms_version() -> dict:
-    """`{"llms_version": "2.9.4"}`, or `{}` if the package cannot be read.
+    """`{"llms_version": "2.10.0"}`, or `{}` if the package cannot be read.
 
     Omitted rather than reported as "unknown": a health payload that
     invents a version is worse than one that is silent about it, and the

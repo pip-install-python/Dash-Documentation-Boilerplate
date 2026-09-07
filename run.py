@@ -100,7 +100,7 @@ from dash_improve_my_llms import (
 # `configure_seo` is deliberately imported AFTER this floor fires (see the
 # floors block) so a stale environment gets the floor's diagnosis instead of
 # a bare ImportError.
-LLMS_PKG_FLOOR = (2, 9, 4)
+LLMS_PKG_FLOOR = (2, 10, 0)
 
 # THE FORK POINT — claim this app's network identity before any
 # hub-facing module imports. Every module that names this app

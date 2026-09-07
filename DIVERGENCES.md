@@ -46,8 +46,11 @@ alternative costs a fortnight of a defect walking back in.
   item 2). It converted HEAD to GET ABOVE the router, so every HEAD
   looked correct whatever the router did — it MASKED the package's
   own fix rather than conflicting with it, and would have masked a
-  regression in it just as well. Retirement is gated on the dimll
-  `==2.9.4` pin, not on the date: a fork whose floor is below that
+  regression in it just as well. Retirement is gated on the PACKAGE's
+  behaviour, not on the date and not on whatever the pin says today:
+  from 2.9.4 the package walks the router itself, so the shim is
+  unnecessary at 2.9.4 and at every version after it (the pin is
+  2.10.0 since 1.6.45 item 1). A fork whose floor is BELOW 2.9.4
   still needs the shim. `lib/asgi_middleware.py` keeps the full
   reasoning where the code used to be.
 - **There is no User-Agent list in this app, and there must not be**

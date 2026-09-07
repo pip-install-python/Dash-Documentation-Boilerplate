@@ -257,3 +257,76 @@ def test_noscript_block_carries_no_h1():
         "the noscript block carries an <h1> — every page now has a second "
         "site-wide h1 in the crawler's parse; use h2/h3 in this block"
     )
+
+
+# ------------------------------- the exact pin (1.6.45 item 1) --
+
+
+def _dimll_requirement_lines():
+    """Every dash-improve-my-llms line in requirements.txt, live and commented.
+
+    Comments included on purpose: the three extras carry the version too, and
+    a bump that moves only the live line leaves a fork that switches backend
+    installing a different package than the one this repo tested.
+    """
+    import re
+
+    lines = (REPO_ROOT / "requirements.txt").read_text().splitlines()
+    return [ln for ln in lines
+            if re.match(r"^#?\s*dash-improve-my-llms(\[[a-z,]+\])?[=<>]", ln.strip())]
+
+
+def test_the_package_is_pinned_exactly_never_floored():
+    """Item 1's detect. `>=` is what let CI resolve one version while
+    production served another — the gap `llms_version` was added to expose,
+    and the reason the Docker cache could serve a wheel the requirements did
+    not name."""
+    import re
+
+    lines = _dimll_requirement_lines()
+    assert lines, "no dash-improve-my-llms requirement line found at all"
+
+    floored = [ln for ln in lines if ">=" in ln or "~=" in ln or ">" in ln]
+    assert floored == [], f"floored rather than pinned: {floored}"
+
+    versions = {re.search(r"==\s*([0-9][0-9.]*)", ln).group(1)
+                for ln in lines if "==" in ln}
+    assert len(versions) == 1, (
+        f"the live line and the commented extras disagree: {sorted(versions)} "
+        "— a fork switching backend would install a version this repo never "
+        "tested"
+    )
+
+
+def test_the_pinned_version_is_the_one_actually_installed():
+    """Item 1's acceptance, in-process half: the pin, the boot floor and the
+    resolved package must be the same number.
+
+    The wire half — `llms_version` on /healthz equals this — is the release's
+    own acceptance and cannot be asserted from here.
+    """
+    import re
+
+    import dash_improve_my_llms as pkg
+
+    pinned = re.search(r"==\s*([0-9][0-9.]*)",
+                       _dimll_requirement_lines()[0]).group(1)
+    assert pkg.__version__ == pinned, (
+        f"requirements.txt pins {pinned} and {pkg.__file__} resolves "
+        f"{pkg.__version__} — reinstall, or the suite is testing a version "
+        "this repo does not ship"
+    )
+
+
+def test_the_boot_floor_equals_the_pin(app_module):
+    """With `==` there is no daylight between floor and pin by construction;
+    if the two ever differ, one of them was moved alone."""
+    import re
+
+    pinned = re.search(r"==\s*([0-9][0-9.]*)",
+                       _dimll_requirement_lines()[0]).group(1)
+    floor = ".".join(str(n) for n in app_module.LLMS_PKG_FLOOR)
+    assert floor == pinned, (
+        f"run.py's boot floor is {floor} and requirements pins {pinned} — "
+        "grep the number and move every encoding, not one"
+    )
