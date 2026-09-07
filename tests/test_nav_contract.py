@@ -215,16 +215,23 @@ def test_footer_is_the_contract(app_module):
         assert href in text
     assert GITHUB_URL not in text, "the repo link is the top bar's; the footer links the profile"
     assert "/changelog" not in text, "the sidebar's single Changelog link is the one"
-    # FLIPPED AT 1.6.44 (item 15). This line read `"/terms" not in text and
-    # "/privacy" not in text` and it was RIGHT for as long as the pages did
-    # not exist — pipdocs advertised both from every page in the fleet while
-    # neither was registered, and Dash answers 200 for any path, so nothing
-    # on the wire could contradict it. The pages exist now, so the contract
-    # is the other way round; item 11's test is what keeps the two in step,
-    # by holding every internal shell link against the page registry rather
-    # than against a list in a test.
-    assert "/terms" in text and "/privacy" in text, (
-        "the Legal pages are registered but the footer does not link them"
+    # FLIPPED TWICE, and the second flip is the one that stuck.
+    #
+    # Before 1.6.44 this asserted the links were ABSENT, correctly: the
+    # pages did not exist, and pipdocs advertised both from every page in
+    # the fleet while neither was registered. 1.6.44 item 15 registered them
+    # and the assertion flipped to requiring them.
+    #
+    # 1.6.45 flips it back, for a different reason: the owner checked the
+    # satellites on a phone and found the footer row colliding with the
+    # icons. The pages stay registered in the sidebar's Legal group, so the
+    # footer anchors were a DUPLICATE of a nav entry that already existed.
+    # Absent from the footer, present in the nav — and the two halves are
+    # asserted in different places on purpose, because "not in the footer"
+    # and "still reachable" are different claims.
+    assert "/terms" not in text and "/privacy" not in text, (
+        "the Legal pages belong in the sidebar's Legal group, not the "
+        "footer — the mobile footer row cannot hold them beside the icons"
     )
 
 

@@ -212,3 +212,46 @@ def test_the_privacy_page_points_at_a_surface_that_confirms_it(client):
     assert "/healthz" in PRIVACY_DOC
     body = client.get("/healthz").text
     assert "headers_seen" in body
+
+
+# ------------------- the Legal links live in the nav, not the footer --
+
+
+def test_the_footer_carries_no_legal_anchors():
+    """Owner's design word, 2026-09-07, from a phone: the footer row
+    "© 2026 … · Terms · Privacy" collided with the GitHub/Discord icons at
+    mobile width. The pages did not move; the DUPLICATE did."""
+    from components.footer import create_footer
+
+    rendered = str(create_footer())
+    assert "/terms" not in rendered and "/privacy" not in rendered
+    assert "Pip Install Python LLC" in rendered, (
+        "the copyright line is what the footer is for — this test must not "
+        "pass because the footer went empty"
+    )
+
+
+def test_the_pages_are_still_reachable_from_the_nav(app_module):
+    """The other half of the same claim, and the reason it is a separate
+    test: "not in the footer" is satisfied by deleting the pages, which is
+    not what was asked for."""
+    import dash
+
+    from components.navbar import sections_for
+
+    sections = dict((title, [e["name"] for e in entries])
+                    for title, entries in sections_for(dash.page_registry.values()))
+    assert sections.get("Legal") == ["Terms of Use", "Privacy"]
+
+
+def test_both_pages_still_answer_on_both_lanes(client):
+    """And still 200, and still in the index — moving a link must not move
+    a page."""
+    import json as _json
+
+    for path in ("/terms", "/privacy"):
+        assert str(client.get(path).status).startswith("200")
+        assert str(client.get(f"{path}/llms.txt").status).startswith("200")
+    body = client.get("/llms.txt").text
+    assert "/terms" in body and "/privacy" in body
+    del _json
