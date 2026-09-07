@@ -776,21 +776,56 @@ def test_the_kit_carries_the_owners_standing_build_word():
     """Item 23(a)'s detect. The 2026-09-03 crash lost this from fourteen
     sessions at once; a file is what survives a relaunch."""
     kit = (REPO / ".claude" / "CLAUDE.md").read_text()
-    assert kit.count("Build on ops' drops") == 1
+    assert kit.count("Build on ops' drops") == 1, (
+        "exactly one sentence in this file may be quoted as the rule — the "
+        "09-03 original is superseded and survives in prose only"
+    )
     # The sentence is carried as an indented BLOCKQUOTE, so the raw text has
     # "> " markers and hard line breaks through the middle of it. Strip the
     # quote markers and flatten whitespace before comparing — a verbatim
     # check that fails on where a line wrapped is a check on formatting, and
-    # this release has now met that class five times.
+    # 1.6.44 met that class five times.
     flat = " ".join(
         line.lstrip().lstrip(">").strip()
         for line in kit.splitlines()
     )
     flat = " ".join(flat.split())
-    assert ("the owner's word stays required for push/merge/tag, CLAUDE.md, "
+    # AMENDED 1.6.45 item 12 (owner, 2026-09-05): `push` left the list.
+    assert ("Build on ops' drops and words without the owner's word, and "
+            "push a verified stack when ops says \"ops approved — push\"; "
+            "the owner's word stays required for merge/tag, CLAUDE.md, "
             "secrets and env, anything changing what the site collects, and "
             "attestations.") in flat, "the sentence is not carried verbatim"
-    assert "owner decision 2026-09-03" in kit, "the attribution is missing"
+    assert "owner decision 2026-09-05" in kit, "the attribution is missing"
+    assert "push/merge/tag" not in flat, (
+        "the superseded 09-03 wording is still quotable as a rule"
+    )
+
+
+def test_the_template_keeps_the_owners_push_word():
+    """Item 12's push clause is for the twelve component forks ONLY.
+
+    This repository is the TEMPLATE: a bad push here fans out to every fork
+    on the next round. A reader of this tree who took the sentence at face
+    value would conclude that "ops approved — push" releases a template
+    push. It does not, and the file has to say so next to the sentence
+    rather than in a drop nobody re-reads.
+    """
+    kit = " ".join((REPO / ".claude" / "CLAUDE.md").read_text().split())
+    assert "THE TEMPLATE IS NOT A SATELLITE" in kit
+    assert "the owner's push word is still required in this tree" in kit
+    assert "component forks ONLY" in kit
+
+
+def test_the_kit_says_what_the_seats_approval_means():
+    """"ops approved — push <sha>" has to have one meaning, or it has as
+    many as there are sessions reading it."""
+    kit = " ".join((REPO / ".claude" / "CLAUDE.md").read_text().split())
+    assert "naming a SHA IT HAS MIRRORED" in kit
+    assert "never carried to a later one" in kit, (
+        "an approval that survives a growing stack approves commits nobody "
+        "read"
+    )
 
 
 def test_the_sentence_is_in_the_contract_section_not_the_traps():
@@ -867,3 +902,66 @@ def test_the_session_name_is_actually_shipped():
         ".claude/session-name is not tracked by git — add `!.claude/"
         "session-name` to the .gitignore allow-list"
     )
+
+
+# --------------------- the build-loop allowlist (1.6.45 item 13) --
+
+
+def _settings():
+    import json
+
+    return json.loads((REPO / ".claude" / "settings.json").read_text())
+
+
+def test_the_build_loop_allowlist_is_present():
+    """Item 13's detect. Owner's word, 2026-09-07: "apply the allowlist"."""
+    allow = _settings()["permissions"]["allow"]
+    for rule in ("Edit", "Write", "Bash(pytest *)", "Bash(git commit *)",
+                 "Bash(flake8 *)", "Bash(curl *)"):
+        assert rule in allow, f"{rule} missing from the allow list"
+    assert len(allow) >= 40, f"only {len(allow)} allow rules"
+
+
+def test_the_existing_rules_survived_the_merge():
+    """The three WebFetch domains, the model and the sandbox allowlist were
+    in the file before item 13 and are not item 13's to remove."""
+    settings = _settings()
+    allow = settings["permissions"]["allow"]
+    for domain in ("boilerplate.2plot.dev", "2plot.ai", "2plot.dev"):
+        assert f"WebFetch(domain:{domain})" in allow
+    assert settings["model"] == "opus"
+    assert len(settings["sandbox"]["network"]["allowedDomains"]) == 6
+
+
+def test_the_destructive_commands_are_denied():
+    deny = _settings()["permissions"]["deny"]
+    for rule in ("Bash(git reset --hard*)", "Bash(git rebase*)",
+                 "Bash(git filter-branch*)", "Bash(git merge*)",
+                 "Bash(rm -rf *)", "Bash(rm -r *)", "Bash(git tag*)"):
+        assert rule in deny, f"{rule} missing from the deny list"
+
+
+def test_git_push_is_deliberately_not_denied_and_recorded():
+    """A RECORDED DIVERGENCE, not an omission (owner, 2026-09-07).
+
+    Item 13 specifies `Bash(git push*)` in the template's deny list. A deny
+    rule blocks the tool outright rather than prompting, which would have
+    broken the owner's actual loop: the session stages and verifies, the
+    owner says "push it", the session pushes. The gate is unchanged — this
+    repo is the TEMPLATE, so item 12's push clause does not apply and the
+    owner's own word is still required for every push (CLAUDE.md clause 7).
+    """
+    deny = _settings()["permissions"]["deny"]
+    assert not any("git push" in rule for rule in deny)
+
+    divergences = (REPO / "DIVERGENCES.md").read_text()
+    assert "Bash(git push*)` is NOT in" in divergences, (
+        "an unrecorded divergence is indistinguishable from drift and will "
+        "be treated as drift"
+    )
+
+
+def test_the_settings_file_carries_no_unrecognised_top_level_keys():
+    """The validator rejects them, and a rejected settings file silently
+    disables every setting in it — including the sandbox allowlist."""
+    assert set(_settings()) <= {"model", "sandbox", "permissions"}

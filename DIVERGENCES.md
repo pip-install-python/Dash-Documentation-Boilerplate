@@ -31,9 +31,33 @@ host); muischeduler's no-npm dependabot scope.
 
 ## This repo's divergences
 
-*(none — this IS the template. Forks: replace this section with your
-list at fork time; the fork-point identity ritual in run.py is the
-model for what a well-recorded decision looks like.)*
+Forks: replace this section with your own list at fork time; the
+fork-point identity ritual in run.py is the model for what a
+well-recorded decision looks like.
+
+- **`Bash(git push*)` is NOT in `.claude/settings.json`'s deny list**,
+  where 1.6.45 item 13 specifies it for the template. Owner decision,
+  2026-09-07, asked and answered before the file was written.
+
+  The item's reasoning is sound — a bad template push fans out to
+  twelve forks on the next round, so it makes the template's push a
+  human action. The owner's working practice is the other way round:
+  the session stages and verifies a stack, the owner reads the report
+  and says "push it", and the session pushes. A `deny` rule blocks the
+  tool outright rather than prompting, so keeping it would have
+  silently broken that loop — the owner would have said "push it" and
+  received a refusal.
+
+  What still holds without the deny: this repository is the TEMPLATE,
+  so item 12's push clause does NOT apply here and "ops approved —
+  push" is not sufficient (see `.claude/CLAUDE.md` clause 7). The
+  owner's own word in the owner's own terminal is still required for
+  every push of this tree. The deny would have been a second lock on a
+  door the contract already locks; its absence changes who can turn
+  the key, not whether there is one.
+
+  A fork consuming item 13 should keep the deny unless its owner says
+  otherwise — the fork case is the one the item was written for.
 
 ## Recorded conventions (not divergences)
 
