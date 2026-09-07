@@ -620,6 +620,26 @@ ACCESS_ENABLED = _access.configure(
 # pinned here rather than wired to a changelog. `llms_version` on
 # `/healthz` is where the resolved PACKAGE version is reported (item 1's
 # rider) — two different questions, deliberately not the same field.
+# THE SKILL FILE IS GENERATED, and generated BEFORE the package's routes go
+# on (1.6.45 item 2). dash-improve-my-llms looks for `SKILL.md` in the assets
+# folder and digests the bytes on disk, so the file has to exist by the time
+# an agent asks for `/.well-known/agent-skills/index.json`. Written on every
+# boot rather than once: the digest advertises these bytes, and a stale file
+# would advertise a digest for content the corpus no longer contains.
+#
+# A failure here must not cost the app its boot — an unwritable assets
+# directory is a degraded skill surface, not a broken site, and the package
+# answers with an empty index (`"skills": []`, empty being an answer where
+# absent would be a mystery).
+try:
+    from lib.skill_doc import write_skill_md
+
+    _skill_path = write_skill_md(app.config.assets_folder)
+    print(f"[boilerplate] SKILL.md generated at {_skill_path}", flush=True)
+except Exception as _skill_exc:  # pragma: no cover - degraded, never fatal
+    print(f"[boilerplate] SKILL.md NOT generated ({_skill_exc}) — "
+          "the agent-skills index will be empty", flush=True)
+
 add_llms_routes(app, LLMSConfig(
     warn_missing_llms_doc=True,
     openapi_title=f"{SITE_SHORT_NAME} API",
