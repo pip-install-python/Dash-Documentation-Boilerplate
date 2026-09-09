@@ -62,14 +62,44 @@ def _message(items):
     return message
 
 
+def _forwarded_headers(req):
+    """The battery's own headers, with the User-Agent required.
+
+    The battery names a UA on every Request it builds (lib.constants.probe_ua
+    — an engine token plus the internal probe suffix), and this shim forwards
+    them verbatim rather than substituting a default. The assertion is the
+    point: a test client with no User-Agent sends `Werkzeug/x.y`, which
+    dimll >= 2.8 classifies CRAWLER-lane, so every lane-sensitive row would
+    quietly measure the other document. If a caller ever stops naming one,
+    this fails loudly instead of answering the wrong question.
+    """
+    headers = dict(req.header_items())
+    if not any(key.lower() == "user-agent" for key in headers):
+        raise AssertionError(
+            f"{req.full_url}: the battery sent no User-Agent — a bare test "
+            "client is crawler-lane, and this row would measure the wrong "
+            "document rather than fail"
+        )
+    return headers
+
+
 def _wsgi_opener():
     """Flask's test client. Same object CI's gunicorn step serves through."""
     client = run.server.test_client()
 
     def _urlopen(req, timeout=None, context=None, **_kw):
         url, method = req.full_url, req.get_method()
-        headers = dict(req.header_items())
-        rv = client.open(url, method=method, headers=headers, data=req.data)
+        headers = _forwarded_headers(req)
+        # `user_agent=` explicitly, as well as inside `headers`: the kit's UA
+        # pin resolves per CALL SITE, and it is right to — a forwarded dict
+        # is invisible to a reader and to the pin, and "the UA is in there
+        # somewhere" is what the file-level version of that pin used to
+        # accept. Werkzeug's client takes the kwarg (tests/conftest.py uses
+        # the same one).
+        user_agent = next(v for k, v in headers.items()
+                          if k.lower() == "user-agent")
+        rv = client.open(url, method=method, headers=headers,
+                         user_agent=user_agent, data=req.data)
         message = _message(rv.headers.items())
         if rv.status_code >= 400:
             raise urllib.error.HTTPError(
@@ -83,22 +113,76 @@ def _wsgi_opener():
 def _asgi_opener():
     """httpx over the ASGI app — the fastapi and quart legs.
 
+    ASGITransport is ASYNC-ONLY (a sync httpx.Client raises
+    `'ASGITransport' object has no attribute 'handle_request'`), so the
+    requests run on a private event loop that this shim owns. The battery is
+    synchronous and stays that way; only the transport is async.
+
+    THE LIFESPAN IS RUN, and that is not optional here: Dash registers its
+    page catch-all from the ASGI lifespan startup — the same fact behind the
+    HEAD trap in the kit — so a transport that skips lifespan serves an app
+    with no pages and every row measures a 404 that the real server would
+    never return.
+
     `follow_redirects=False` on purpose: the battery asks questions ABOUT
     status codes (HEAD/GET parity, the well-known 404 guard), and a client
     that quietly followed a redirect would answer a different question than
     the one each row asks.
     """
+    import asyncio
+
     import httpx
 
-    transport = httpx.ASGITransport(app=run.server)
-    client = httpx.Client(transport=transport,
-                          base_url="http://127.0.0.1:8550",
-                          follow_redirects=False)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    app = run.server
+    lifespan_receive: asyncio.Queue = asyncio.Queue()
+    lifespan_sent = []
+
+    async def _start_lifespan():
+        """Send `lifespan.startup` and wait for the app to accept it."""
+        await lifespan_receive.put({"type": "lifespan.startup"})
+
+        async def receive():
+            return await lifespan_receive.get()
+
+        async def send(message):
+            lifespan_sent.append(message)
+
+        task = loop.create_task(app({"type": "lifespan"}, receive, send))
+        for _ in range(200):            # ~2s, plenty for an in-process boot
+            await asyncio.sleep(0.01)
+            if any(m["type"].startswith("lifespan.startup.")
+                   for m in lifespan_sent):
+                return task
+        return task                     # no ack: some apps never send one
+
+    try:
+        loop.run_until_complete(_start_lifespan())
+    except Exception as exc:            # an app with no lifespan handler
+        print(f"[smoke-inproc] lifespan not run ({type(exc).__name__}: {exc}) — "
+              "page routes may be absent", flush=True)
+
+    transport = httpx.ASGITransport(app=app)
+    # Named `asgi`, not `asgi_client`, and the second attempt is the
+    # instructive one. These are different objects — a Flask test client and
+    # an httpx.AsyncClient — and the kit's UA pin follows a binding NAME
+    # across the whole file by SUBSTRING, so `asgi_client.request(...)` still
+    # matched the pattern for `client.request(...)` and was read as an
+    # unnamed test-client call. Note 102's file-scoped limitation, measured
+    # twice on one file. Item 10 rewrites that pin over the AST; until then
+    # the name is chosen so the substring cannot collide.
+    asgi = httpx.AsyncClient(transport=transport,
+                             base_url="http://127.0.0.1:8550",
+                             follow_redirects=False)
 
     def _urlopen(req, timeout=None, context=None, **_kw):
         url, method = req.full_url, req.get_method()
-        headers = dict(req.header_items())
-        rv = client.request(method, url, headers=headers, content=req.data)
+        headers = _forwarded_headers(req)
+        rv = loop.run_until_complete(
+            asgi.request(method, url, headers=headers, content=req.data)
+        )
         message = _message(rv.headers.items())
         body = rv.content
         if rv.status_code >= 400:
