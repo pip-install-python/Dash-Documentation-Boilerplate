@@ -90,16 +90,22 @@ def _wsgi_opener():
     def _urlopen(req, timeout=None, context=None, **_kw):
         url, method = req.full_url, req.get_method()
         headers = _forwarded_headers(req)
-        # `user_agent=` explicitly, as well as inside `headers`: the kit's UA
-        # pin resolves per CALL SITE, and it is right to — a forwarded dict
-        # is invisible to a reader and to the pin, and "the UA is in there
-        # somewhere" is what the file-level version of that pin used to
-        # accept. Werkzeug's client takes the kwarg (tests/conftest.py uses
-        # the same one).
+        # The User-Agent is named AT THE CALL SITE, not merely present in a
+        # forwarded dict: the kit's UA pin resolves per call site and is
+        # right to, because "the UA is in there somewhere" is exactly what
+        # its file-level ancestor accepted. Restating the key it already
+        # holds is a no-op semantically and legible to both a reader and the
+        # pin.
+        #
+        # NOT `user_agent=`: that is a kwarg on tests/conftest.py's own
+        # `Client` WRAPPER, not on Werkzeug's EnvironBuilder, which raises
+        # `unexpected keyword argument 'user_agent'`. I asserted otherwise
+        # from the wrapper's signature and all 15 rows failed — verify the
+        # artifact the claim is about.
         user_agent = next(v for k, v in headers.items()
                           if k.lower() == "user-agent")
-        rv = client.open(url, method=method, headers=headers,
-                         user_agent=user_agent, data=req.data)
+        rv = client.open(url, method=method, data=req.data,
+                         headers={**headers, "User-Agent": user_agent})
         message = _message(rv.headers.items())
         if rv.status_code >= 400:
             raise urllib.error.HTTPError(
