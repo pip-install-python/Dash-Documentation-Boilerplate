@@ -255,3 +255,79 @@ def test_both_pages_still_answer_on_both_lanes(client):
     body = client.get("/llms.txt").text
     assert "/terms" in body and "/privacy" in body
     del _json
+
+
+# ------------------------- the licence agrees everywhere (item 5a) --
+
+
+def test_the_licence_statement_agrees_across_every_surface(client):
+    """1.6.45 item 5a (pipdocs 78bb8df).
+
+    A licence named in three places drifts in two of them. Asserted through
+    the MACHINE LANE rather than the files on disk, because that is how a
+    wrong line reaches an agent: /llms.txt carries the home page's prose and
+    /terms/llms.txt carries the terms, and an agent acts on what it is
+    served, not on what the repository contains.
+
+    LICENSE is the artifact and the other two quote it — /terms derives the
+    name at render time (`lib.skill_doc.licence_name`), so it cannot drift;
+    home.md is static prose and is what this test actually guards.
+    """
+    from lib.skill_doc import licence_name
+
+    name = licence_name()
+    assert name, "LICENSE names nothing"
+
+    index = client.get("/llms.txt").text
+    terms = client.get("/terms/llms.txt").text
+
+    assert name in index, (
+        f"the site index does not name {name!r} — the home page's licence "
+        "section has drifted from LICENSE, and the machine lane is serving "
+        "the drift"
+    )
+    assert name in terms, f"/terms/llms.txt does not name {name!r}"
+
+
+def test_the_terms_page_derives_the_licence_rather_than_restating_it():
+    """The half that cannot drift, kept separate from the half that can."""
+    import ast
+
+    from conftest import REPO_ROOT
+
+    source = (REPO_ROOT / "pages" / "legal.py").read_text()
+    assert "licence_name()" in source, (
+        "/terms restates the licence instead of deriving it from LICENSE"
+    )
+    tree = ast.parse(source)
+    imported = {n.module for n in ast.walk(tree)
+                if isinstance(n, ast.ImportFrom) and n.module}
+    assert "lib.skill_doc" in imported
+
+
+def test_a_licence_named_only_on_the_home_page_would_be_caught(client):
+    """Item 5a's acceptance: red when home.md's line is changed alone.
+
+    Constructed rather than described — the mutation is applied to the
+    served index, so the test proves it can see a drift it did not cause.
+    """
+    from lib.skill_doc import licence_name
+
+    name = licence_name()
+    drifted = client.get("/llms.txt").text.replace(name, "WTFPL")
+    assert name not in drifted, (
+        "the mutation did not remove the licence name — this check cannot "
+        "detect the drift it exists for"
+    )
+
+
+def test_the_licence_reader_refuses_an_empty_file(tmp_path, monkeypatch):
+    """A page that invents a licence is worse than a page with none."""
+    import pytest
+
+    import lib.skill_doc as skill_doc
+
+    monkeypatch.setattr(skill_doc, "_REPO_ROOT", tmp_path)
+    (tmp_path / "LICENSE").write_text("\n\n")
+    with pytest.raises(ValueError):
+        skill_doc.licence_name()

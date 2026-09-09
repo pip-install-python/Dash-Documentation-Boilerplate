@@ -34,6 +34,31 @@ from lib.constants import (
 
 SKILL_FILENAME = "SKILL.md"
 
+
+def licence_name() -> str:
+    """The licence this repo ships under, read from LICENSE's own first line.
+
+    1.6.45 item 5a. Derived rather than restated: a licence named in three
+    places drifts in two of them, and the machine lane is where a wrong one
+    reaches an agent that will act on it. LICENSE is the artifact; everything
+    else quotes it.
+
+    The first line of an SPDX-conventional licence file IS its name ("MIT
+    License", "Apache License"), which is why this is a read and not a
+    parser. An unreadable file raises rather than guessing — a page that
+    invents a licence is worse than a page with none.
+    """
+    text = (_REPO_ROOT / "LICENSE").read_text(encoding="utf-8")
+    lines = text.strip().splitlines()
+    # `.splitlines()[0]` on a blank file is an IndexError, not the clear
+    # error a caller can act on — the guard has to come before the index,
+    # which is what the test for it caught.
+    first = lines[0].strip() if lines else ""
+    if not first:
+        raise ValueError("LICENSE's first line is empty — nothing to name")
+    return first
+
+
 # The spec's ceiling. Truncated rather than dropped: a description that is
 # too long is still the best answer available, and an absent one makes the
 # index entry less useful than a shortened one.

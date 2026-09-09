@@ -25,6 +25,7 @@ from lib.constants import (
     SITE_SHORT_NAME,
 )
 from lib.directives.headings import patch_renderer
+from lib.skill_doc import licence_name
 
 TERMS_DESCRIPTION = (
     f"Terms of use for {SITE_SHORT_NAME}: what this site is, what it is not, "
@@ -51,8 +52,9 @@ behaviour working in your project.
 ## The documentation and the code in it
 
 The prose and the code examples are published so you can read them, run them
-and copy them. The source repository states the licence the code is offered
-under, and that licence — not this page — is what governs your use of it:
+and copy them. They are offered under the **{licence_name()}**, and that
+licence — not this page — is what governs your use of them. The text lives
+in the repository:
 
 - [{GITHUB_URL}]({GITHUB_URL})
 
