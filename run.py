@@ -6,6 +6,9 @@ from dash import Dash
 from components.appshell import create_appshell
 
 
+from pathlib import Path
+
+
 def _version(text: str) -> tuple:
     """("4.4.1rc0") -> (4, 4, 1). Trailing rc/dev segments are dropped."""
     parts = []
@@ -304,7 +307,12 @@ app = Dash(
     external_scripts=scripts,
     update_title=None,
     prevent_initial_callbacks=True,
-    index_string=open('templates/index.html').read(),
+    # Read and CLOSED. `open(...).read()` leaks the handle until GC, which
+    # is what made the ResourceWarning intermittent (it fires when the
+    # object is collected, not when it is abandoned) — two sightings and
+    # five clean runs before `-r w` named it. Same relative path, same
+    # cwd requirement; one fewer descriptor.
+    index_string=Path('templates/index.html').read_text(),
     **MCP_KWARGS,
 )
 

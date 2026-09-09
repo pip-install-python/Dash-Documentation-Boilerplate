@@ -330,3 +330,55 @@ def test_the_boot_floor_equals_the_pin(app_module):
         f"run.py's boot floor is {floor} and requirements pins {pinned} — "
         "grep the number and move every encoding, not one"
     )
+
+
+# ------------------------------ file handles are closed (1.6.45 rider) --
+
+
+def test_no_app_code_reads_a_file_without_closing_it():
+    """`open(path).read()` cannot close the handle — there is no reference
+    left to close it with, so the descriptor survives until GC.
+
+    Found by chasing a "1 warning" that appeared on two runs and not on five
+    others: a ResourceWarning fires when the abandoned object is COLLECTED,
+    not when it is abandoned, which is what made it look like flakiness.
+    Two real leaks, one of them (`lib/directives/source.py`) on a per-render
+    path where the descriptors accumulate for the life of the process.
+
+    Detected by AST, not by grep: the shape is a method call on the result
+    of `open(...)`, which no amount of comment-stripping would find reliably
+    and which prose about the defect would match.
+
+    NOT flagged: `fh = open(...)` assigned and closed in a `finally` — the
+    tracker's and the reporter's cross-process lock handles are exactly that,
+    deliberately held open across an flock.
+    """
+    import ast
+
+    offenders = []
+    targets = [REPO_ROOT / "run.py"]
+    for folder in ("lib", "pages", "components", "scripts"):
+        targets += sorted((REPO_ROOT / folder).rglob("*.py"))
+
+    assert len(targets) >= 20, f"swept only {len(targets)} files"
+
+    for path in targets:
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not isinstance(func, ast.Attribute):
+                continue
+            inner = func.value
+            if (isinstance(inner, ast.Call)
+                    and isinstance(inner.func, ast.Name)
+                    and inner.func.id == "open"):
+                offenders.append(
+                    f"{path.relative_to(REPO_ROOT)}:{node.lineno} "
+                    f"open(...).{func.attr}()"
+                )
+
+    assert offenders == [], (
+        "these read a file without ever closing it: " + "; ".join(offenders)
+    )

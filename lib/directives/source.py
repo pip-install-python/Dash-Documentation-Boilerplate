@@ -21,10 +21,16 @@ class SC(SourceCode):
         code = []
         for file in files:
             extension = file.split(".")[-1]
+            # `with`, not `open(...).read()`: this runs per directive render,
+            # so the leaked descriptors accumulate for as long as the process
+            # lives and are only reclaimed when GC gets to them. That is also
+            # why the ResourceWarning it raised was intermittent.
+            with open(file, "r") as handle:
+                source = handle.read()
             code.append(
                 {
                     "fileName": os.path.basename(file),
-                    "code": open(file, "r").read(),
+                    "code": source,
                     "language": mapping[extension]["language"],
                     "icon": mapping[extension]["icon"],
                 }
