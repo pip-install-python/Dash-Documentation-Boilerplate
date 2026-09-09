@@ -87,6 +87,31 @@ alternative costs a fortnight of a defect walking back in.
   pushback to the package seat, never a table here. The same rule now
   covers `vendor_class` (item 8): prefer the package's value, derive
   from the package's REGISTRY when absent, never from a local map.
+- **The duplicate `operationId`s in `/openapi.json` are NOT worked around
+  here** (1.6.45, found while building item 3). On every FastAPI host,
+  `/healthz`, `/api/backend` and `/api/pages` emit the SAME operationId for
+  their GET and their HEAD — 16 operations, 13 distinct on this tree — so
+  the document fails OpenAPI 3.x, which requires operationId to be unique
+  document-wide. Wire-confirmed by the ops seat the same day:
+  pannellum.2plot.dev serves 15 operations with 12 distinct and the same
+  three duplicated; muischeduler.2plot.dev's `/openapi.json` returns 500.
+
+  The cause is the package's and the fix belongs there (dimll 2.11 register
+  item D1): dash-improve-my-llms adds HEAD to every route declaring GET —
+  which is the correct fix, the one that retired HeadAsGetMiddleware — while
+  FastAPI generates one operationId per ROUTE and reuses it for every
+  method. There is no clean app-side repair: FastAPI's
+  `generate_unique_id_function` receives the route, not the method, so it
+  cannot tell the GET from the HEAD it is naming.
+
+  A local workaround would mean either dropping HEAD from the schema (hiding
+  a route this network deliberately serves) or renaming operations the
+  package will rename again — both of which would make the fork's document
+  disagree with the package's intent and would have to be unpicked when D1
+  lands. Recorded so a sync does not read the absence of a workaround as an
+  oversight, and so the next reader knows the invalid document is known
+  rather than unnoticed.
+
 - **Content images carry width/height and NOT `loading`/`decoding`**
   (1.6.44 item 6f). Neither attribute is a prop of dash 4.4.1's
   `html.Img` and Dash RAISES on an unknown one — adding them takes the

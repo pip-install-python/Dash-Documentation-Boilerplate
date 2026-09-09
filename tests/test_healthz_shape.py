@@ -346,3 +346,77 @@ def test_the_asgi_model_keeps_keys_it_does_not_know_about():
     assert widened.model_dump().get("a_future_key") == "kept", (
         "an undeclared key is dropped — declare extra='allow'"
     )
+
+
+def test_the_duplicate_operation_ids_are_known_and_recorded():
+    """1.6.45: `/openapi.json` is INVALID on every FastAPI host on this
+    package — GET and HEAD share an operationId on each of the three native
+    routes, and OpenAPI 3.x requires them to be unique document-wide.
+
+    This test does not demand a fix (the fix is the package's, dimll 2.11
+    D1). It asserts the defect is RECORDED, so the day someone greps for a
+    workaround and finds none, they learn it is known rather than missed —
+    and it will start failing when the package fixes it, which is the moment
+    to delete the DIVERGENCES entry.
+    """
+    from conftest import REPO_ROOT
+
+    # Whitespace flattened before matching: both phrases wrap across lines in
+    # the file, and a detect keyed on where a line breaks is a detect on
+    # formatting. This module has now met that class once itself.
+    divergences = " ".join((REPO_ROOT / "DIVERGENCES.md").read_text().split())
+    assert "duplicate `operationId`s in `/openapi.json` are NOT worked around" in divergences
+    assert "dimll 2.11 register item D1" in divergences
+
+
+def test_the_openapi_document_still_has_the_defect_this_release_records():
+    """The measurement behind the record, so it cannot go stale silently.
+
+    When this goes GREEN — distinct == total — the package has fixed it and
+    the DIVERGENCES entry should be removed rather than left describing a
+    problem nobody has.
+    """
+    from collections import Counter
+
+    from lib.backend import get_backend_info
+
+    if get_backend_info().name != "fastapi":
+        import pytest
+
+        pytest.skip("no OpenAPI schema on this lane — the defect is FastAPI's "
+                    "schema generation, and this leg does not build one")
+
+    import runmod  # noqa: F401  — the suite's already-imported app
+    import sys
+
+    schema = sys.modules["runmod"].server.openapi()
+    ids = [op["operationId"]
+           for ops in schema["paths"].values()
+           for op in ops.values()
+           if isinstance(op, dict) and op.get("operationId")]
+    duplicated = {k: v for k, v in Counter(ids).items() if v > 1}
+    assert duplicated, (
+        "the duplicate operationIds are GONE — the package fixed it. Remove "
+        "the DIVERGENCES entry and this test rather than leaving a record of "
+        "a defect nobody has."
+    )
+
+    # Asserted on PATHS, not on the generated names. The names are NOT
+    # deterministic: FastAPI builds them from `route.methods`, which is a
+    # SET, so the same route yields `…_get` in one process and `…_head` in
+    # another — this test first pinned the names and disagreed with itself
+    # between an isolated run and the full suite. The paths are the stable
+    # fact and the one the record is about.
+    affected = sorted(
+        path for path, ops in schema["paths"].items()
+        if len({op.get("operationId") for op in ops.values()
+                if isinstance(op, dict) and op.get("operationId")}) < len(
+            [op for op in ops.values()
+             if isinstance(op, dict) and op.get("operationId")])
+    )
+    assert affected, "duplicates exist but no path shows them — read this again"
+    for path in ("/healthz", "/api/backend", "/api/pages"):
+        assert path in affected, (
+            f"{path} no longer duplicates its operationId while others do: "
+            f"{affected}"
+        )
