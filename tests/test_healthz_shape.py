@@ -420,3 +420,117 @@ def test_the_openapi_document_still_has_the_defect_this_release_records():
             f"{path} no longer duplicates its operationId while others do: "
             f"{affected}"
         )
+
+
+# ------------- the ledger is counted, not parsed (1.6.45 item 7) --
+
+
+def _write_ledger(path, visits, reads, indent=2):
+    import json as _json
+
+    with open(path, "w") as handle:
+        _json.dump({"visits": visits, "reads": reads,
+                    "stats": {"total": len(visits) + len(reads)}},
+                   handle, indent=indent)
+
+
+def _rows(n, kind="visit"):
+    if kind == "visit":
+        return [{"timestamp": f"2026-09-09T00:00:{i % 60:02d}",
+                 "path": "/backends", "device_type": "bot",
+                 "user_agent": "x" * 40, "visitor_key": "abcdef0123456789"}
+                for i in range(n)]
+    return [{"ts": 1757000000 + i, "path": "/llms.txt", "lane": "crawler",
+             "vendor_key": "googlebot", "bytes": 1234} for i in range(n)]
+
+
+def test_the_counter_agrees_with_a_full_parse(tmp_path):
+    """Correctness before speed: the fast path must answer what the slow one
+    does, including the empty table that the first (line-based) version
+    silently dropped."""
+    from lib.health import _count_rows_by_parsing, _count_rows_by_streaming
+
+    for visits, reads in ((3, 2), (5, 0), (0, 4), (0, 0)):
+        path = tmp_path / f"l{visits}_{reads}.json"
+        _write_ledger(path, _rows(visits), _rows(reads, "read"))
+        parsed = _count_rows_by_parsing(path)
+        streamed = _count_rows_by_streaming(path)
+        assert parsed == streamed == {"visits": visits, "reads": reads}, (
+            f"{visits}/{reads}: parse {parsed} vs stream {streamed}"
+        )
+
+
+def test_a_shape_it_does_not_know_falls_back_to_a_parse(tmp_path):
+    """A counter that GUESSED would be worse than the parse it replaced —
+    these numbers are read by people deciding whether a disk is filling."""
+    from lib.health import _count_rows, _count_rows_by_streaming
+
+    # One line, no indentation: no row openings to find.
+    path = tmp_path / "compact.json"
+    path.write_text('{"visits": [{"a": 1}, {"a": 2}], "reads": []}')
+    assert _count_rows_by_streaming(path) != {"visits": 2, "reads": 0}
+    # The caller still answers correctly, because it falls back.
+    assert _count_rows(path) == {"visits": 2, "reads": 0}
+
+
+def test_a_small_ledger_is_simply_parsed(tmp_path):
+    """Below the ceiling a parse is faster than a scan and easier to be sure
+    of; the streaming path is complexity that only earns itself on a big
+    file."""
+    from lib.health import _FULL_PARSE_CEILING, _count_rows
+
+    path = tmp_path / "small.json"
+    _write_ledger(path, _rows(5), _rows(5, "read"))
+    assert path.stat().st_size < _FULL_PARSE_CEILING
+    assert _count_rows(path) == {"visits": 5, "reads": 5}
+
+
+def test_two_hundred_thousand_rows_are_counted_in_under_fifty_milliseconds(
+        tmp_path):
+    """Item 7's acceptance, measured.
+
+    The block used to `json.loads` the whole ledger on every probe. At the
+    ~135 MB a 45-day window reaches once `reads` stopped being capped by
+    count (1.6.44 item 21), that is ~0.3 s against a HEALTHCHECK running
+    every 30 seconds. The fix is to COUNT, not to shorten the window — the
+    window is a retention decision.
+
+    Best of three, because a shared machine will occasionally stall any
+    single run and this is a check on the algorithm, not on the machine's
+    mood.
+    """
+    from lib.health import _count_rows, _count_rows_by_parsing
+
+    path = tmp_path / "big.json"
+    _write_ledger(path, _rows(150_000), _rows(50_000, "read"))
+    size = path.stat().st_size
+    assert size > 20 * 1024 * 1024, f"fixture is only {size} bytes"
+
+    best = min(_timed(_count_rows, path) for _ in range(3))
+    counted = _count_rows(path)
+
+    assert counted == _count_rows_by_parsing(path) == {
+        "visits": 150_000, "reads": 50_000}, counted
+    assert best < 0.050, f"{best * 1000:.1f} ms for {size / 1e6:.1f} MB"
+
+
+def _timed(fn, *args):
+    import time
+
+    start = time.perf_counter()
+    fn(*args)
+    return time.perf_counter() - start
+
+
+def test_healthz_still_reports_the_same_counts(tmp_path, monkeypatch):
+    """The block, not just the helper — the counter is only useful if the
+    payload carries what it produced."""
+    import lib.analytics_tracker as tracker_mod
+    from lib.health import health_payload
+
+    path = tmp_path / "ledger.json"
+    _write_ledger(path, _rows(7), _rows(3, "read"))
+    monkeypatch.setattr(tracker_mod, "analytics_path", lambda: path)
+
+    ledger = health_payload("flask")["ledger"]
+    assert (ledger["visits"], ledger["reads"]) == (7, 3)
