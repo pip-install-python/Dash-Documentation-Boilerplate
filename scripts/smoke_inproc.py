@@ -31,6 +31,7 @@ import io
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.getcwd())
@@ -200,7 +201,59 @@ def _asgi_opener():
     return _urlopen
 
 
-urllib.request.urlopen = (
+BASE_NETLOC = "127.0.0.1:8550"
+
+
+def _default_context():
+    """certifi's bundle, or the stdlib default if certifi is absent."""
+    import ssl
+
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return None
+
+
+# The REAL opener, captured before it is replaced. Off-host URLs must reach
+# the network exactly as they would from CI's runner.
+_real_urlopen = urllib.request.urlopen
+
+
+def _dispatch(in_process):
+    """Serve this app's own host in-process; send everything else out.
+
+    muischeduler measured why (1.6.45, rider (b) addendum): a shim that
+    answers EVERY url in-process let the local catch-all answer a row's
+    absolute fetch of a CDN-hosted og:image, which returned the app shell as
+    text/html — a FALSE RED on a row that was correct. A shim that lies
+    about somebody else's host is worse than no shim, because its answers
+    look like measurements.
+
+    Today `network_smoke` fetches nothing off-host, so this changes no row's
+    result here. It is a property rather than a repair: the first row that
+    fetches a peer, the hub, or a CDN gets the real network instead of this
+    app pretending to be it.
+    """
+    def _urlopen(req, timeout=None, context=None, **kw):
+        url = req.full_url if hasattr(req, "full_url") else str(req)
+        netloc = urllib.parse.urlsplit(url).netloc
+        if netloc and netloc != BASE_NETLOC:
+            print(f"[smoke-inproc] off-host -> real network: {url}", flush=True)
+            # A certifi context when the caller supplied none. The battery's
+            # own fetch() passes one, but a bare urlopen through this shim
+            # would otherwise use the system trust store and die with
+            # CERTIFICATE_VERIFY_FAILED behind a proxy — the seat habit the
+            # kit records, met here by this file's own test.
+            return _real_urlopen(req, timeout=timeout,
+                                 context=context or _default_context(), **kw)
+        return in_process(req, timeout=timeout, context=context, **kw)
+
+    return _urlopen
+
+
+urllib.request.urlopen = _dispatch(
     _wsgi_opener() if BACKEND == "flask" else _asgi_opener()
 )
 

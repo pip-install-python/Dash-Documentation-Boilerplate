@@ -64,6 +64,10 @@ CLONED_SHA="$(git -C "$CLONE" rev-parse HEAD)"
 
 PY_LOCAL="$(command -v python3.14 || command -v python3.12 || command -v python3)"
 
+# certifi's bundle, for the scrubbed environment below. Empty if certifi is
+# not importable, in which case the variables are simply not set.
+CERT_FILE="$("$REPO/.venv/bin/python" -c 'import certifi;print(certifi.where())' 2>/dev/null || true)"
+
 report_env() {   # $1 = the python that will run the suite
   echo "-- environment --"
   echo "   pwd          $(pwd)"
@@ -130,9 +134,16 @@ if [ "$FORCE_MASKS" -eq 0 ] && build_venv 2>"$WORK.err"; then
   done
   # env -i, with the venv's bin FIRST: a bare `python3` under a cleared
   # environment is macOS's 3.9.
+  # The proxy and CA variables SURVIVE the scrub. `env -i` strips them, and
+  # a battery row that fetches off-host (a CDN og:image, a peer, the hub)
+  # then dies on DNS inside a sandbox — muischeduler measured exactly that
+  # after fixing the in-process shim to route off-host URLs outward.
   run_leg "$VENV/bin/python" \
       -i HOME="$HOME" PATH="$VENV/bin:/usr/bin:/bin" TMPDIR="${TMPDIR:-/tmp}" \
-      CI=true GITHUB_ACTIONS=true APP_ENV=ci
+      CI=true GITHUB_ACTIONS=true APP_ENV=ci \
+      HTTPS_PROXY="${HTTPS_PROXY:-}" HTTP_PROXY="${HTTP_PROXY:-}" \
+      NO_PROXY="${NO_PROXY:-}" SSL_CERT_FILE="${SSL_CERT_FILE:-$CERT_FILE}" \
+      REQUESTS_CA_BUNDLE="${REQUESTS_CA_BUNDLE:-$CERT_FILE}"
   exit $?
 fi
 
