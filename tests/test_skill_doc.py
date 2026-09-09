@@ -206,3 +206,73 @@ def test_a_write_failure_does_not_take_the_boot_down(tmp_path, monkeypatch):
 
     with pytest.raises(OSError):
         write_skill_md(tmp_path / "does" / "not" / "exist")
+
+
+# ------------------- the well-known namespace (1.6.45 item 5) --
+
+
+def _claimed_well_known(app) -> set:
+    """Well-known paths this APP registered itself, before the package ran.
+
+    Read from the router the same way the package reads it, rather than by
+    grepping for a decorator: a route can be added by any of several calls
+    and the URL map is where they all end up.
+    """
+    paths = set()
+    server = app.server
+    rules = getattr(getattr(server, "url_map", None), "iter_rules", None)
+    if rules:                                   # Flask / Quart
+        paths = {r.rule for r in rules()}
+    else:                                       # FastAPI / Starlette
+        paths = {str(getattr(r, "path", "")) for r in getattr(server, "routes", [])}
+    return {p for p in paths if p.startswith("/.well-known/")}
+
+
+def test_this_host_claims_no_well_known_route_of_its_own(app_module):
+    """Item 5's detect.
+
+    `add_llms_routes()` SKIPS any well-known path already in the URL map, so
+    a host that registers one first silently takes it over — correct
+    behaviour, and invisible in a diff and on the wire. This host claims
+    none; a fork that claims one records it in DIVERGENCES.
+    """
+    from dash_improve_my_llms import wellknown
+
+    claimed = _claimed_well_known(app_module.app)
+    package_paths = {wellknown.AGENT_SKILLS_PATH, wellknown.API_CATALOG_PATH,
+                     wellknown.MCP_CARD_PATH}
+    taken = claimed & package_paths
+    assert taken == set(), (
+        f"this host registers {sorted(taken)} itself, so the package does not "
+        "serve them — record it in DIVERGENCES' recorded conventions"
+    )
+
+
+def test_the_check_can_see_a_claimed_route(app_module):
+    """Positive control: without it, the assertion above passes on a tree
+    where the router could not be read at all."""
+    from dash_improve_my_llms import wellknown
+
+    class _FakeRule:
+        def __init__(self, rule):
+            self.rule = rule
+
+    class _FakeMap:
+        def iter_rules(self):
+            return [_FakeRule(wellknown.API_CATALOG_PATH), _FakeRule("/healthz")]
+
+    class _FakeServer:
+        url_map = _FakeMap()
+
+    class _FakeApp:
+        server = _FakeServer()
+
+    seen = _claimed_well_known(_FakeApp())
+    assert seen == {wellknown.API_CATALOG_PATH}, seen
+
+
+def test_the_convention_is_recorded():
+    """The entry the fork round reads."""
+    text = " ".join((REPO_ROOT / "DIVERGENCES.md").read_text().split())
+    assert "claims NO `/.well-known/*` route of its own" in text
+    assert "_wk_claimed" in text

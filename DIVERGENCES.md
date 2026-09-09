@@ -87,6 +87,29 @@ alternative costs a fortnight of a defect walking back in.
   pushback to the package seat, never a table here. The same rule now
   covers `vendor_class` (item 8): prefer the package's value, derive
   from the package's REGISTRY when absent, never from a local map.
+- **This host claims NO `/.well-known/*` route of its own** (1.6.45 item 5),
+  and a fork that does must record it here.
+
+  The mechanism makes the absence worth writing down. `add_llms_routes()`
+  collects the paths already in the URL map and SKIPS any well-known route
+  it finds there (`_wk_claimed` in the package's adapters), so a host that
+  registers `/.well-known/<anything>` BEFORE that call silently takes the
+  path over — the package does not serve its version and does not complain.
+  That is the right behaviour (a host must be able to own its own
+  namespace), and it means the difference between "the package serves this"
+  and "we do" is invisible in a diff and invisible on the wire.
+
+  Measured on this tree: zero self-registered well-known routes, so the
+  package serves all three of `agent-skills/index.json`, `api-catalog` and
+  `mcp/server-card.json`. `tests/test_skill_doc.py` holds that, with a
+  positive control — a synthetic claimed route must be detected, so the
+  check cannot pass by looking at nothing.
+
+  A fork with its own status page, its own catalog, or a hand-rolled MCP
+  card records it here in the same commit that registers it. Otherwise the
+  next sync reads the package's absence as drift and "restores" a route the
+  fork deliberately owns.
+
 - **The duplicate `operationId`s in `/openapi.json` are NOT worked around
   here** (1.6.45, found while building item 3). On every FastAPI host,
   `/healthz`, `/api/backend` and `/api/pages` emit the SAME operationId for
