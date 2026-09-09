@@ -41,6 +41,7 @@ import ssl
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -564,8 +565,261 @@ def satellite_checks(base: str) -> None:
                f"{len(missing)} of {len(expected)} peers absent from the "
                f"/llms.txt Network section: {missing[:3]}")
 
+    # ---------------------------------------------------------------------
+    # The well-known surfaces (1.6.45 item 3). dimll 2.10 serves three new
+    # documents and a Content-Signal line; these are the rows that read them.
+    # Every one NAMES WHAT IT DID NOT COVER when it skips, because a skip
+    # that says nothing is indistinguishable from a pass that means nothing.
+
+    def wellknown_unknown_404():
+        """Tier 0: an unknown /.well-known/* path is a 404 JSON body, never
+        the app shell.
+
+        The failure this catches is not a missing route — it is a route that
+        answers 200 with HTML, which every catch-all does by default.
+        piratesbargain.com serves its catch-all HTML at /llms.txt, so the
+        error body naming `/llms.txt` is itself the tell: a host whose 404
+        body does not name it is serving somebody else's catch-all.
+        """
+        status, _, text = get("/.well-known/nope")
+        expect(status == 404, f"/.well-known/nope answered {status}, not 404 "
+                              "— an unknown well-known path is being served "
+                              "by a catch-all")
+        stripped = text.lstrip()
+        expect(not stripped.lower().startswith("<!doctype"),
+               "the 404 body is HTML — this is the app shell, not a well-known "
+               "error document")
+        try:
+            body = json.loads(text)
+        except ValueError:
+            raise SmokeFailure(f"the 404 body is not JSON: {text[:80]!r}")
+        expect(body.get("see") == "/llms.txt",
+               f"the 404 body does not point at /llms.txt: {body!r}")
+
+    def api_catalog_links_resolve():
+        """Every `href` in the catalog answers 200.
+
+        A catalog entry that 404s is the lie the Tier 0 guard removes: an
+        agent reads the catalog, follows a link, and gets nothing. Checking
+        the document parses is not enough — it is the LINKS that are the
+        claim.
+        """
+        status, _, text = get("/.well-known/api-catalog")
+        expect(status == 200, f"/.well-known/api-catalog {status}")
+        try:
+            catalog = json.loads(text)
+        except ValueError:
+            raise SmokeFailure(f"not JSON: {text[:80]!r}")
+
+        links = []
+        for entry in catalog.get("linkset") or []:
+            for rel, items in entry.items():
+                if rel == "anchor" or not isinstance(items, list):
+                    continue
+                links += [i.get("href") for i in items if isinstance(i, dict)]
+        links = [href for href in links if href]
+        if not links:
+            skip("the catalog declares no links — nothing to resolve "
+                 "(the document's own 200 is covered, its links are not)")
+
+        # 200 IS NOT ENOUGH, and my own mutation check is what proved it:
+        # a catalog pointing at `/nowhere-at-all` PASSED a status check,
+        # because Dash answers 200 for any path and lets the client router
+        # decide (note 104 — the soft-404 item 8 fixes). A catalog entry
+        # resolving to the app shell is exactly the lie this row exists to
+        # catch, so the shell is a failure whatever its status.
+        broken = []
+        for href in links:
+            path = urllib.parse.urlsplit(href).path or href
+            if not path.startswith("/"):
+                continue                      # off-host; not this host's claim
+            code, _, body = get(path, ua=CRAWLER_UA)
+            if code != 200:
+                broken.append(f"{path} -> {code}")
+            elif body.lstrip().lower().startswith("<!doctype"):
+                broken.append(f"{path} -> 200 but the app shell (soft 404)")
+        expect(not broken,
+               f"{len(broken)} of {len(links)} catalog link(s) do not resolve: "
+               f"{broken[:3]}")
+
+    def mcp_card_matches_host():
+        """The card is this host's, or there is no card.
+
+        This is the package's untested "real registration flips the card"
+        path: a host with no MCP bridge must 404, and a host with one must
+        name ITSELF — a card naming another app is worse than none, because
+        an agent would route to it.
+        """
+        status, _, text = get("/.well-known/mcp/server-card.json")
+        if status == 404:
+            skip("no MCP bridge on this host — the 404 is the contract "
+                 "(the card's CONTENT is not covered here)")
+        expect(status == 200, f"/.well-known/mcp/server-card.json {status}")
+        try:
+            card = json.loads(text)
+        except ValueError:
+            raise SmokeFailure(f"not JSON: {text[:80]!r}")
+
+        _status, _, health = get("/healthz")
+        app_name = (json.loads(health).get("app") or "").strip()
+        expect(bool(app_name), "/healthz names no app — nothing to compare")
+        served = ((card.get("serverInfo") or {}).get("name") or "").strip()
+        expect(served == app_name,
+               f"the MCP card names {served!r} and this host is {app_name!r}")
+
+    def skills_index_and_digest():
+        """The index is a LIST — empty is an answer, absent is a mystery —
+        and any entry's digest describes the bytes actually served.
+
+        Both halves in one row on purpose: a host with no SKILL.md is the
+        empty case and a host with one is the digest case, and a battery
+        that only checked the populated case would miss the index
+        disappearing altogether.
+        """
+        status, _, text = get("/.well-known/agent-skills/index.json")
+        expect(status == 200, f"agent-skills index {status} — empty is an "
+                              "answer, absent is a mystery")
+        try:
+            index = json.loads(text)
+        except ValueError:
+            raise SmokeFailure(f"not JSON: {text[:80]!r}")
+        skills = index.get("skills")
+        expect(isinstance(skills, list),
+               f"`skills` is {type(skills).__name__}, not a list")
+
+        if not skills:
+            skip("this host publishes no skill — the index's EMPTY shape is "
+                 "covered, no digest was checked")
+
+        import hashlib
+
+        for entry in skills:
+            href = entry.get("url") or ""
+            # Take the PATH, whatever host the index names. The index is
+            # built from the app's own BASE_URL, so in-process (and against
+            # any host probed by another name) it advertises the public
+            # origin while the battery is talking to 127.0.0.1 — comparing
+            # against `base` made this row fail on a correct index.
+            path = urllib.parse.urlsplit(href).path or href
+            expect(path.startswith("/"),
+                   f"skill url has no path: {href!r}")
+            code, _, body = get(path)
+            expect(code == 200, f"{path} -> {code}; the index advertises it")
+            digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+            expect(entry.get("digest") == f"sha256:{digest}",
+                   f"{path}: the index advertises {entry.get('digest')} and "
+                   f"the served bytes hash to sha256:{digest}")
+
+    def page_markdown_negotiation():
+        """`Accept: text/markdown` is a second REPRESENTATION of the page.
+
+        Not a second URL: same path, negotiated, with `Vary` naming Accept so
+        a shared cache cannot serve one to a client that asked for the other.
+        """
+        status, headers, markdown = get(
+            "/backends", headers={"Accept": "text/markdown"})
+        expect(status == 200, f"/backends (markdown) {status}")
+        ctype = headers.get("content-type", "")
+        expect(ctype.startswith("text/markdown"),
+               f"Accept: text/markdown got {ctype!r}")
+        expect("accept" in headers.get("vary", "").lower(),
+               f"Vary is {headers.get('vary')!r} — a shared cache may serve "
+               "this markdown to a browser")
+
+        _s, html_headers, _html = get(
+            "/backends", headers={"Accept": "text/html,*/*;q=0.8"})
+        expect("text/html" in html_headers.get("content-type", ""),
+               "the same URL did not give HTML to an HTML request")
+
+        # CORRECTED AGAINST THE DROP, and corrected twice, which is why the
+        # measurement is written down here rather than the conclusion.
+        #
+        # The drop says the negotiated bytes EQUAL `/<page>/llms.txt`'s. They
+        # do not, on dimll 2.10.0. Nor does either contain the other — my
+        # first correction assumed a prefix and was also wrong. Measured on
+        # this host: the two share a 7,481-character common SUFFIX out of
+        # ~7,800, and diverge in a navigational line, the standalone document
+        # saying "…listed in the site index above" where the negotiated one
+        # says "…every page on this site, as Markdown".
+        #
+        # So they are the same PAGE with different framing, and the honest
+        # invariant is identity of the page rather than of the bytes: same
+        # H1, both markdown. That catches the negotiation serving a different
+        # page — which is the failure worth catching — and does not pretend
+        # to a byte equality the package does not offer.
+        _s, _h, standalone = get("/backends/llms.txt")
+        heading = markdown.strip().splitlines()[0] if markdown.strip() else ""
+        twin_heading = (standalone.strip().splitlines()[0]
+                        if standalone.strip() else "")
+        expect(heading.startswith("# "),
+               f"the negotiated markdown does not start with an H1: "
+               f"{heading[:60]!r}")
+        expect(heading == twin_heading,
+               f"the negotiated representation is a different page: "
+               f"{heading!r} vs {twin_heading!r} at /backends/llms.txt")
+
+    def edge_honours_vary():
+        """A REAL cache in front of this host serves two representations of
+        one URL. Only meaningful through an edge."""
+        if not base.startswith("https://"):
+            skip("not fetched through an edge (no https) — Vary is asserted "
+                 "on the app's own headers by page_markdown_negotiation, and "
+                 "the CACHE's behaviour is not covered here")
+        _s, md_headers, markdown = get(
+            "/backends", headers={"Accept": "text/markdown"})
+        _s2, html_headers, html = get(
+            "/backends", headers={"Accept": "text/html,*/*;q=0.8"})
+        expect(markdown != html,
+               "the edge served ONE representation to both Accept headers — "
+               "a cache that ignores Vary")
+        for label, hdrs in (("markdown", md_headers), ("html", html_headers)):
+            expect("accept" in hdrs.get("vary", "").lower(),
+                   f"the {label} response lost its Vary through the edge")
+
+    def content_signal_matches_config():
+        """Exactly one `Content-Signal:` line, and its values are this host's
+        RobotsConfig rather than a copied default."""
+        _status, _, robots = get("/robots.txt")
+        lines = [ln.strip() for ln in robots.splitlines()
+                 if ln.strip().lower().startswith("content-signal:")]
+        expect(len(lines) == 1,
+               f"{len(lines)} Content-Signal lines; the spec allows one")
+
+        try:
+            import run
+
+            config = getattr(run.app, "_robots_config", None)
+        except Exception:
+            config = None
+        if config is None:
+            skip(f"no checkout beside this script — the single line "
+                 f"{lines[0]!r} is covered, its VALUES are not")
+
+        signal = dict(
+            part.strip().split("=", 1)
+            for part in lines[0].split(":", 1)[1].split(",")
+            if "=" in part
+        )
+        expected = {
+            "search": "yes" if getattr(config, "allow_traditional", True) else "no",
+            "ai-input": "yes" if getattr(config, "allow_ai_search", True) else "no",
+            "ai-train": "no" if getattr(config, "block_ai_training", False) else "yes",
+        }
+        wrong = {k: (signal.get(k), v) for k, v in expected.items()
+                 if signal.get(k) != v}
+        expect(not wrong,
+               f"Content-Signal disagrees with this host's RobotsConfig: "
+               f"{wrong} (served {lines[0]!r})")
+
     for name, fn in (
         ("healthz_ok", healthz_ok),
+        ("wellknown_unknown_404", wellknown_unknown_404),
+        ("api_catalog_links_resolve", api_catalog_links_resolve),
+        ("mcp_card_matches_host", mcp_card_matches_host),
+        ("skills_index_and_digest", skills_index_and_digest),
+        ("page_markdown_negotiation", page_markdown_negotiation),
+        ("edge_honours_vary", edge_honours_vary),
+        ("content_signal_matches_config", content_signal_matches_config),
         ("head_get_parity_three_uas", head_get_parity_three_uas),
         ("api_llms_rows_present", api_llms_rows_present),
         ("discovery_link_headers_per_lane", discovery_link_headers_per_lane),

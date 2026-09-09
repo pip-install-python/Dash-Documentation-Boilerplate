@@ -363,3 +363,165 @@ def test_the_cd_verify_job_can_generate_the_apps_side(battery):
         "the verify job does not install the app — ai_bot_posture will skip "
         "and the battery will be green without comparing anything"
     )
+
+
+# ------------------- the well-known battery rows (1.6.45 item 3) --
+
+
+def _row(results, name):
+    rows = [r for r in results if r[0] == name]
+    assert rows, f"{name} did not run at all"
+    return rows[0]
+
+
+def _rewrite(wired, monkeypatch, path_suffix, transform):
+    """Run the battery with one path's body or status rewritten."""
+    real = wired.fetch
+
+    def fetch(url, *args, **kwargs):
+        status, headers, text = real(url, *args, **kwargs)
+        if url.endswith(path_suffix):
+            status, text = transform(status, text)
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", fetch)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    return wired._RESULTS
+
+
+def test_all_eight_well_known_rows_are_registered(battery):
+    """Item 3's detect: the rows exist by name."""
+    import inspect
+
+    source = inspect.getsource(battery.satellite_checks)
+    for name in ("wellknown_unknown_404", "api_catalog_links_resolve",
+                 "mcp_card_matches_host", "skills_index_and_digest",
+                 "page_markdown_negotiation", "edge_honours_vary",
+                 "content_signal_matches_config"):
+        assert f'("{name}", {name})' in source, f"{name} is not registered"
+        assert f"def {name}()" in source
+
+
+def test_the_rows_pass_against_this_app(wired):
+    wired.satellite_checks(BASE)
+    failed = [(n, d) for n, v, d in wired._RESULTS if v == wired.FAIL]
+    assert failed == [], failed
+
+
+def test_every_skip_names_what_it_did_not_cover(wired):
+    """A skip that says nothing is indistinguishable from a pass that means
+    nothing — item 3 requires each line to name its gap."""
+    wired.satellite_checks(BASE)
+    for name, verdict, detail in wired._RESULTS:
+        if verdict == wired.SKIP:
+            assert detail.strip(), f"{name} skipped with no reason"
+            assert len(detail) > 30, (
+                f"{name} skipped with {detail!r} — too terse to say what is "
+                "uncovered"
+            )
+
+
+def test_an_html_404_body_is_caught(battery, wired, monkeypatch):
+    """The failure is not a missing route — it is a catch-all answering 200
+    (or 404) with the app shell."""
+    results = _rewrite(wired, monkeypatch, "/.well-known/nope",
+                       lambda s, t: (s, "<!doctype html><html>shell</html>"))
+    name, verdict, detail = _row(results, "wellknown_unknown_404")
+    assert verdict == battery.FAIL and "HTML" in detail
+
+
+def test_a_200_on_an_unknown_well_known_path_is_caught(battery, wired, monkeypatch):
+    results = _rewrite(wired, monkeypatch, "/.well-known/nope",
+                       lambda s, t: (200, t))
+    _n, verdict, detail = _row(results, "wellknown_unknown_404")
+    assert verdict == battery.FAIL and "not 404" in detail
+
+
+def test_a_404_body_that_does_not_name_llms_txt_is_caught(battery, wired,
+                                                          monkeypatch):
+    """piratesbargain.com serves its catch-all HTML at /llms.txt; a 404 body
+    that does not point there is somebody else's error document."""
+    results = _rewrite(wired, monkeypatch, "/.well-known/nope",
+                       lambda s, t: (s, '{"error":"not found"}'))
+    _n, verdict, detail = _row(results, "wellknown_unknown_404")
+    assert verdict == battery.FAIL and "/llms.txt" in detail
+
+
+def test_a_broken_catalog_link_is_caught(battery, wired, monkeypatch):
+    """A catalog entry that 404s is the lie the guard removes."""
+    import json as _json
+
+    real = wired.fetch
+
+    def fetch(url, *args, **kwargs):
+        status, headers, text = real(url, *args, **kwargs)
+        if url.endswith("/.well-known/api-catalog"):
+            body = _json.loads(text)
+            body["linkset"] = [{"anchor": BASE,
+                                "service-desc": [{"href": "/nowhere-at-all"}]}]
+            text = _json.dumps(body)
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", fetch)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    _n, verdict, detail = _row(wired._RESULTS, "api_catalog_links_resolve")
+    assert verdict == battery.FAIL and "do not resolve" in detail
+
+
+def test_a_digest_that_does_not_match_the_bytes_is_caught(battery, wired,
+                                                          monkeypatch):
+    """The digest is the point of the spec: it must describe the bytes the
+    host SERVES, not the ones it meant to."""
+    real = wired.fetch
+
+    def fetch(url, *args, **kwargs):
+        status, headers, text = real(url, *args, **kwargs)
+        if url.endswith("/assets/SKILL.md"):
+            text = text + "\nedited after the index was built\n"
+        return status, headers, text
+
+    monkeypatch.setattr(wired, "fetch", fetch)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    _n, verdict, detail = _row(wired._RESULTS, "skills_index_and_digest")
+    assert verdict == battery.FAIL and "hash to" in detail
+
+
+def test_an_absent_skills_list_is_caught(battery, wired, monkeypatch):
+    """Empty is an answer; absent is a mystery."""
+    results = _rewrite(wired, monkeypatch, "/.well-known/agent-skills/index.json",
+                       lambda s, t: (s, '{"$schema": "x"}'))
+    _n, verdict, detail = _row(results, "skills_index_and_digest")
+    assert verdict == battery.FAIL and "not a list" in detail
+
+
+def test_a_negotiated_page_that_is_a_different_page_is_caught(battery, wired,
+                                                              monkeypatch):
+    """The invariant is identity of the PAGE — the drop's byte-equality does
+    not hold on dimll 2.10.0 (measured: a 7,481-char common suffix and a
+    differing navigation line)."""
+    results = _rewrite(wired, monkeypatch, "/backends/llms.txt",
+                       lambda s, t: (s, "# Some Other Page\n\nbody\n"))
+    _n, verdict, detail = _row(results, "page_markdown_negotiation")
+    assert verdict == battery.FAIL and "different page" in detail
+
+
+def test_a_content_signal_that_disagrees_with_the_config_is_caught(
+        battery, wired, monkeypatch):
+    results = _rewrite(
+        wired, monkeypatch, "/robots.txt",
+        lambda s, t: (s, t.replace("ai-train=yes", "ai-train=no")),
+    )
+    _n, verdict, detail = _row(results, "content_signal_matches_config")
+    assert verdict == battery.FAIL and "RobotsConfig" in detail
+
+
+def test_two_content_signal_lines_are_caught(battery, wired, monkeypatch):
+    results = _rewrite(
+        wired, monkeypatch, "/robots.txt",
+        lambda s, t: (s, t + "\nContent-Signal: search=no\n"),
+    )
+    _n, verdict, detail = _row(results, "content_signal_matches_config")
+    assert verdict == battery.FAIL and "allows one" in detail
