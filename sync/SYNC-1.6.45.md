@@ -23,20 +23,20 @@ Every acceptance prints the RESOLVED dimll version beside its result
 `.venv/lib/python3.11/site-packages/dash_improve_my_llms/__init__.py`,
 path printed rather than inferred from `requirements.txt`; Dash 4.4.1.
 
-Three-leg counts from `scripts/ci_leg.sh` at **280b719** — a clean clone
+Three-leg counts from `scripts/ci_leg.sh` at **4be3ab0** — a clean clone
 per leg with that leg's own dependency set, **never** one interpreter with
-everything installed. 777 collected on each; the instrument is named
+everything installed. 778 collected on each; the instrument is named
 because the numbers differ from a local run, and the difference is the
 point:
 
 | leg | suite | battery | absent on this leg |
 |---|---|---|---|
-| flask | 769 passed, 8 skipped | 23 passed, 0 failed, 4 skipped | fastapi, starlette, quart, flake8, pillow |
-| fastapi | 772 passed, 5 skipped | 24 passed, 0 failed, 3 skipped | quart, flake8, pillow |
-| quart | 766 passed, 11 skipped | 23 passed, 0 failed, 4 skipped | fastapi, starlette, flake8, pillow |
+| flask | 770 passed, 8 skipped | 23 passed, 0 failed, 4 skipped | fastapi, starlette, quart, flake8, pillow |
+| fastapi | 773 passed, 5 skipped | 24 passed, 0 failed, 3 skipped | quart, flake8, pillow |
+| quart | 767 passed, 11 skipped | 23 passed, 0 failed, 4 skipped | fastapi, starlette, flake8, pillow |
 
-A LOCAL run of the same tree reports flask 773/4, fastapi 774/3, quart
-770/7 — higher passes and fewer skips, because the dev interpreter has
+A LOCAL run of the same tree reports flask 774/4, fastapi 775/3, quart
+771/7 — higher passes and fewer skips, because the dev interpreter has
 every backend installed. Quoting those as the release's counts is the
 mistake 1.6.44 went red three times on.
 
