@@ -68,6 +68,11 @@ BROWSER_UA = (
 UA = BROWSER_UA
 CRAWLER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1) " + _PROBE
 
+# The network's TEMPLATE host. This file is copied verbatim into every fork,
+# so the constant is the same everywhere on purpose: it is what a fork
+# compares ITSELF against, not its own identity (that is BASE_URL).
+TEMPLATE_BASE_URL = "https://boilerplate.2plot.dev"
+
 
 def _ssl_context() -> ssl.SSLContext:
     """Verify certificates via certifi when available.
@@ -776,6 +781,97 @@ def satellite_checks(base: str) -> None:
             expect("accept" in hdrs.get("vary", "").lower(),
                    f"the {label} response lost its Vary through the edge")
 
+    def assets_cached():
+        """A static asset carries a real max-age (note 103).
+
+        Every host in the fleet answered `no-cache` on /assets/* until
+        1.6.44 item 6g, so the edge stored NOTHING and every page paid for
+        its CSS again on every view. The header is the whole check.
+
+        NOT COVERED: that an edge actually stored it. This reads the
+        ORIGIN's header — `edge_honours_vary` is the row that speaks to
+        cache behaviour, and neither one proves a hit ratio.
+        """
+        status, headers, _ = get("/assets/main.css")
+        expect(status == 200, f"/assets/main.css {status} — nothing to read")
+        value = (headers.get("cache-control") or "").lower()
+        expect(value, "/assets/main.css carries no cache-control at all")
+        match = re.search(r"max-age\s*=\s*(\d+)", value)
+        expect(match is not None,
+               f"cache-control {value!r} names no max-age — `no-cache` and "
+               "`no-store` are the pre-1.6.44 answer the edge cannot store")
+        expect(int(match.group(1)) > 0,
+               f"max-age={match.group(1)} is zero — stored, then never used")
+
+    def healthz_keys_vs_template():
+        """This host's /healthz key set against the TEMPLATE'S LIVE set.
+
+        Read at run time, never a fixed list of seven: a fixed list goes
+        stale the release after it is written, and the defect this row
+        exists for is a host serving FEWER keys than the template — an ASGI
+        response model that silently drops a field it was not told about
+        (`llms_version` was missing from this lane for two days in 1.6.44
+        for exactly that reason, while every fixed-list check passed).
+
+        ON THE TEMPLATE ITSELF the comparison is a tautology — the host and
+        the reference are the same wire, and the row can never fail. The
+        drop's wording did not cover that case. So here the reference
+        becomes the app's OWN `health_payload()`, computed in process: wire
+        keys versus the keys the code produces is precisely the
+        response-model drop, and it is the only form of this row that can
+        go red on the host the fork copies from.
+
+        NOT COVERED either way: the VALUES. Key presence only. And on a
+        FLASK origin the self-comparison is weak by construction — the route
+        serialises the payload dict as-is, so the two sets agree unless the
+        route filters. Its teeth are on the ASGI lanes, which is where the
+        defect was. Mutation-checked 2026-09-11 by putting the 1.6.44 defect
+        back (HealthResponse without `llms_version`, extra="ignore"): the row
+        goes red naming `llms_version` as dropped between code and wire.
+        """
+        status, _, text = get("/healthz")
+        expect(status == 200, f"/healthz {status} — nothing to compare")
+        mine = set(json.loads(text).keys())
+        expect(mine, "/healthz returned an object with no keys at all")
+
+        base_host = urllib.parse.urlsplit(base).netloc
+        template_host = urllib.parse.urlsplit(TEMPLATE_BASE_URL).netloc
+        try:
+            from lib.constants import BASE_URL as _SELF
+            self_host = urllib.parse.urlsplit(_SELF).netloc
+        except Exception:
+            self_host = ""
+        is_template = template_host in (base_host, self_host)
+
+        if is_template:
+            try:
+                from lib.health import health_payload
+            except Exception:
+                skip("this IS the template, and lib/health.py is not "
+                     "importable beside this script — the self-comparison "
+                     "against the template would be a tautology, so the row "
+                     "has no reference at all here")
+            backend = json.loads(text).get("backend") or "flask"
+            produced = set(health_payload(backend).keys())
+            dropped = sorted(produced - mine)
+            expect(not dropped,
+                   f"the app's health_payload() produces {sorted(produced)} "
+                   f"but the wire serves {sorted(mine)} — {dropped} is "
+                   "dropped between the code and the response, which is the "
+                   "ASGI response-model class this row exists for")
+            return
+
+        ref_status, _, ref_text = fetch(TEMPLATE_BASE_URL + "/healthz", ua=UA)
+        expect(ref_status == 200,
+               f"the template's /healthz answered {ref_status} — no "
+               f"reference set, so this host's {len(mine)} keys are unjudged")
+        theirs = set(json.loads(ref_text).keys())
+        expect(theirs, "the template served a /healthz object with no keys")
+        missing = sorted(theirs - mine)
+        expect(not missing,
+               f"this host is missing {missing} that the template serves "
+               f"(template {len(theirs)} keys, here {len(mine)})")
+
     def crawler_404():
         """An unregistered path is a 404 to a crawler, a shell to a browser.
 
@@ -849,6 +945,8 @@ def satellite_checks(base: str) -> None:
         ("skills_index_and_digest", skills_index_and_digest),
         ("page_markdown_negotiation", page_markdown_negotiation),
         ("edge_honours_vary", edge_honours_vary),
+        ("assets_cached", assets_cached),
+        ("healthz_keys_vs_template", healthz_keys_vs_template),
         ("crawler_404", crawler_404),
         ("content_signal_matches_config", content_signal_matches_config),
         ("head_get_parity_three_uas", head_get_parity_three_uas),

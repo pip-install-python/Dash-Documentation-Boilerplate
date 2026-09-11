@@ -525,3 +525,141 @@ def test_two_content_signal_lines_are_caught(battery, wired, monkeypatch):
     )
     _n, verdict, detail = _row(results, "content_signal_matches_config")
     assert verdict == battery.FAIL and "allows one" in detail
+
+
+# ------------- assets_cached / healthz_keys_vs_template (1.6.45 item 9) --
+#           ------------- and crawler_404 (1.6.45 item 8) --
+
+
+def _rewrite_full(wired, monkeypatch, transform):
+    """Run the battery with (url, ua, status, headers, text) rewritable.
+
+    `_rewrite` above reaches only the status and the body, keyed on the path.
+    These three rows turn on the HEADERS (`cache-control`) and on the UA (the
+    crawler lane and the browser lane must answer DIFFERENTLY for the same
+    URL), so neither is reachable through it.
+    """
+    real = wired.fetch
+
+    def fetch(url, *args, **kwargs):
+        status, headers, text = real(url, *args, **kwargs)
+        ua = kwargs.get("ua") or (args[0] if args else wired.UA)
+        return transform(url, ua, status, headers, text)
+
+    monkeypatch.setattr(wired, "fetch", fetch)
+    monkeypatch.setattr(wired, "_RESULTS", [])
+    wired.satellite_checks(BASE)
+    return wired._RESULTS
+
+
+class _FakeHeaders:
+    """Enough of the battery's header mapping to rewrite one name."""
+
+    def __init__(self, real, overrides):
+        self._real = real
+        self._over = {k.lower(): v for k, v in overrides.items()}
+
+    def get(self, name, default=None):
+        key = name.lower()
+        if key in self._over:
+            return self._over[key]
+        return self._real.get(name, default)
+
+    def get_all(self, name):
+        key = name.lower()
+        if key in self._over:
+            return [self._over[key]]
+        return self._real.get_all(name)
+
+
+def test_the_item_9_and_item_8_rows_are_registered(battery):
+    """Detect for both items: the rows exist by name and are in the list."""
+    import inspect
+
+    source = inspect.getsource(battery.satellite_checks)
+    for name in ("assets_cached", "healthz_keys_vs_template", "crawler_404"):
+        assert f'("{name}", {name})' in source, f"{name} is not registered"
+        assert f"def {name}()" in source
+
+
+def test_a_no_cache_asset_is_caught(battery, wired, monkeypatch):
+    """The pre-1.6.44 answer: every fork sent this, and the edge stored
+    nothing. If this row cannot see it, the row is decoration."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/assets/main.css"):
+            headers = _FakeHeaders(headers, {"cache-control": "no-cache"})
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "assets_cached")
+    assert verdict == battery.FAIL and "max-age" in detail, detail
+
+
+def test_a_zero_max_age_is_caught(battery, wired, monkeypatch):
+    """`max-age=0` is stored and never used — a header that looks right."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/assets/main.css"):
+            headers = _FakeHeaders(headers, {"cache-control":
+                                             "public, max-age=0"})
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "assets_cached")
+    assert verdict == battery.FAIL and "zero" in detail, detail
+
+
+def test_a_healthz_key_dropped_between_code_and_wire_is_caught(
+        battery, wired, monkeypatch):
+    """The 1.6.44 defect itself: `llms_version` produced by health_payload()
+    and absent from the response because a model did not declare it."""
+    import json as _json
+
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz") and status == 200:
+            body = _json.loads(text)
+            body.pop("llms_version", None)
+            text = _json.dumps(body)
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.FAIL and "llms_version" in detail, detail
+
+
+def test_a_soft_404_is_caught(battery, wired, monkeypatch):
+    """Item 8's row: the crawler gets 200 + the shell, which is what every
+    host did before the fix."""
+    def transform(url, ua, status, headers, text):
+        if "definitely-not-a-page" in url and wired.CRAWLER_UA == ua:
+            return 200, headers, "<!doctype html><html>shell</html>"
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "crawler_404")
+    assert verdict == battery.FAIL and "soft" in detail.lower(), detail
+
+
+def test_a_404_to_the_BROWSER_is_caught_too(battery, wired, monkeypatch):
+    """The over-correction. 404ing BOTH lanes would satisfy a row that only
+    checked the crawler, and it would break the site for people."""
+    def transform(url, ua, status, headers, text):
+        if "definitely-not-a-page" in url and wired.BROWSER_UA == ua:
+            return 404, headers, "not found"
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "crawler_404")
+    assert verdict == battery.FAIL and "BROWSER" in detail, detail
+
+
+def test_a_guard_that_eats_registered_pages_is_caught(battery, wired,
+                                                      monkeypatch):
+    """A 404-everything guard passes any row that only checks the 404."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/backends"):
+            return 404, headers, "not found"
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "crawler_404")
+    assert verdict == battery.FAIL and "eating registered pages" in detail
