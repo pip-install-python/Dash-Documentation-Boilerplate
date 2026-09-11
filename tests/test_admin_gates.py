@@ -15,6 +15,7 @@ gate anybody decided against, it was a gate nobody noticed was absent.
 from __future__ import annotations
 
 import contextlib
+import pathlib
 
 import pytest
 from dash.development.base_component import Component
@@ -180,6 +181,70 @@ def _callback_context():
             pass
 
 
+# The names a refusal must be guarded by to count as a GATE. A refusal
+# raised from any other line is the callback declining its own placeholder
+# arguments, which is not a gate at all.
+_GATE_NAMES = ("is_admin_user", "is_admin_email", "admin_access_open",
+               "clerk_enabled", "is_owner", "_is_owner")
+
+
+def _guard_line_for(traceback_obj):
+    """(file, line number, guarding condition) for the frame that raised.
+
+    Walks to the LAST frame — the one that actually raised — then back up the
+    source to the nearest `if`/`elif` at a smaller indent, which is the
+    condition the `raise` sits under.
+    """
+    frame = traceback_obj
+    while frame.tb_next is not None:
+        frame = frame.tb_next
+    filename = frame.tb_frame.f_code.co_filename
+    lineno = frame.tb_lineno
+
+    try:
+        lines = pathlib.Path(filename).read_text().splitlines()
+    except OSError:
+        return filename, lineno, ""
+
+    raising = lines[lineno - 1]
+    indent = len(raising) - len(raising.lstrip())
+    for index in range(lineno - 2, -1, -1):
+        candidate = lines[index]
+        if not candidate.strip():
+            continue
+        candidate_indent = len(candidate) - len(candidate.lstrip())
+        if candidate_indent < indent and candidate.lstrip().startswith(
+                ("if ", "elif ")):
+            return filename, lineno, candidate.strip()
+        if candidate_indent < indent:
+            indent = candidate_indent
+    return filename, lineno, ""
+
+
+def _refusal_verdict(function, arity, caller_is_owner=False):
+    """How this callback refused: "gate", "own line", or "did not refuse".
+
+    THE FOURTH SHAPE (ops, from the hub's build of this test): a callback
+    whose first line declines placeholder arguments —
+    `if not n: raise PreventUpdate` — satisfies "asserts PreventUpdate" while
+    having NO owner gate at all. Asserting that something was raised is not
+    the same as asserting the door is shut, so the raising LINE has to be
+    identified and its guard read.
+    """
+    import sys
+
+    try:
+        function(*([None] * arity))
+    except PreventUpdate:
+        _f, lineno, condition = _guard_line_for(sys.exc_info()[2])
+        if any(name in condition for name in _GATE_NAMES):
+            return "gate", condition
+        return "own line", f"line {lineno}: {condition or '<no guard>'}"
+    except Exception as exc:
+        return "did not refuse", f"{type(exc).__name__}: {exc}"
+    return "did not refuse", "returned normally"
+
+
 def _admin_callbacks(admin_pages):
     """Every callback DEFINED BY an admin page's module.
 
@@ -225,26 +290,27 @@ def test_admin_callbacks_refuse_anonymous_and_stranger(admin_pages, clerk_on):
         "make the assertion below meaningless"
     )
 
-    refused = 0
-    for _key, function in targeted:
-        import inspect
+    import inspect
 
+    verdicts = []
+    for _key, function in targeted:
         try:
             arity = len(inspect.signature(function).parameters)
         except (TypeError, ValueError):
             arity = 0
-        for email in (None, STRANGER):
+        for label, email in (("anonymous", None), ("stranger", STRANGER)):
             clerk_on["user"] = _User(email) if email else None
             with _callback_context():
-                try:
-                    function(*([None] * arity))
-                except PreventUpdate:
-                    refused += 1
-                except Exception:
-                    # Any other exception means the gate did NOT refuse — the
-                    # callback got far enough to fail on something else, which
-                    # is what a missing gate looks like from here.
-                    pass
+                verdict, detail = _refusal_verdict(function, arity)
+            verdicts.append((function.__name__, label, verdict, detail))
+
+    not_gated = [v for v in verdicts if v[2] != "gate"]
+    assert not not_gated, (
+        "these (callback, caller) pairs were not refused BY A GATE: "
+        + "; ".join(f"{name} as {who}: {verdict} — {detail}"
+                    for name, who, verdict, detail in not_gated)
+    )
+    refused = len(verdicts)
 
     assert refused == 2 * len(targeted), (
         f"{refused} of {2 * len(targeted)} (callback, caller) pairs refused — "
@@ -276,3 +342,70 @@ def test_gates_fall_open_without_clerk_by_decision_not_by_accident():
     )
     doc = auth.admin_access_open.__doc__ or ""
     assert "fails open by design" in doc or "fail" in doc.lower()
+
+
+# ---------------- the fourth shape: refused by its own line, not a gate --
+
+
+def _ungated_callback(value):
+    """A callback that declines placeholder arguments and has NO gate.
+
+    This is the shape the addendum names: it raises PreventUpdate for every
+    caller the test tries, so "asserts PreventUpdate" is satisfied while the
+    door stands open for anyone who sends a real value.
+    """
+    if not value:
+        raise PreventUpdate
+    return {"the board": "everything"}
+
+
+def _gated_callback(value):
+    """The same callback with the gate the other one is missing."""
+    import lib.auth as auth
+
+    if not auth.is_admin_user():
+        raise PreventUpdate
+    if not value:
+        raise PreventUpdate
+    return {"the board": "everything"}
+
+
+def test_an_own_line_refusal_is_not_a_gate(clerk_on):
+    """The addendum's acceptance.
+
+    Without this distinction the test asserts only that SOMETHING was raised,
+    which a callback with no owner check satisfies trivially — it would pass
+    on exactly the exposure it exists to catch.
+    """
+    clerk_on["user"] = None
+    with _callback_context():
+        verdict, detail = _refusal_verdict(_ungated_callback, 1)
+    assert verdict == "own line", (verdict, detail)
+
+
+def test_a_gated_refusal_is_recognised_as_one(clerk_on):
+    """The other direction, so "own line" cannot become the answer for
+    everything and quietly fail a correct board."""
+    clerk_on["user"] = None
+    with _callback_context():
+        verdict, detail = _refusal_verdict(_gated_callback, 1)
+    assert verdict == "gate", (verdict, detail)
+    assert "is_admin_user" in detail
+
+
+def test_the_real_admin_callbacks_refuse_at_their_gate(admin_pages, clerk_on):
+    """And the measurement this tree actually produces, named rather than
+    implied: both admin callbacks refuse at a line guarded by the gate."""
+    import inspect
+
+    seen = {}
+    for _key, function in _admin_callbacks(admin_pages):
+        arity = len(inspect.signature(function).parameters)
+        clerk_on["user"] = None
+        with _callback_context():
+            verdict, detail = _refusal_verdict(function, arity)
+        seen[function.__name__] = (verdict, detail)
+
+    assert seen, "no admin callbacks found"
+    for name, (verdict, detail) in seen.items():
+        assert verdict == "gate", f"{name}: {verdict} — {detail}"
