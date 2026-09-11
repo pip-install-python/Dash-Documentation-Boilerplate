@@ -709,26 +709,6 @@ def _code_only(src: str) -> str:
     return re.sub(r"#[^\n]*", "", src)
 
 
-def _client_names_a_ua(src: str, var: str) -> bool:
-    """Does `var` — a bound `.test_client()` — name a UA on the wire?
-
-    Either the client carries one for every request (`environ_base`), or
-    every request call on it names a UA.
-
-    A bound client with NO request calls in this file is an OFFENDER, and
-    the docstring used to say the opposite (muischeduler measured the
-    contradiction, 2026-08-31). It is the fixture shape — build a client,
-    hand it to callers — and it is the one shape file-scoped analysis can
-    never follow, because those callers name a fixture, not a
-    `.test_client()` binding. Flagging it forces the UA onto the client,
-    where it cannot be forgotten. The docstring was wrong, not the code.
-    """
-    if re.search(re.escape(var) + r"\.environ_base\b[^\n]*HTTP_USER_AGENT", src):
-        return True
-    calls = [c for m in _REQUEST_METHODS for c in _calls(src, f"{var}.{m}")]
-    return bool(calls) and all(_names_a_ua(c) for c in calls)
-
-
 def _names_a_ua(call: str) -> bool:
     """`headers=` is NOT evidence of a User-Agent (muischeduler, 2026-08-31).
 
@@ -743,46 +723,228 @@ def _names_a_ua(call: str) -> bool:
     )
 
 
+def _bare_test_client_calls(source: str, label: str) -> list:
+    """Every test-client REQUEST in `source` that names no User-Agent.
+
+    Item 10 (note 102, flexlayout). The pin this replaces resolved per
+    file and per regex: `.test_client()` anywhere plus a UA token anywhere
+    passed the file, so a BARE call sitting beside a named one was invisible,
+    and a `headers=` on an unrelated code path vouched for fetches that had
+    none. The unit of the contract is the CALL SITE, so that is the unit
+    here — `ast` over every Call whose func attr is `test_client`, then the
+    keywords of the request made through it.
+
+    Reading the tree also retires `_code_only`: a comment or docstring that
+    merely MENTIONS a UA cannot satisfy this, because only keyword VALUES
+    are ever read. That was a separate trap the regex form needed a
+    separate defence against.
+    """
+    import ast
+
+    tree = ast.parse(source)
+
+    module_constants = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    module_constants[target.id] = ast.unparse(node.value)
+
+    def _is_client_factory(node) -> bool:
+        return (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "test_client")
+
+    def _call_names_a_ua(call) -> bool:
+        for keyword in call.keywords:
+            segment = f"{keyword.arg}={ast.unparse(keyword.value)}"
+            if _names_a_ua(segment):
+                return True
+            # `headers=HEADERS` — follow one hop to a module constant, which
+            # is the shape a file uses when every call shares one dict.
+            if (isinstance(keyword.value, ast.Name)
+                    and keyword.value.id in module_constants
+                    and _names_a_ua(module_constants[keyword.value.id])):
+                return True
+        return False
+
+    # Every `.test_client()` call site, so each can be accounted for: the
+    # third shape is a client HANDED OFF as an argument
+    # (`yield Client(app.server.test_client(), ...)`), which no file-scoped
+    # walk can follow. Silence there would be the old file-level pass
+    # wearing a new coat, so it is judged by its own rule below.
+    factory_sites, handed_off = [], []
+    for node in ast.walk(tree):
+        if _is_client_factory(node):
+            factory_sites.append(node)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            for argument in list(node.args) + [k.value for k in node.keywords]:
+                if _is_client_factory(argument):
+                    handed_off.append(argument)
+
+    clients, carries_ua = set(), set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            if _is_client_factory(node.value):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        clients.add(target.id)
+            segment = ast.unparse(node)
+            if ".environ_base" in segment and _names_a_ua(segment):
+                match = re.match(r"(\w+)\.environ_base", segment)
+                if match:
+                    carries_ua.add(match.group(1))
+        elif isinstance(node, ast.withitem):
+            if (_is_client_factory(node.context_expr)
+                    and isinstance(node.optional_vars, ast.Name)):
+                clients.add(node.optional_vars.id)
+
+    offenders, used = [], set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr in _REQUEST_METHODS):
+            continue
+        target = node.func.value
+        if isinstance(target, ast.Name) and target.id in clients:
+            used.add(target.id)
+            if target.id in carries_ua:
+                continue
+            site = target.id
+        elif _is_client_factory(target):
+            # `app.server.test_client().get(...)` — no name to follow, so
+            # the request itself has to carry it.
+            site = "<chained>"
+        else:
+            continue
+        if not _call_names_a_ua(node):
+            offenders.append(f"{label}::{site}.{node.func.attr} "
+                             f"line {node.lineno}")
+
+    # A client bound and never used to make a request in this file is the
+    # fixture shape — handed to callers who name a fixture, not a
+    # `.test_client()` binding, so no file-scoped analysis can follow it.
+    # Flagging it forces the UA onto the CLIENT, where it cannot be
+    # forgotten (muischeduler, 2026-08-31).
+    for name in sorted(clients - used - carries_ua):
+        offenders.append(f"{label}::{name} bound, never used to request — "
+                         "put the UA on the client itself")
+
+    # Handed off: the wrapper that receives it is where the UA has to live,
+    # and that is not readable from here. Require the file to name one —
+    # the old pin's file-level rule, kept ONLY for the one shape where
+    # per-call-site analysis is impossible, instead of for every file.
+    if handed_off and not _names_a_ua(source):
+        offenders.append(
+            f"{label}: {len(handed_off)} test client(s) handed to a wrapper "
+            "and this file names no User-Agent — the wrapper is where it "
+            "must live, and nothing here says it does")
+    return offenders
+
+
 def test_every_test_client_user_names_headers():
     """Notes 70/74: a bare test client sends `Werkzeug/x.y` — crawler lane
-    at dimll ≥ 2.8 — so a mark_hidden page 404s and an every-page-200 loop
-    goes red at the floor bump. Any file that drives `.test_client()` must
-    pass a named UA.
-
-    Resolved per CALL SITE, not per file (pannellum, 2026-08-31): the
-    substring form this pin shipped with — `"headers=" in src` — read the
-    whole file, so a tool whose `headers=` sat on a DIFFERENT code path
-    (urllib probes) passed while all three of its in-process fetches were
-    bare, and it flagged a bare-app test with no dimll middleware and no
-    lane to get wrong. It missed the only real offender in the tree that
-    measured it.
+    at dimll >= 2.8 — so a mark_hidden page 404s and an every-page-200 loop
+    goes red at the floor bump. Every request driven through `.test_client()`
+    must name a UA.
     """
-    offenders = []
+    offenders, swept = [], []
     for folder in ("tests", "scripts"):
         for path in sorted((REPO / folder).glob("*.py")):
-            src = _code_only(path.read_text())
-            if ".test_client()" not in src:
+            source = path.read_text()
+            if ".test_client()" not in source:
                 continue
-            # `(?!\s*\.)` — a CHAINED call binds the RESPONSE, not the
-            # client (`body = app.server.test_client().get(...)`), and the
-            # first cut of this pin read `body` as an unnamed client with no
-            # requests and flagged a line that already passed headers (llms,
-            # 2026-08-31, measured on its test_prerender_idempotency.py).
-            bound = set(re.findall(r"(\w+)\s*=\s*[\w.]*\.test_client\(\)(?!\s*\.)", src))
-            bound |= set(re.findall(r"\.test_client\(\)\s+as\s+(\w+)", src))
-            # Chained calls still get checked — on the call itself, since
-            # there is no client name to follow.
-            for meth in _REQUEST_METHODS:
-                for call in _calls(src, f".test_client().{meth}"):
-                    if "headers=" not in call:
-                        offenders.append(f"{folder}/{path.name}::<chained {meth}>")
-            if not bound:
-                # Wrapped in place (conftest hands the raw client to a Client
-                # that always sends one) — no name to follow, so fall back.
-                if "headers=" not in src and "HTTP_USER_AGENT" not in src:
-                    offenders.append(f"{folder}/{path.name}")
-                continue
-            for var in sorted(bound):
-                if not _client_names_a_ua(src, var):
-                    offenders.append(f"{folder}/{path.name}::{var}")
+            swept.append(f"{folder}/{path.name}")
+            offenders += _bare_test_client_calls(
+                source, f"{folder}/{path.name}")
+    # Note 88: a sweep that found nothing and a sweep that swept nothing
+    # produce the same green. 7 files / 9 call sites when this was written.
+    assert len(swept) >= 5, (
+        f"only {len(swept)} file(s) drive a test client — this pin is "
+        f"sweeping almost nothing, so its green means almost nothing: {swept}"
+    )
     assert offenders == [], offenders
+
+
+def test_a_bare_call_beside_a_named_one_is_caught():
+    """Item 10's positive control, and the exact shape the old pin missed:
+    ONE file, a named call and a bare one. File-scoped analysis sees a UA in
+    the file and passes; the call-site walk must name the bare line."""
+    source = (
+        "client = app.server.test_client()\n"
+        "client.get('/', headers={'User-Agent': 'Mozilla/5.0'})\n"
+        "client.get('/backends')\n"
+    )
+    offenders = _bare_test_client_calls(source, "synthetic.py")
+    assert len(offenders) == 1, offenders
+    assert "line 3" in offenders[0], offenders
+    assert "client.get" in offenders[0], offenders
+
+
+def test_a_headers_kwarg_that_names_no_ua_is_still_bare():
+    """`headers=` is not evidence of a User-Agent — the CF-IPCountry shape."""
+    source = (
+        "client = app.server.test_client()\n"
+        "client.get('/', headers={'CF-IPCountry': 'FR'})\n"
+    )
+    assert len(_bare_test_client_calls(source, "s.py")) == 1
+
+
+def test_a_ua_in_a_comment_or_docstring_does_not_vouch_for_a_call():
+    """The regex form needed `_code_only` for this; the AST form cannot be
+    fooled, because only keyword VALUES are read."""
+    source = (
+        '"""This file sends a User-Agent on every request."""\n'
+        "# User-Agent: Mozilla/5.0\n"
+        "client = app.server.test_client()\n"
+        "client.get('/')  # User-Agent\n"
+    )
+    assert len(_bare_test_client_calls(source, "s.py")) == 1
+
+
+def test_a_named_call_and_a_shared_constant_both_pass():
+    """Negative control: the checker must not flag what is already correct,
+    including the `headers=CONSTANT` shape."""
+    source = (
+        "HEADERS = {'User-Agent': 'Mozilla/5.0'}\n"
+        "client = app.server.test_client()\n"
+        "client.get('/', headers=HEADERS)\n"
+        "client.post('/x', headers={'User-Agent': 'Mozilla/5.0'})\n"
+    )
+    assert _bare_test_client_calls(source, "s.py") == []
+
+
+def test_a_chained_call_is_judged_on_itself():
+    """`app.server.test_client().get(...)` binds the RESPONSE, not the
+    client, so there is no name to follow and the request must carry it."""
+    bare = "app.server.test_client().get('/')\n"
+    named = ("app.server.test_client().get('/', "
+             "headers={'User-Agent': 'Mozilla/5.0'})\n")
+    assert len(_bare_test_client_calls(bare, "s.py")) == 1
+    assert _bare_test_client_calls(named, "s.py") == []
+
+
+def test_a_client_handed_to_a_wrapper_needs_the_file_to_name_a_ua():
+    """The third shape, and the only one per-call-site analysis cannot
+    follow: `Client(app.server.test_client())` hands the client to a wrapper
+    defined elsewhere. Judged by its own rule rather than passed over in
+    silence — which is what the walk did before this branch existed, and
+    tests/conftest.py is exactly this shape."""
+    bare = "yield Client(app.server.test_client(), 'werkzeug')\n"
+    named = ("HEADERS = {'User-Agent': 'Mozilla/5.0'}\n"
+             "yield Client(app.server.test_client(), 'werkzeug')\n")
+    assert len(_bare_test_client_calls(bare, "s.py")) == 1
+    assert _bare_test_client_calls(named, "s.py") == []
+
+
+def test_an_environ_base_ua_covers_every_request_on_that_client():
+    """A client carrying the UA for all its requests is correct, and the
+    walk must not demand it again per call."""
+    source = (
+        "client = app.server.test_client()\n"
+        "client.environ_base['HTTP_USER_AGENT'] = 'Mozilla/5.0'\n"
+        "client.get('/')\n"
+        "client.get('/backends')\n"
+    )
+    assert _bare_test_client_calls(source, "s.py") == []
