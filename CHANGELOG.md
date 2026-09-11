@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.45] - 2026-09-11
+
+Twelve drop items, the owner's T1/C1 rider, and eight riders that arrived
+while it was being built. The release pins the network's package exactly
+again, stops serving soft 404s to crawlers, and spends most of its length
+on the difference between a check that passed and a check that could not
+have failed.
+
+Three of its findings were defects in this tree that nobody had reported:
+a page hidden from the control board went on being listed in the sidebar
+and both search dropdowns; two admin-gate tests were green run alone and
+red in the full suite; and a well-known detect was wrong on both lanes at
+once, in opposite directions, each error hiding the other.
+
+### Added
+- `lib/soft404.py` — an unregistered path answers 404 on the crawler
+  lane and keeps Dash's own 404 page for browsers. Before this, every
+  mistyped link and hallucinated URL was served as a real page: `GET
+  /definitely-not-a-page` with a Googlebot UA returned 200 and 46,160
+  bytes of app shell, byte-identical to the browser's.
+- `{{INSTALL}}` on the landing page (T1) — how to obtain what this host
+  documents, with nothing typed by hand. It lives in the markdown, not
+  the layout, so it reaches `/llms.txt` and every agent.
+- Battery rows `assets_cached`, `healthz_keys_vs_template`,
+  `crawler_404` and `openapi_document_renders`.
+- `--require ROW,ROW` on the battery: a row that SKIPS where it was
+  required exits non-zero. cd.yml's verify job requires
+  `ai_bot_posture`, `edge_honours_vary` and `healthz_keys_vs_template`.
+- Regression tests for shapes this tree does not have and must not
+  acquire: a component library imported inside a layout (blank first
+  render after every restart), a FastAPI handler whose annotations
+  cannot resolve (one route poisons the whole OpenAPI document), a
+  search listing an admin or hidden page, a malformed icon name.
+
+### Changed
+- `dash-improve-my-llms` pinned to `== 2.10.0`.
+- `components/navbar.py::page_tier` resolves through `lib.access` —
+  override first, then frontmatter. It read the frontmatter tier, so a
+  page the owner hid from the control board stayed in the sidebar and in
+  both search dropdowns while every request was correctly gated.
+- The UA pin walks call sites with `ast` instead of scanning files: a
+  bare `.test_client()` beside a named one used to pass.
+- `{{VERSION:...}}` resolves a fork's own package from the tree when the
+  distribution is not installed; every other name still raises.
+- `scripts/promote_sampler.py` requires two CONSECUTIVE bad reads before
+  calling anything wrong, and prints the push→promote gap — under 180 s
+  it reports "no verdict possible" rather than a number that looks like
+  evidence.
+- The Network Standard page states the reporting contract in one
+  sentence with no link; the linked document answers 404 to crawlers and
+  gives browsers an SPA shell.
+
+### Fixed
+- `tests/conftest.py` snapshots the callback map at import. `Dash()`
+  clears `dash._callback.GLOBAL_CALLBACK_MAP`, so any test building its
+  own app emptied the real app's callbacks — 0 entries after
+  `tests/test_access.py`, down from 35 — and the admin-gate tests read a
+  wiped registry in every full-suite run.
+- The well-known provenance detect reads the handler's `__module__`,
+  drives the ASGI lifespan and recurses through `original_router`. It
+  had been calling the package's own routes this host's on flask, and
+  passing on fastapi by sweeping zero paths.
+- The Quart lane registers the crawler-404 hook. Quart is ASGI but not
+  Starlette, so `add_middleware` never reached it.
+
+### Notes
+- Invalid OpenAPI document (duplicate `operationId` for GET and HEAD,
+  16 operations / 13 distinct) is RECORDED in `DIVERGENCES.md` as a
+  dimll 2.11 item, not worked around.
+- Agent-readiness, PRE-deploy baseline against the live 1.6.44 build:
+  level 1, 4 passed, `contentSignals` the sole level-2 requirement. The
+  post-release scan is owed after this ships — most of the failing
+  checks are what items 1, 3 and 5 deliver.
+
 ## [1.6.44] - 2026-09-04
 
 Twenty-three items: nineteen from the notes-78–90 drop, four from the
