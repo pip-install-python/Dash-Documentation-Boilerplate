@@ -121,20 +121,21 @@ def create_other_apps_menu():
 
 
 def _package_version():
-    """The documented component package's version, or None."""
+    """The documented component package's version, or None.
+
+    Delegates to `lib.versions.version_of` — the same resolver the markdown
+    `{{VERSION:...}}` substituter uses — so the badge in the header and the
+    numbers in the prose cannot disagree (note 133). The metadata-then-tree
+    order lives there now, once.
+    """
     if not API_PACKAGES:
         return None
     try:
-        from importlib.metadata import version
+        from lib.versions import version_of
 
-        return version(API_PACKAGES[0].replace("_", "-"))
+        return version_of(API_PACKAGES[0].replace("_", "-"))
     except Exception:
-        try:
-            import importlib
-
-            return getattr(importlib.import_module(API_PACKAGES[0]), "__version__", None)
-        except Exception:
-            return None
+        return None
 
 
 def create_version_badge():

@@ -21,6 +21,20 @@ A placeholder naming a distribution that is not installed raises at load
 time. Both loaders run at import, so a typo fails the boot (and therefore
 CI) instead of leaking ``{{VERSION:...}}`` into served prose — the same
 loud-over-silent choice the identity tests make.
+
+ONE EXCEPTION, and it is the host's OWN package (note 133, excalidraw
+17c9dd2). A component fork documents a package that is imported from the
+TREE, never installed: CI installs requirements.txt and the image does
+`COPY . .`, neither of which runs `pip install .`. So `{{VERSION:dash-
+excalidraw}}` on the fork that IS dash-excalidraw raised LookupError
+during app construction and took the whole site down — every test red,
+the boot step red — while the fork's own venv, which happened to have the
+distribution installed, was green. Dash component packages carry
+`__version__` statically (from package-info.json), so when the named
+distribution is one this host DOCUMENTS (`API_PACKAGES`) and no
+distribution is installed, the version is read from the imported module
+instead. Every other name keeps the LookupError: the fallback must not
+turn a typo into a silent pass.
 """
 from __future__ import annotations
 
@@ -41,17 +55,68 @@ _FENCE = re.compile(r"^\s*(```|~~~)")
 _CODE_SPAN = re.compile(r"(`[^`]+`)")
 
 
+def _own_package_modules() -> list:
+    """The module names this host documents, read at CALL time.
+
+    A fork edits `API_PACKAGES`; reading it here rather than binding it at
+    import keeps the fallback keyed on the host's real declaration.
+    """
+    try:
+        from lib.constants import API_PACKAGES
+
+        return [str(name) for name in API_PACKAGES if name]
+    except Exception:
+        return []
+
+
+def version_from_tree(dist: str) -> str | None:
+    """`dist`'s version read from the IMPORTED module, or None.
+
+    Only for a distribution this host documents — see the module docstring.
+    `dash-excalidraw` the distribution is `dash_excalidraw` the module.
+    """
+    wanted = dist.replace("-", "_")
+    if wanted not in _own_package_modules():
+        return None
+    try:
+        import importlib
+
+        return getattr(importlib.import_module(wanted), "__version__", None)
+    except Exception:
+        return None
+
+
+def version_of(dist: str) -> str | None:
+    """The installed version, else the tree's for this host's own package.
+
+    The ONE resolver: the markdown substituter below, the header's version
+    badge and the landing page's install line all read it, so they cannot
+    disagree about what this host runs.
+    """
+    try:
+        return version(dist)
+    except PackageNotFoundError:
+        return version_from_tree(dist)
+
+
 def _substitute_prose(text: str, source: str) -> str:
     def replace(match: re.Match) -> str:
         dist = match.group(1)
-        try:
-            return version(dist)
-        except PackageNotFoundError:
+        resolved = version_of(dist)
+        if resolved:
+            return resolved
+        if dist.replace("-", "_") in _own_package_modules():
             raise LookupError(
-                f"{source} claims a version for {dist!r}, but that "
-                "distribution is not installed — the claim cannot be true. "
-                "Fix the {{VERSION:...}} name or install the package."
+                f"{source} claims a version for {dist!r}, which this host "
+                "documents, but the distribution is not installed AND the "
+                "module carries no __version__ — a Dash component package "
+                "should carry one from package-info.json."
             ) from None
+        raise LookupError(
+            f"{source} claims a version for {dist!r}, but that "
+            "distribution is not installed — the claim cannot be true. "
+            "Fix the {{VERSION:...}} name or install the package."
+        ) from None
 
     out = []
     for part in _CODE_SPAN.split(text):

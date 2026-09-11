@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from conftest import REPO_ROOT
 from lib.constants import (
     PAGE_TITLE_PREFIX,
@@ -310,3 +312,99 @@ def test_both_content_lanes_run_the_versions_pipeline():
             f"{rel} never calls substitute_versions — its lane serves "
             "version tokens raw"
         )
+
+
+# --------- the own-package {{VERSION}} fallback (note 133, excalidraw) --
+
+
+@pytest.fixture
+def fake_own_package(monkeypatch):
+    """A fork's shape: a component module importable from the TREE whose
+    DISTRIBUTION is not installed — which is every component fork on CI and
+    in the image, because neither runs `pip install .`."""
+    import sys
+    import types
+
+    module = types.ModuleType("dash_fakecomponent")
+    module.__version__ = "9.9.9"
+    monkeypatch.setitem(sys.modules, "dash_fakecomponent", module)
+    monkeypatch.setattr("lib.constants.API_PACKAGES", ["dash_fakecomponent"])
+    return module
+
+
+def test_a_forks_own_package_resolves_from_the_tree(fake_own_package):
+    """Note 133: this raised LookupError during app construction and took
+    the whole site down — every test red, the boot step red."""
+    from lib.versions import substitute_versions
+
+    out = substitute_versions("dash-fakecomponent {{VERSION:dash-fakecomponent}}",
+                              source="<t>")
+    assert out == "dash-fakecomponent 9.9.9", out
+
+
+def test_the_module_spelling_resolves_too(fake_own_package):
+    """`API_PACKAGES` holds module names; prose writes the PyPI name. Both
+    spellings name the same package and both must resolve."""
+    from lib.versions import version_of
+
+    assert version_of("dash-fakecomponent") == "9.9.9"
+    assert version_of("dash_fakecomponent") == "9.9.9"
+
+
+def test_any_other_absent_distribution_still_raises(fake_own_package):
+    """The fallback must not turn a TYPO into a silent pass — that is the
+    whole reason the substituter fails loudly at import."""
+    from lib.versions import substitute_versions
+
+    with pytest.raises(LookupError) as excinfo:
+        substitute_versions("{{VERSION:dash-notinstalled-xyz}}", source="<t>")
+    assert "dash-notinstalled-xyz" in str(excinfo.value)
+
+
+def test_the_template_itself_keeps_the_loud_failure():
+    """Positive control on the SHIPPED tree: API_PACKAGES is empty here, so
+    the fallback is inert and an absent name raises exactly as before. A
+    fallback that silently covered every name would pass the test above and
+    still be wrong."""
+    from lib.constants import API_PACKAGES
+    from lib.versions import substitute_versions
+
+    assert API_PACKAGES == [], (
+        "this host documents a package — the control below no longer tests "
+        "the template's shape"
+    )
+    with pytest.raises(LookupError):
+        substitute_versions("{{VERSION:dash-fakecomponent}}", source="<t>")
+
+
+def test_an_own_package_with_no_dunder_version_says_so(monkeypatch):
+    """A component package missing `__version__` is a real fork defect, and
+    the error must name it rather than reporting 'not installed'."""
+    import sys
+    import types
+
+    module = types.ModuleType("dash_noversion")
+    monkeypatch.setitem(sys.modules, "dash_noversion", module)
+    monkeypatch.setattr("lib.constants.API_PACKAGES", ["dash_noversion"])
+    from lib.versions import substitute_versions
+
+    with pytest.raises(LookupError) as excinfo:
+        substitute_versions("{{VERSION:dash-noversion}}", source="<t>")
+    assert "__version__" in str(excinfo.value)
+
+
+def test_the_header_badge_reads_the_same_resolver(
+        fake_own_package, monkeypatch):
+    """The badge and the prose must not disagree about what this host runs
+    — they resolved independently before note 133.
+
+    `components/header.py` does `from lib.constants import API_PACKAGES`, so
+    the name is bound in ITS namespace at import and patching lib.constants
+    alone does not reach it. Patch where the name was bound, or this test
+    reads the template's empty list and passes on a None it never meant to
+    assert.
+    """
+    import components.header as header
+
+    monkeypatch.setattr(header, "API_PACKAGES", ["dash_fakecomponent"])
+    assert header._package_version() == "9.9.9"
