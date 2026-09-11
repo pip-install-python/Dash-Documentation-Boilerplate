@@ -129,9 +129,8 @@ version, write `{{VERSION:<its-pypi-name>}}` instead of a number.
 
 ### 2. The internal-traffic contract
 
-The point of truth is [2plot.ai's satellite-analytics
-document](https://2plot.ai/docs/satellite-analytics), section "Internal
-traffic". The rule is one sentence:
+The reporting contract is private; every kit carries its half. The rule is
+one sentence:
 
 > Any request whose `User-Agent` contains `2plot-internal` is network
 > machinery talking to itself, and is counted **nowhere**.

@@ -209,6 +209,11 @@ There is **no component-level hiding** in 2.0. To hide content from extraction, 
 
 ### MCP integration
 
+There is no bespoke MCP endpoint here, and there should not be one: Dash 4.x's
+native MCP support is the path, and `dash-improve-my-llms` rides it by
+registering its resources on that server when it is enabled. Turn MCP on in
+Dash and the prose below is already there.
+
 On Dash 4.3+, every non-hidden page's `LLMS_DOC` is registered as a `dash.mcp` resource:
 
 - **URI**: `llms:///<page-path>` (e.g. `llms:///equipment`, `llms:///` for root)

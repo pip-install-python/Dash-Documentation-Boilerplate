@@ -520,3 +520,50 @@ def test_the_browser_page_carries_the_block_too(app_module):
     assert "git clone" in rendered, (
         "the landing page's layout does not contain the acquisition block"
     )
+
+
+# ------- the private reporting contract is not linked publicly (C1) --
+
+
+def test_no_public_link_to_the_hubs_private_analytics_document():
+    """C1. The hub's satellite-analytics document is not public, and this
+    site linked to it from the Network Standard page.
+
+    Measured on the wire 2026-09-11 before removing it: the path answers 404
+    to a crawler (Googlebot), and a browser gets the hub's SPA shell — the
+    same 124,698 bytes a nonexistent path returns — so nothing a reader
+    follows the link with reaches the document.
+
+    A CLICKABLE link is what C1 removes. The URL still appears once inside a
+    fenced code block on that page, quoting the shipped `INTERNAL_UA`
+    constant verbatim; that is the value this host really sends, and making
+    the documentation disagree with the code would be the worse error.
+    """
+    offenders = []
+    for folder in ("docs", "pages"):
+        for path in sorted((REPO_ROOT / folder).rglob("*.md")):
+            text = path.read_text()
+            if "](https://2plot.ai/docs/satellite-analytics" in text:
+                offenders.append(str(path.relative_to(REPO_ROOT)))
+    assert offenders == [], (
+        f"{offenders} link publicly to the hub's private document — C1 says "
+        "one sentence and no link"
+    )
+
+
+def test_the_network_standard_states_the_contract_without_linking_it():
+    """And the sentence is actually there — removing the link without
+    replacing it would leave the section stating no contract at all."""
+    page = (REPO_ROOT / "docs" / "network-standard"
+            / "network-standard.md").read_text()
+    assert "The reporting contract is private; every kit carries its half." \
+        in page
+
+
+def test_the_mcp_wording_names_dashs_native_support_and_no_bespoke_endpoint():
+    """C1's second half, two sentences: no bespoke endpoint, Dash 4.x native
+    MCP is the path, dimll's resources ride it."""
+    page = (REPO_ROOT / "docs" / "ai-integration"
+            / "ai-integration.md").read_text()
+    assert "no bespoke MCP endpoint" in page
+    assert "native MCP support is the path" in page
