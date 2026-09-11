@@ -18,6 +18,7 @@ import contextlib
 import pathlib
 
 import pytest
+from conftest import REPO_ROOT
 from dash.development.base_component import Component
 from dash.exceptions import PreventUpdate
 
@@ -418,3 +419,185 @@ def test_the_real_admin_callbacks_refuse_at_their_gate(
     assert seen, "no admin callbacks found"
     for name, (verdict, detail) in seen.items():
         assert verdict == "gate", f"{name}: {verdict} — {detail}"
+
+
+# ------------- addendum 2: enumerate from the SOURCE, judge from it too --
+#
+# The registry-based tests above can only judge a callback that Dash actually
+# REGISTERED. Two shapes escape them entirely:
+#
+#   - a callback nested under a flag (`if FEATURE:`, inside a factory, inside
+#     a `try`) that is False in CI and True in production — never registered
+#     where the test runs, so the test sweeps past it and reports green;
+#   - a callback in a module the registry wiped (`Dash()` clears
+#     GLOBAL_CALLBACK_MAP — the defect 12c7bc0 fixed), where the whole
+#     enumeration silently empties.
+#
+# Reading the SOURCE cannot be emptied by either. It is a weaker judgement —
+# it asks whether the callback names a gate, not whether the gate refuses —
+# so it runs BESIDE the invocation tests, never instead of them.
+
+
+_CALLBACK_DECORATORS = ("callback",)
+
+
+def _callbacks_in_source(source: str):
+    """Every `@callback`-decorated function in `source`, AT ANY NESTING.
+
+    `ast.walk` rather than a scan of `tree.body`: a callback defined inside
+    an `if`, a function or a `try` is exactly the one the registry cannot
+    see in CI, and a module-level-only walk would miss precisely the shape
+    this addendum exists for.
+    """
+    import ast
+
+    tree = ast.parse(source)
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for decorator in node.decorator_list:
+            target = (decorator.func if isinstance(decorator, ast.Call)
+                      else decorator)
+            name = (target.attr if isinstance(target, ast.Attribute)
+                    else getattr(target, "id", ""))
+            if name in _CALLBACK_DECORATORS:
+                found.append(node)
+                break
+    return found, tree
+
+
+def _names_a_gate(node) -> bool:
+    import ast
+
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name) and child.id in _GATE_NAMES:
+            return True
+        if isinstance(child, ast.Attribute) and child.attr in _GATE_NAMES:
+            return True
+    return False
+
+
+def _source_gate_verdict(node, tree) -> bool:
+    """Does this callback reach a gate — directly, or through one hop?
+
+    One hop, because a callback that delegates to a module-level helper which
+    gates is correct, and a check that only looked at the callback's own body
+    would report it as ungated and train people to inline the gate.
+    """
+    import ast
+
+    if _names_a_gate(node):
+        return True
+    helpers = {n.name: n for n in ast.walk(tree)
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    for child in ast.walk(node):
+        if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+            helper = helpers.get(child.func.id)
+            if helper is not None and helper is not node and _names_a_gate(helper):
+                return True
+    return False
+
+
+def test_every_admin_callback_names_a_gate_in_its_source(admin_pages):
+    """Addendum 2's detect, over the real tree."""
+    offenders, swept = [], []
+    for entry in admin_pages:
+        module = entry.get("module") or ""
+        path = REPO_ROOT / (module.replace(".", "/") + ".py")
+        if not path.exists():
+            continue
+        nodes, tree = _callbacks_in_source(path.read_text())
+        for node in nodes:
+            swept.append(f"{path.name}:{node.lineno} {node.name}")
+            if not _source_gate_verdict(node, tree):
+                offenders.append(f"{path.name}:{node.lineno} {node.name}")
+    assert swept, (
+        "no @callback was found in any admin page's SOURCE — the enumeration "
+        "is looking in the wrong place, and a green here would mean nothing"
+    )
+    assert offenders == [], (
+        f"{offenders} are admin callbacks whose source never names a gate "
+        f"({len(swept)} swept)"
+    )
+
+
+def test_a_callback_nested_under_a_flag_is_still_judged():
+    """Addendum 2's acceptance, exactly as specified: a synthetic callback
+    nested under `if FLAG:` with no gate must RED.
+
+    In CI this callback is never registered, so every registry-based test in
+    this file sweeps straight past it — and that is the shape where a missing
+    gate reaches production.
+    """
+    source = (
+        "FLAG = False\n"
+        "if FLAG:\n"
+        "    @callback(Output('x', 'children'), Input('y', 'n_clicks'))\n"
+        "    def secret_board(n):\n"
+        "        return load_everything()\n"
+    )
+    nodes, tree = _callbacks_in_source(source)
+    assert len(nodes) == 1, nodes
+    assert nodes[0].name == "secret_board"
+    assert _source_gate_verdict(nodes[0], tree) is False
+
+
+def test_a_nested_callback_that_gates_is_not_flagged():
+    """Negative control: the check must not demand the gate be at the top
+    level, or it would flag correct code and get switched off."""
+    source = (
+        "if FLAG:\n"
+        "    @callback(Output('x', 'children'), Input('y', 'n_clicks'))\n"
+        "    def board(n):\n"
+        "        if not is_admin_user():\n"
+        "            raise PreventUpdate\n"
+        "        return load_everything()\n"
+    )
+    nodes, tree = _callbacks_in_source(source)
+    assert _source_gate_verdict(nodes[0], tree) is True
+
+
+def test_a_callback_that_delegates_its_gate_to_a_helper_passes():
+    """One hop. Inlining is not the contract; reaching a gate is."""
+    source = (
+        "def _require_admin():\n"
+        "    if not is_admin_email():\n"
+        "        raise PreventUpdate\n"
+        "@callback(Output('x', 'children'), Input('y', 'n_clicks'))\n"
+        "def board(n):\n"
+        "    _require_admin()\n"
+        "    return load_everything()\n"
+    )
+    nodes, tree = _callbacks_in_source(source)
+    assert _source_gate_verdict(nodes[0], tree) is True
+
+
+def test_the_walk_finds_callbacks_the_registry_never_sees():
+    """The property the addendum turns on: module level, inside an `if`, and
+    inside a factory function are all found. A walk of `tree.body` alone
+    finds one of the three."""
+    import ast
+
+    source = (
+        "@callback(Output('a', 'c'), Input('b', 'n'))\n"
+        "def top(n):\n"
+        "    return 1\n"
+        "if FLAG:\n"
+        "    @callback(Output('d', 'c'), Input('e', 'n'))\n"
+        "    def under_flag(n):\n"
+        "        return 2\n"
+        "def factory():\n"
+        "    @callback(Output('f', 'c'), Input('g', 'n'))\n"
+        "    def inside(n):\n"
+        "        return 3\n"
+    )
+    nodes, _tree = _callbacks_in_source(source)
+    assert {n.name for n in nodes} == {"top", "under_flag", "inside"}
+
+    shallow = [n for n in ast.parse(source).body
+               if isinstance(n, ast.FunctionDef) and n.decorator_list]
+    assert len(shallow) == 1, (
+        "the shallow form finds only the top-level callback — which is why "
+        "this addendum walks"
+    )
