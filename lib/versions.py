@@ -43,6 +43,10 @@ from importlib.metadata import PackageNotFoundError, version
 
 _PLACEHOLDER = re.compile(r"\{\{VERSION:([A-Za-z0-9._-]+)\}\}")
 
+# Item T1: the landing page opens with how you actually GET this thing, and
+# the version in it is read, never typed.
+_INSTALL = "{{INSTALL}}"
+
 # The first placeholder, from before the general form existed (the 2026-08-14
 # truth sweep). Satellites forked in that window may still write it.
 _LEGACY = "{{DIMLL_VERSION}}"
@@ -124,8 +128,57 @@ def _substitute_prose(text: str, source: str) -> str:
             out.append(part)
             continue
         part = part.replace(_LEGACY, f"{{{{VERSION:{_LEGACY_DIST}}}}}")
+        if _INSTALL in part:
+            part = part.replace(_INSTALL, install_markdown())
         out.append(_PLACEHOLDER.sub(replace, part))
     return "".join(out)
+
+
+def install_markdown() -> str:
+    """The landing page's opening block: how to get what this host documents.
+
+    Item T1. A satellite documents ONE component package, so the block is
+    `pip install <dist>` plus the version resolved through `version_of` —
+    the same resolver as `{{VERSION:...}}` and the header badge, so the
+    three cannot disagree.
+
+    CORRECTION TO T1, and the reason this is not a bare `pip install` line:
+    T1 says every satellite landing page opens with `pip install <package>`.
+    THIS host has no package. `dash-documentation-boilerplate` is not on
+    PyPI (404, measured 2026-09-11) and this repo carries no pyproject.toml
+    or setup.py — it is a GitHub template, acquired by forking it. Rendering
+    `pip install dash-documentation-boilerplate` here would publish an
+    install instruction for a distribution that does not exist, on the
+    network's most-copied page, in both lanes. That is a worse failure than
+    the hand-typed version number this module exists to prevent, and it is
+    the shape of defect the acceptance would have called success.
+
+    So: a host that documents a package gets T1's line verbatim; a host
+    that documents none gets the true acquisition line for what it IS. The
+    rule underneath both is the one T1 is really asking for — the landing
+    page opens by telling a reader or an agent how to obtain the thing,
+    and no part of it is typed by hand.
+    """
+    from lib.constants import API_PACKAGES, GITHUB_URL
+
+    if API_PACKAGES:
+        module = str(API_PACKAGES[0])
+        dist = module.replace("_", "-")
+        resolved = version_of(dist)
+        if not resolved:
+            raise LookupError(
+                f"the landing page's install block names {dist!r}, the "
+                "package this host documents, but no version could be "
+                "resolved — neither an installed distribution nor a "
+                "__version__ on the imported module. A satellite cannot "
+                "state its own install line without one."
+            )
+        return (f"```bash\npip install {dist}\n```\n\n"
+                f"Current version: **{resolved}**")
+
+    return (f"```bash\ngit clone {GITHUB_URL}\n```\n\n"
+            "This host documents no package of its own — it is the template "
+            "the network's component sites are forked from.")
 
 
 def substitute_versions(content: str, *, source: str = "<markdown>") -> str:

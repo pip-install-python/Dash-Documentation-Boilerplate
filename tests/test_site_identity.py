@@ -408,3 +408,115 @@ def test_the_header_badge_reads_the_same_resolver(
 
     monkeypatch.setattr(header, "API_PACKAGES", ["dash_fakecomponent"])
     assert header._package_version() == "9.9.9"
+
+
+# ------------------ the landing page's install block (item T1) --
+
+
+def _home_markdown() -> str:
+    return (REPO_ROOT / "pages" / "home.md").read_text()
+
+
+def test_the_landing_page_opens_with_the_acquisition_block():
+    """T1's detect, on the SOURCE: the placeholder is there and it is one of
+    the first blocks under the title — not buried below the fold."""
+    source = _home_markdown()
+    assert "{{INSTALL}}" in source, (
+        "the landing page does not carry the install block at all"
+    )
+    above = source.split("{{INSTALL}}", 1)[0]
+    assert above.count("\n\n") <= 4, (
+        f"the install block sits under {above.count(chr(10) + chr(10))} "
+        "blocks — T1 wants it among the first, above the fold"
+    )
+
+
+def test_the_version_is_never_typed_into_the_landing_page():
+    """The whole point: a number in prose is a lie waiting for the next
+    release. Nothing version-shaped may be hand-written in the block."""
+    source = _home_markdown()
+    assert "pip install dash-documentation-boilerplate" not in source
+    assert not re.search(r"Current version: \*\*\d", source), (
+        "a literal version is typed into home.md — it must come from the "
+        "installed package or the tree"
+    )
+
+
+def test_the_template_does_not_advertise_a_package_that_does_not_exist():
+    """CORRECTION TO T1, pinned so a later sync cannot quietly undo it.
+
+    T1 says every satellite landing page opens with `pip install <package>`.
+    This host has no package: `dash-documentation-boilerplate` is not on
+    PyPI and the repo carries no pyproject.toml or setup.py. Rendering the
+    line here would publish an install instruction for a distribution that
+    does not exist, in both lanes, on the network's most-copied page.
+    """
+    from lib.constants import API_PACKAGES
+    from lib.versions import install_markdown
+
+    assert API_PACKAGES == [], "this host now documents a package"
+    assert not (REPO_ROOT / "pyproject.toml").exists()
+    assert not (REPO_ROOT / "setup.py").exists()
+
+    block = install_markdown()
+    assert "pip install" not in block, block
+    assert "git clone" in block and "github.com" in block, block
+
+
+def test_a_fork_gets_T1s_line_with_a_resolved_version(fake_own_package):
+    """And on a host that DOES document a package — every component fork —
+    the block is T1 verbatim, with the version read, never typed."""
+    from lib.versions import install_markdown, version_of
+
+    block = install_markdown()
+    assert "pip install dash-fakecomponent" in block, block
+    assert version_of("dash-fakecomponent") == "9.9.9"
+    assert "**9.9.9**" in block, block
+
+
+def test_a_fork_whose_package_has_no_version_fails_loudly(monkeypatch):
+    """A satellite cannot state its own install line without a version, and
+    a silent empty one is worse than a boot failure."""
+    import sys
+    import types
+
+    module = types.ModuleType("dash_noversion2")
+    monkeypatch.setitem(sys.modules, "dash_noversion2", module)
+    monkeypatch.setattr("lib.constants.API_PACKAGES", ["dash_noversion2"])
+    from lib.versions import install_markdown
+
+    with pytest.raises(LookupError) as excinfo:
+        install_markdown()
+    assert "install line" in str(excinfo.value)
+
+
+def test_the_crawler_document_carries_the_block(app_module):
+    """The MACHINE lane, on its own artifact. `LLMS_DOC` is the prose
+    dash-improve-my-llms serves as the opening of /llms.txt, and it is built
+    from the substituted markdown — so the block reaches an agent, which is
+    the half a Dash component would never have reached (note 132)."""
+    import pages.home as home
+
+    doc = home.LLMS_DOC
+    assert "{{INSTALL}}" not in doc, "the placeholder was served unsubstituted"
+    assert "git clone" in doc, doc[:400]
+    above = doc.split("git clone", 1)[0]
+    assert len(above) < 800, (
+        f"the block is {len(above)} characters down the crawler document — "
+        "T1 wants it above the fold in BOTH lanes"
+    )
+
+
+def test_the_browser_page_carries_the_block_too(app_module):
+    """The BROWSER lane, on ITS artifact — the rendered layout, not the
+    served HTML. The page is a Dash component tree, so `curl | grep` finds
+    nothing here even when the block is present and correct (the kit's
+    skip-link finding, the same trap in the other direction)."""
+    import json
+
+    import pages.home as home
+
+    rendered = json.dumps(home.layout.to_plotly_json(), default=str)
+    assert "git clone" in rendered, (
+        "the landing page's layout does not contain the acquisition block"
+    )

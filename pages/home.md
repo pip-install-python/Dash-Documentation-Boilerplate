@@ -4,6 +4,8 @@
 
 > **`dash-documentation-boilerplate` — the markdown-driven documentation template every `*.2plot.dev` component site is forked from.** By [Pip Install Python](https://2plot.dev).
 
+{{INSTALL}}
+
 Create beautiful, interactive documentation for your Dash components, data science workflows, and applications with markdown-driven content, live code examples, and automatic theme persistence.
 
 ---
