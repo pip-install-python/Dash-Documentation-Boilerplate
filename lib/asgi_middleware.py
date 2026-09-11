@@ -91,6 +91,35 @@ class StaticCacheMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class CrawlerNotFoundMiddleware(BaseHTTPMiddleware):
+    """A path with no page behind it answers 404 to a crawler (item 8).
+
+    The ASGI half of the Flask `before_request` in `run.py`; the decision
+    itself lives in `lib/soft404` so the two lanes cannot drift into
+    answering differently for the same URL.
+    """
+
+    def __init__(self, app, dash_app=None):
+        super().__init__(app)
+        self._dash_app = dash_app
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        try:
+            from lib.soft404 import (NOT_FOUND_BODY, NOT_FOUND_TYPE,
+                                     should_answer_404)
+
+            if self._dash_app is not None and should_answer_404(
+                    self._dash_app, request.url.path,
+                    request.headers.get("user-agent", "")):
+                from starlette.responses import Response as _Response
+
+                return _Response(NOT_FOUND_BODY, status_code=404,
+                                 media_type=NOT_FOUND_TYPE)
+        except Exception:
+            pass        # never let this turn a served page into an error
+        return await call_next(request)
+
+
 def register_asgi_middleware(app) -> None:
     """Attach all ASGI middleware to ``app.server`` (a FastAPI instance).
 
@@ -100,3 +129,4 @@ def register_asgi_middleware(app) -> None:
     """
     app.server.add_middleware(AnalyticsMiddleware)
     app.server.add_middleware(StaticCacheMiddleware)
+    app.server.add_middleware(CrawlerNotFoundMiddleware, dash_app=app)

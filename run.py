@@ -517,6 +517,27 @@ if IS_FLASK:
         except Exception:
             pass
 
+    @app.server.before_request
+    def _crawler_404_for_missing_pages():
+        """A path with no page behind it answers 404 to a crawler.
+
+        1.6.45 item 8. Dash answers 200 for ANY path — the shell renders and
+        the client router decides — so every mistyped link and stale URL was
+        a soft 404 that search engines and agents indexed as real. The
+        browser lane keeps Dash's own 404 page, which is the better
+        experience; only the machine lane gets the status code, because only
+        the machine lane believes it.
+        """
+        from lib.soft404 import NOT_FOUND_BODY, NOT_FOUND_TYPE, should_answer_404
+
+        try:
+            if should_answer_404(app, _flask_request.path,
+                                 _flask_request.headers.get("User-Agent", "")):
+                return NOT_FOUND_BODY, 404, {"Content-Type": NOT_FOUND_TYPE}
+        except Exception:
+            pass        # never let this turn a served page into an error
+        return None
+
     @app.server.after_request
     def _asset_cache_lifetime(response):
         """Give /assets/ a lifetime (1.6.44 item 6g). See lib/static_cache."""
@@ -529,6 +550,27 @@ if IS_FLASK:
 
 elif BACKEND == "quart":
     from quart import request as _quart_request
+
+    @app.server.before_request
+    async def _crawler_404_for_missing_pages():
+        """The Quart half of item 8's crawler 404.
+
+        Quart is ASGI but is not Starlette, so it takes no
+        `add_middleware` — the fastapi lane's middleware does not reach it,
+        and without this the quart lane kept serving soft 404s while the
+        other two were fixed. Same decision function, so the three lanes
+        cannot answer differently for the same URL.
+        """
+        from lib.soft404 import (NOT_FOUND_BODY, NOT_FOUND_TYPE,
+                                 should_answer_404)
+
+        try:
+            if should_answer_404(app, _quart_request.path,
+                                 _quart_request.headers.get("User-Agent", "")):
+                return NOT_FOUND_BODY, 404, {"Content-Type": NOT_FOUND_TYPE}
+        except Exception:
+            pass
+        return None
 
     @app.server.before_request
     async def track_visitor():

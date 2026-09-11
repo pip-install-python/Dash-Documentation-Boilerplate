@@ -776,6 +776,36 @@ def satellite_checks(base: str) -> None:
             expect("accept" in hdrs.get("vary", "").lower(),
                    f"the {label} response lost its Vary through the edge")
 
+    def crawler_404():
+        """An unregistered path is a 404 to a crawler, a shell to a browser.
+
+        1.6.45 item 8. Dash answers 200 for ANY path, so every mistyped link
+        and stale URL was a soft 404 that search engines and agents indexed
+        as real. Both lanes are asked, because 404ing BOTH would satisfy a
+        one-lane check while breaking the site for people.
+        """
+        missing = "/definitely-not-a-page-on-this-host"
+        crawler_status, _, _ = get(missing, ua=CRAWLER_UA)
+        expect(crawler_status == 404,
+               f"{missing} answered {crawler_status} to a crawler — a soft "
+               "404 is indexed as a real page")
+
+        browser_status, _, body = get(missing, ua=BROWSER_UA)
+        expect(browser_status == 200,
+               f"{missing} answered {browser_status} to a BROWSER — the "
+               "browser lane keeps Dash's own 404 page, which is the better "
+               "experience; a bare status code here is a regression, not a fix")
+        expect(body.lstrip().lower().startswith("<!doctype"),
+               "the browser did not get the app shell")
+
+        # And a real page must still be 200 on both, or this row would pass
+        # on a host that 404s everything.
+        for label, ua in (("crawler", CRAWLER_UA), ("browser", BROWSER_UA)):
+            status, _, _ = get("/backends", ua=ua)
+            expect(status == 200,
+                   f"/backends answered {status} to a {label} — the guard is "
+                   "eating registered pages")
+
     def content_signal_matches_config():
         """Exactly one `Content-Signal:` line, and its values are this host's
         RobotsConfig rather than a copied default."""
@@ -819,6 +849,7 @@ def satellite_checks(base: str) -> None:
         ("skills_index_and_digest", skills_index_and_digest),
         ("page_markdown_negotiation", page_markdown_negotiation),
         ("edge_honours_vary", edge_honours_vary),
+        ("crawler_404", crawler_404),
         ("content_signal_matches_config", content_signal_matches_config),
         ("head_get_parity_three_uas", head_get_parity_three_uas),
         ("api_llms_rows_present", api_llms_rows_present),
