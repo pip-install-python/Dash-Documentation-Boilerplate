@@ -23,6 +23,21 @@ Three things this does that a hand-written watcher gets wrong:
    un-retried loop is systematically blind at the only moment that matters,
    and collapsing unreadable into old invents a bracket nobody observed.
 
+4. TWO CONSECUTIVE BAD READS BEFORE ANY VERDICT (note 149a, modelviewer).
+   Mid-swap `/healthz` returns an empty or unparseable body for ONE tick
+   with `release` already moved — a container restarting, not an outage. A
+   watcher that calls that wrong cries wolf; one that reads it as "the run
+   vanished" repeats the rate-limit mistake in a new costume. A single
+   unreadable sample is an ordinary member of the bracket here; two in a
+   row is reported as a condition in its own right.
+
+5. PRINTS THE PUSH -> PROMOTE GAP beside the bracket (note 128a). The whole
+   inference is that a push-watching Render would have swapped EARLIER than
+   observed — which only separates the two triggers when the gap is bigger
+   than the build+swap time. Under ~3 minutes the two hypotheses predict
+   the same wire, and the honest output is "no verdict possible" rather
+   than a number that looks like evidence.
+
 The result is STRONG EVIDENCE, never proof: a queued or slow build could in
 principle produce the same shape. The canonical discriminator is still the
 first push that goes RED on main leaving `release` unmoved and the wire
@@ -30,6 +45,8 @@ unchanged.
 
     python3 scripts/promote_sampler.py --sha <the run's sha>
     python3 scripts/promote_sampler.py --sha <sha> --samples 8 --interval 45
+    python3 scripts/promote_sampler.py --sha <sha> \
+        --push 2026-09-11T00:50:07Z --promote 2026-09-11T00:51:59Z
 """
 from __future__ import annotations
 
@@ -65,6 +82,11 @@ PROBE_UA = f"curl/8 {_PROBE} promote-sampler"
 
 OLD, NEW, UNREADABLE = "old", "NEW", "unreadable"
 
+# Below this, a push-watching Render and a promote-watching Render predict
+# the same wire, because the gap is within the build+swap time itself
+# (measured on this host: 99 s, 113 s, 103 s from the promote step).
+MIN_GAP_FOR_A_VERDICT = 180
+
 
 def now() -> str:
     return datetime.now(timezone.utc).strftime("%H:%M:%SZ")
@@ -90,6 +112,56 @@ def read_build(url: str) -> str | None:
     return None
 
 
+def parse_stamp(text: str):
+    """An ISO-8601 `...Z` stamp, or None. Never raises on bad input."""
+    from datetime import datetime, timezone
+
+    try:
+        cleaned = (text or "").strip().replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(cleaned)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    except Exception:
+        return None
+
+
+def consecutive_bad_reads(states: list) -> int:
+    """The longest run of consecutive `unreadable` samples (note 149a)."""
+    longest = run = 0
+    for state in states:
+        run = run + 1 if state == UNREADABLE else 0
+        longest = max(longest, run)
+    return longest
+
+
+def gap_verdict(push: str, promote: str) -> tuple:
+    """(seconds, message) for the push -> promote gap, or (None, message).
+
+    A gap under MIN_GAP_FOR_A_VERDICT means the two hypotheses predict the
+    same wire: no verdict is possible from this run however clean the
+    bracket is, and saying so is the point.
+    """
+    first, second = parse_stamp(push), parse_stamp(promote)
+    if first is None or second is None:
+        return None, ("push -> promote gap: not given (pass --push and "
+                      "--promote to get a verdict on which trigger the swap "
+                      "followed)")
+    seconds = (second - first).total_seconds()
+    if seconds < 0:
+        return seconds, (f"push -> promote gap: {seconds:.0f}s — the promote "
+                         "precedes the push, so one of these stamps is wrong")
+    if seconds < MIN_GAP_FOR_A_VERDICT:
+        return seconds, (
+            f"push -> promote gap: {seconds:.0f}s — NO VERDICT POSSIBLE. "
+            f"Under {MIN_GAP_FOR_A_VERDICT}s a push-watching and a "
+            "promote-watching Render predict the same wire, because the gap "
+            "is inside the build+swap time. The bracket below is real; it "
+            "just cannot say which trigger it followed.")
+    return seconds, (
+        f"push -> promote gap: {seconds:.0f}s — wide enough for a verdict: "
+        "had Render reacted to the PUSH, the swap would have landed about "
+        f"{seconds:.0f}s earlier than it did.")
+
+
 def classify(build: str | None, wanted: str) -> str:
     if build is None:
         return UNREADABLE
@@ -102,6 +174,12 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--samples", type=int, default=SAMPLES)
     parser.add_argument("--interval", type=int, default=INTERVAL)
+    parser.add_argument("--push", default="",
+                        help="the push's timestamp (ISO-8601, e.g. "
+                             "2026-09-11T00:50:07Z)")
+    parser.add_argument("--promote", default="",
+                        help="the PROMOTE STEP's completed_at — the step, "
+                             "never the deploy job's")
     args = parser.parse_args(argv[1:])
 
     print(f"sampling {args.url} for {args.sha[:12]} — "
@@ -117,6 +195,18 @@ def main(argv: list[str]) -> int:
         print(f"{stamp}  {state:10}  {(build or '-')[:12]}", flush=True)
 
     states = [s for _, s, _ in timeline]
+
+    print("\n--- gap ---")
+    _seconds, message = gap_verdict(args.push, args.promote)
+    print(message)
+
+    worst = consecutive_bad_reads(states)
+    if worst >= 2:
+        print(f"\n--- {worst} CONSECUTIVE BAD READS ---")
+        print("Two unreadable samples in a row is not the restart tick — one "
+              "empty body mid-swap is a container coming back, this is not. "
+              "Check the host before trusting anything below.")
+
     print("\n--- bracket ---")
     if NEW not in states:
         print("no NEW sample: the swap did not land inside the window")
