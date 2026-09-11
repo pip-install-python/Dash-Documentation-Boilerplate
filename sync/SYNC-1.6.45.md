@@ -133,6 +133,29 @@ notes: the instrument for everything else. Do not upgrade pip inside a
   installs; never assume. The in-process battery must run the ASGI
   LIFESPAN or it measures an app with no pages.
 
+  **A FIX LANDED HERE AFTER THE SEAT MIRRORED THIS RELEASE, and it is a
+  defect in the instrument's own test, not in the app.** `/healthz`
+  embeds `ledger.path` as the checkout's ABSOLUTE path, so the body's
+  LENGTH VARIES WITH WHERE THE REPO SITS. `test_smoke_inproc_dispatch`'s
+  probe read exactly 400 bytes: a shallow clone gives 337 and parses;
+  `ci_leg.sh` clones into a deeper work dir, the body crosses 400, and
+  the probe returned JSON cut mid-token. It then failed as a
+  `JSONDecodeError` — which reads like a broken app rather than a probe
+  that stopped reading. Reproduced here at 427 bytes: "Unterminated
+  string starting at char 398". CI's own checkout
+  (`/home/runner/work/<repo>/<repo>`) sits under the old cap BY ACCIDENT
+  OF PATH LENGTH, so this was invisible to every green CD run.
+
+  The probe reads the whole body under a 64 KB cap and reports
+  `truncated` as its own flag, so a cut can never again arrive disguised
+  as a parse error. A control forces a long ledger path, asserts the
+  path reached the served document AND that the body exceeds 400 bytes —
+  a control that no longer crosses the old cap proves nothing. Forks
+  taking this file take both.
+
+  A fork with a SHORT checkout path will pass either way. That is the
+  trap, not a reason to skip the fix.
+
 ### 7. `/healthz` counts the ledger without parsing it
 class: contract
 files: `lib/health.py`
