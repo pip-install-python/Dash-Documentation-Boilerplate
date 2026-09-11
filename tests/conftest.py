@@ -111,6 +111,26 @@ def app_module():
         spec.loader.exec_module(module)
     except SystemExit:  # pragma: no cover - run.py doesn't call sys.exit today
         pass
+
+    # SNAPSHOT THE CALLBACKS THE APP REGISTERED, HERE, AT IMPORT.
+    #
+    # `dash._callback.GLOBAL_CALLBACK_MAP` is process-global and `Dash()`
+    # CLEARS it, so any later test that builds its own app wipes the real
+    # app's callbacks — and because the page modules stay in sys.modules
+    # they are never re-registered. Measured 2026-09-11: after
+    # tests/test_access.py the map holds 0 entries, down from 35, and
+    # `pages.control_board` / `pages.traffic` are gone. test_access sorts
+    # BEFORE test_admin_gates, so the admin-gate tests always read a wiped
+    # registry; a session fixture declared in that file would snapshot too
+    # late. This is the artifact the admin-gate claim is actually about —
+    # what the app serves — so it is captured where the app is built.
+    try:
+        from dash import _callback as _dash_callback
+
+        module._callbacks_at_import = dict(
+            getattr(_dash_callback, "GLOBAL_CALLBACK_MAP", {}))
+    except Exception:  # pragma: no cover - Dash internals moved
+        module._callbacks_at_import = {}
     return module
 
 

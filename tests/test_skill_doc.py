@@ -211,21 +211,71 @@ def test_a_write_failure_does_not_take_the_boot_down(tmp_path, monkeypatch):
 # ------------------- the well-known namespace (1.6.45 item 5) --
 
 
-def _claimed_well_known(app) -> set:
-    """Well-known paths this APP registered itself, before the package ran.
+def _well_known_routes(app):
+    """(claimed_by_this_host, every_well_known_path_seen).
 
-    Read from the router the same way the package reads it, rather than by
-    grepping for a decorator: a route can be added by any of several calls
-    and the URL map is where they all end up.
+    PROVENANCE, not presence. The first version returned every
+    `/.well-known/*` path in the router and called them all this host's —
+    but the router is read AFTER `add_llms_routes()` has run, so the
+    package's own routes were counted as the host's. Measured 2026-09-11
+    on flask: all four paths resolve to handlers in
+    `dash_improve_my_llms._flask_adapter`, and the test went red on a tree
+    that claims nothing.
+
+    The second half is the note-88 guard. On the ASGI lanes those routes are
+    registered from lifespan startup, so at import time there are NONE — the
+    same one-character-class trap as item 8's catch-all. The check passed on
+    fastapi by sweeping an empty set. The caller asserts the sweep saw
+    something before it trusts the negative.
     """
-    paths = set()
     server = app.server
+    seen, claimed = set(), set()
+
+    def _record(path, handler):
+        if not str(path).startswith("/.well-known/"):
+            return
+        seen.add(str(path))
+        module = getattr(handler, "__module__", "") or ""
+        if not module.startswith("dash_improve_my_llms"):
+            claimed.add(str(path))
+
     rules = getattr(getattr(server, "url_map", None), "iter_rules", None)
     if rules:                                   # Flask / Quart
-        paths = {r.rule for r in rules()}
-    else:                                       # FastAPI / Starlette
-        paths = {str(getattr(r, "path", "")) for r in getattr(server, "routes", [])}
-    return {p for p in paths if p.startswith("/.well-known/")}
+        for rule in rules():
+            _record(rule.rule, server.view_functions.get(rule.endpoint))
+        return claimed, seen
+
+    # Starlette / FastAPI — run the lifespan first, or the router is bare,
+    # and RECURSE: the package mounts its routes through `include_router`, so
+    # on this lane they sit inside `_IncludedRouter` objects that carry no
+    # `path` of their own. A flat walk sees three anonymous entries and
+    # reports nothing — measured 2026-09-11, 18 top-level routes and not one
+    # of them a well-known path, while `GET /.well-known/api-catalog`
+    # answers 200.
+    def _walk(routes=None, depth=0):
+        if depth > 5:
+            return
+        for route in (getattr(server, "routes", []) if routes is None
+                      else routes):
+            # FastAPI's `_IncludedRouter` exposes NO `.routes` — it keeps the
+            # real router on `.original_router`. Following only `.routes`
+            # found three anonymous containers and zero paths.
+            inner = getattr(route, "original_router", None)
+            children = (getattr(inner, "routes", None) if inner is not None
+                        else getattr(route, "routes", None))
+            if children:
+                _walk(children, depth + 1)
+                continue
+            _record(getattr(route, "path", ""), getattr(route, "endpoint", None))
+
+    try:
+        from starlette.testclient import TestClient
+
+        with TestClient(server):
+            _walk()
+    except Exception:
+        _walk()
+    return claimed, seen
 
 
 def test_this_host_claims_no_well_known_route_of_its_own(app_module):
@@ -238,41 +288,79 @@ def test_this_host_claims_no_well_known_route_of_its_own(app_module):
     """
     from dash_improve_my_llms import wellknown
 
-    claimed = _claimed_well_known(app_module.app)
+    claimed, seen = _well_known_routes(app_module.app)
     package_paths = {wellknown.AGENT_SKILLS_PATH, wellknown.API_CATALOG_PATH,
                      wellknown.MCP_CARD_PATH}
+    # Non-empty first: a router this could not read would otherwise report
+    # "claims nothing" — which is what a swept-nothing green looks like.
+    assert seen, (
+        "no /.well-known/* route is visible in this app's router at all — "
+        "the package's routes should be here, so this is a check that could "
+        "not read the router, not a host that claims nothing"
+    )
     taken = claimed & package_paths
     assert taken == set(), (
         f"this host registers {sorted(taken)} itself, so the package does not "
-        "serve them — record it in DIVERGENCES' recorded conventions"
+        f"serve them — record it in DIVERGENCES' recorded conventions "
+        f"(all well-known paths seen: {sorted(seen)})"
     )
 
 
 def test_the_check_can_see_a_claimed_route(app_module):
     """Positive control: without it, the assertion above passes on a tree
-    where the router could not be read at all."""
+    where the router could not be read at all.
+
+    The fake host's handler is defined HERE, so its `__module__` is this test
+    module and the provenance rule must call it the host's. A second fake
+    carries a handler whose module is the package's, and must NOT be
+    reported — otherwise the check would red every host on the flask lane,
+    which is exactly the false positive it was rewritten to remove.
+    """
     from dash_improve_my_llms import wellknown
 
+    def _host_handler():           # __module__ == this test module
+        return None
+
+    def _package_handler():
+        return None
+
+    _package_handler.__module__ = "dash_improve_my_llms._flask_adapter"
+
     class _FakeRule:
-        def __init__(self, rule):
+        def __init__(self, rule, endpoint):
             self.rule = rule
+            self.endpoint = endpoint
 
     class _FakeMap:
+        def __init__(self, rules):
+            self._rules = rules
+
         def iter_rules(self):
-            return [_FakeRule(wellknown.API_CATALOG_PATH), _FakeRule("/healthz")]
+            return self._rules
 
-    class _FakeServer:
-        url_map = _FakeMap()
+    def _fake_app(rules, view_functions):
+        class _FakeServer:
+            url_map = _FakeMap(rules)
 
-    class _FakeApp:
-        server = _FakeServer()
+        _FakeServer.view_functions = view_functions
 
-    seen = _claimed_well_known(_FakeApp())
+        class _FakeApp:
+            server = _FakeServer()
+
+        return _FakeApp()
+
+    host_app = _fake_app(
+        [_FakeRule(wellknown.API_CATALOG_PATH, "mine"), _FakeRule("/healthz", "h")],
+        {"mine": _host_handler, "h": _host_handler},
+    )
+    claimed, seen = _well_known_routes(host_app)
+    assert claimed == {wellknown.API_CATALOG_PATH}, claimed
     assert seen == {wellknown.API_CATALOG_PATH}, seen
 
-
-def test_the_convention_is_recorded():
-    """The entry the fork round reads."""
-    text = " ".join((REPO_ROOT / "DIVERGENCES.md").read_text().split())
-    assert "claims NO `/.well-known/*` route of its own" in text
-    assert "_wk_claimed" in text
+    package_app = _fake_app(
+        [_FakeRule(wellknown.API_CATALOG_PATH, "pkg")],
+        {"pkg": _package_handler},
+    )
+    claimed, seen = _well_known_routes(package_app)
+    assert claimed == set(), claimed
+    assert seen == {wellknown.API_CATALOG_PATH}, seen

@@ -245,7 +245,7 @@ def _refusal_verdict(function, arity, caller_is_owner=False):
     return "did not refuse", "returned normally"
 
 
-def _admin_callbacks(admin_pages):
+def _admin_callbacks(admin_pages, app_module=None):
     """Every callback DEFINED BY an admin page's module.
 
     Matched on the function's `__module__` against the registry entry's
@@ -263,7 +263,14 @@ def _admin_callbacks(admin_pages):
 
     modules = {entry.get("module") for entry in admin_pages}
     modules.discard(None)
-    registry = getattr(dash._callback, "GLOBAL_CALLBACK_MAP", {})
+    # The snapshot conftest took when run.py was imported, NOT the live
+    # global map: `Dash()` clears that map, so by the time this file runs,
+    # any earlier test that built an app has emptied it (tests/test_access.py
+    # does, and it sorts first). Falling back to the live map keeps this
+    # function usable outside the fixture.
+    registry = getattr(app_module, "_callbacks_at_import", None)
+    if not registry:
+        registry = getattr(dash._callback, "GLOBAL_CALLBACK_MAP", {})
     found = []
     for key, spec in registry.items():
         function = spec.get("callback") if isinstance(spec, dict) else None
@@ -280,10 +287,11 @@ def _admin_callbacks(admin_pages):
     return found
 
 
-def test_admin_callbacks_refuse_anonymous_and_stranger(admin_pages, clerk_on):
+def test_admin_callbacks_refuse_anonymous_and_stranger(
+        admin_pages, clerk_on, app_module):
     """(4) Invoke each admin callback as anonymous and as a stranger."""
 
-    targeted = _admin_callbacks(admin_pages)
+    targeted = _admin_callbacks(admin_pages, app_module)
     assert targeted, (
         "no callback is defined by an admin page's module — either the boards "
         "are inert or this enumeration is looking in the wrong place; both "
@@ -393,13 +401,14 @@ def test_a_gated_refusal_is_recognised_as_one(clerk_on):
     assert "is_admin_user" in detail
 
 
-def test_the_real_admin_callbacks_refuse_at_their_gate(admin_pages, clerk_on):
+def test_the_real_admin_callbacks_refuse_at_their_gate(
+        admin_pages, clerk_on, app_module):
     """And the measurement this tree actually produces, named rather than
     implied: both admin callbacks refuse at a line guarded by the gate."""
     import inspect
 
     seen = {}
-    for _key, function in _admin_callbacks(admin_pages):
+    for _key, function in _admin_callbacks(admin_pages, app_module):
         arity = len(inspect.signature(function).parameters)
         clerk_on["user"] = None
         with _callback_context():
