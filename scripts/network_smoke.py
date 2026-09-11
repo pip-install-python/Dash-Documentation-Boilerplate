@@ -781,6 +781,49 @@ def satellite_checks(base: str) -> None:
             expect("accept" in hdrs.get("vary", "").lower(),
                    f"the {label} response lost its Vary through the edge")
 
+    def openapi_document_renders():
+        """The OpenAPI document is describable, end to end (note 143).
+
+        muischeduler served a 500 here for a fortnight and every status
+        sweep called it green: ONE handler whose annotations could not
+        resolve (PEP 563 turning `request: Request` into a string FastAPI
+        looks for in module globals) poisons the WHOLE document, while
+        /docs and /redoc keep answering 200 — they are shells that fetch
+        this file in the browser. So this row fetches the DOCUMENT.
+
+        The lane comes from the host's own /healthz, not from an
+        assumption: a Flask or Quart origin serves no OpenAPI document at
+        all, and a copy of this battery aimed at such a peer must skip
+        rather than invent a failure.
+
+        NOT COVERED: whether the document is VALID (the template's own
+        duplicate operationIds are a known, recorded divergence) — only
+        that it renders and describes routes.
+        """
+        status, _, text = get("/healthz")
+        expect(status == 200, f"/healthz {status} — cannot tell which lane")
+        backend = (json.loads(text).get("backend") or "").lower()
+        if backend != "fastapi":
+            skip(f"this host runs backend={backend!r}, which serves no "
+                 "OpenAPI document — the handler-annotation class that "
+                 "poisons that document is NOT covered against this host")
+
+        doc_status, headers, body = get("/openapi.json")
+        expect(doc_status == 200,
+               f"/openapi.json {doc_status} — a 500 here is one handler "
+               "whose annotations do not resolve, and /docs will still be "
+               "200 because it is a shell")
+        expect("json" in (headers.get("content-type") or "").lower(),
+               f"/openapi.json served {headers.get('content-type')!r}")
+        try:
+            document = json.loads(body)
+        except Exception as exc:
+            raise SmokeFailure(f"/openapi.json is not JSON: {exc}")
+        paths = document.get("paths") or {}
+        expect(len(paths) >= 5,
+               f"/openapi.json describes {len(paths)} path(s) — a document "
+               "that renders but describes nothing is the same silence")
+
     def assets_cached():
         """A static asset carries a real max-age (note 103).
 
@@ -945,6 +988,7 @@ def satellite_checks(base: str) -> None:
         ("skills_index_and_digest", skills_index_and_digest),
         ("page_markdown_negotiation", page_markdown_negotiation),
         ("edge_honours_vary", edge_honours_vary),
+        ("openapi_document_renders", openapi_document_renders),
         ("assets_cached", assets_cached),
         ("healthz_keys_vs_template", healthz_keys_vs_template),
         ("crawler_404", crawler_404),

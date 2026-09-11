@@ -736,3 +736,68 @@ def test_the_cd_verify_job_requires_the_rows_that_only_mean_something_there(
         assert f'("{name}", {name})' in source, (
             f"cd.yml requires {name!r}, which is not a row in the battery"
         )
+
+
+# ------------------ openapi_document_renders (note 143, 1.6.45 rider) --
+
+
+def test_the_openapi_row_is_registered(battery):
+    import inspect
+
+    source = inspect.getsource(battery.satellite_checks)
+    assert '("openapi_document_renders", openapi_document_renders)' in source
+    assert "def openapi_document_renders()" in source
+
+
+def test_a_500_on_the_document_is_caught(battery, wired, monkeypatch):
+    """muischeduler's actual failure: the document 500s while /docs stays
+    200, because /docs is a shell that fetches this in the browser."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz"):
+            import json as _json
+            body = _json.loads(text)
+            body["backend"] = "fastapi"          # force the lane on
+            return status, headers, _json.dumps(body)
+        if url.endswith("/openapi.json"):
+            return 500, headers, "Internal Server Error"
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "openapi_document_renders")
+    assert verdict == battery.FAIL and "500" in detail, detail
+
+
+def test_a_document_that_describes_nothing_is_caught(battery, wired,
+                                                     monkeypatch):
+    """A 200 that renders an empty document is the same silence."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz"):
+            import json as _json
+            body = _json.loads(text)
+            body["backend"] = "fastapi"
+            return status, headers, _json.dumps(body)
+        if url.endswith("/openapi.json"):
+            return 200, headers, '{"openapi": "3.1.0", "paths": {}}'
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "openapi_document_renders")
+    assert verdict == battery.FAIL and "describes 0 path" in detail, detail
+
+
+def test_a_non_fastapi_host_skips_and_names_what_is_uncovered(battery, wired,
+                                                              monkeypatch):
+    """A copy of this battery aimed at a Flask peer must SKIP, and the skip
+    must say what it did not cover — never a quiet pass."""
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz"):
+            import json as _json
+            body = _json.loads(text)
+            body["backend"] = "flask"
+            return status, headers, _json.dumps(body)
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "openapi_document_renders")
+    assert verdict == battery.SKIP, (verdict, detail)
+    assert "NOT covered" in detail, detail
