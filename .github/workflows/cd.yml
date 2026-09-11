@@ -245,8 +245,22 @@ jobs:
       # The network battery first: it is the same script, with the same check
       # names, that CI ran against the container this deploy shipped. A name
       # that passed in CI and fails here isolates the fault to the deploy.
+      # --require (1.6.45 item 11): a skip is a verdict, never a pass. These
+      # three rows can ONLY mean something in this seat, and each has a skip
+      # path that made the battery green without comparing anything:
+      #   ai_bot_posture          needs the app importable to build its own
+      #                           side — it skipped on every CD run for a
+      #                           whole release (see the install step above)
+      #   edge_honours_vary       needs a real edge in front; CI's copy runs
+      #                           against 127.0.0.1 and cannot have one
+      #   healthz_keys_vs_template  skips when lib/ is not importable beside
+      #                           the script, which is only true outside here
+      # A name here that is not a real row is itself an error — the script
+      # refuses rather than requiring nothing.
       - name: Network smoke battery
-        run: python scripts/network_smoke.py --base-url "$SITE_URL"
+        run: |
+          python scripts/network_smoke.py --base-url "$SITE_URL" \
+            --require ai_bot_posture,edge_honours_vary,healthz_keys_vs_template
 
       # Then the satellite-specific checks the battery does not make: every
       # canonical, every crawler body, and every peer llms.txt in the

@@ -663,3 +663,76 @@ def test_a_guard_that_eats_registered_pages_is_caught(battery, wired,
     results = _rewrite_full(wired, monkeypatch, transform)
     _n, verdict, detail = _row(results, "crawler_404")
     assert verdict == battery.FAIL and "eating registered pages" in detail
+
+
+# ------------------------- --require: a skip is a verdict (1.6.45 item 11) --
+
+
+def _main_with(battery, monkeypatch, results, require):
+    """Run main() over a fabricated result set and return its exit code."""
+    monkeypatch.setattr(battery, "_RESULTS", list(results))
+    monkeypatch.setattr(battery, "satellite_checks", lambda base: None)
+    monkeypatch.setattr(
+        battery.sys, "argv",
+        ["network_smoke.py", "--base-url", BASE, "--require", require])
+    return battery.main()
+
+
+def test_the_require_flag_exists(battery):
+    """Item 11's detect: the summary line counted skips already, but nothing
+    could make one fail."""
+    import inspect
+
+    source = inspect.getsource(battery.main)
+    assert '"--require"' in source
+
+
+def test_a_required_row_that_skipped_exits_non_zero(battery, monkeypatch):
+    results = [("ai_bot_posture", battery.SKIP, "the app was not importable"),
+               ("healthz_ok", battery.PASS, "")]
+    assert _main_with(battery, monkeypatch, results, "ai_bot_posture") == 1
+
+
+def test_a_required_row_that_passed_exits_zero(battery, monkeypatch):
+    """Negative control: --require must not fail a run on its own."""
+    results = [("ai_bot_posture", battery.PASS, ""),
+               ("healthz_ok", battery.PASS, "")]
+    assert _main_with(battery, monkeypatch, results, "ai_bot_posture") == 0
+
+
+def test_a_required_row_that_does_not_exist_exits_non_zero(battery, monkeypatch):
+    """A typo in the flag requires NOTHING, and the run would go green having
+    proved nothing — the same failure the flag exists to remove."""
+    results = [("ai_bot_posture", battery.PASS, "")]
+    assert _main_with(battery, monkeypatch, results, "ai_bot_postrue") == 1
+
+
+def test_an_unrequired_skip_still_does_not_fail_the_run(battery, monkeypatch):
+    """Rows that legitimately do not apply to a host must keep skipping."""
+    results = [("mcp_card_matches_host", battery.SKIP, "no MCP bridge here"),
+               ("healthz_ok", battery.PASS, "")]
+    assert _main_with(battery, monkeypatch, results, "healthz_ok") == 0
+
+
+def test_the_cd_verify_job_requires_the_rows_that_only_mean_something_there(
+        battery):
+    """The flag is useless unless the verify job passes it, and every name it
+    passes must be a REAL row — a typo would be silently decorative, which is
+    exactly what `ai_bot_posture` skipping for a release already looked like.
+    """
+    import inspect
+
+    cd = (REPO_ROOT / ".github" / "workflows" / "cd.yml").read_text()
+    verify = cd.split("Network smoke battery", 1)[1]
+    assert "--require" in verify, (
+        "the verify job does not pass --require, so a row that skips there "
+        "is still a pass and the item bought nothing"
+    )
+    required = verify.split("--require", 1)[1].split()[0]
+    names = [n for n in required.split(",") if n]
+    assert len(names) >= 3, names
+    source = inspect.getsource(battery.satellite_checks)
+    for name in names:
+        assert f'("{name}", {name})' in source, (
+            f"cd.yml requires {name!r}, which is not a row in the battery"
+        )

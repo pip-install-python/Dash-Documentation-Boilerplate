@@ -975,17 +975,43 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL,
                     help="the satellite under test (default: the CI container)")
+    ap.add_argument("--require", default="", metavar="ROW,ROW",
+                    help="rows that MUST pass here: a skip in one of them "
+                         "exits non-zero. A skip is a verdict, never a pass "
+                         "(note 108) — some rows can only mean anything in "
+                         "one seat, and silently skipping there is how a "
+                         "battery stays green for a whole release without "
+                         "making its comparison.")
     args = ap.parse_args()
 
     base = args.base_url.rstrip("/")
-    print(f"network-smoke → {base}\n")
+    required = [name.strip() for name in args.require.split(",") if name.strip()]
+    print(f"network-smoke → {base}"
+          + (f"  (requiring {len(required)}: {', '.join(required)})"
+             if required else "")
+          + "\n")
     satellite_checks(base)
 
     counts = {v: sum(1 for _, verdict, _ in _RESULTS if verdict == v)
               for v in (PASS, FAIL, WARN, SKIP)}
     print(f"\n{counts[PASS]} passed, {counts[FAIL]} failed, "
           f"{counts[WARN]} warnings, {counts[SKIP]} skipped")
-    return 1 if counts[FAIL] else 0
+
+    verdicts = {name: verdict for name, verdict, _ in _RESULTS}
+    details = {name: detail for name, _, detail in _RESULTS}
+    # A required name that matches NO row requires nothing — the typo makes
+    # the flag decorative and the run green, which is the failure this whole
+    # item is about. It is an error in its own right.
+    unknown = [name for name in required if name not in verdicts]
+    skipped = [name for name in required if verdicts.get(name) == SKIP]
+    for name in unknown:
+        print(f"::error::--require names {name!r}, which is not a row in this "
+              f"battery — it requires nothing and this run proved nothing "
+              f"about it")
+    for name in skipped:
+        print(f"::error::{name} SKIPPED and is required here — {details[name]}")
+
+    return 1 if (counts[FAIL] or skipped or unknown) else 0
 
 
 if __name__ == "__main__":
