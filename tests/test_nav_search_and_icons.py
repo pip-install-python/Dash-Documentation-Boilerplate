@@ -191,3 +191,67 @@ def test_the_icon_fallback_is_the_or_form_not_a_two_argument_get():
             f"{name} uses the two-argument get for an icon fallback — it "
             "returns None when the key is present and empty"
         )
+
+
+# ------- a control-board override must reach the listing (note 139) --
+
+
+def test_a_board_hidden_page_leaves_both_search_copies(registry, monkeypatch):
+    """Note 139's class, measured on this tree 2026-09-11 and fixed.
+
+    `components.navbar.page_tier` read `page_tiers.local_tier` — the
+    FRONTMATTER tier, which knows nothing about the control board. So after
+    the owner hid a page from the board, `lib.access` answered "hidden" for
+    every request while the sidebar and BOTH search dropdowns went on
+    listing it: overrides that arrive from the store did not rebuild what
+    the frontmatter built, and the page stayed advertised in the one place
+    a hidden page is most visible.
+
+    The override is injected at `page_visibility.tier_override` — the real
+    seam `lib.access.local_tier` consults — rather than by writing the
+    store, so the test neither touches disk nor depends on reload timing.
+    """
+    from lib import page_visibility
+
+    target = next(p for p in
+                  (option["value"] for option in search_data(registry))
+                  if p not in ("/", "/404"))
+
+    real = page_visibility.tier_override
+
+    def hidden_for_target(path):
+        return "hidden" if path == target else real(path)
+
+    monkeypatch.setattr(page_visibility, "tier_override", hidden_for_target)
+
+    for name, tree in _copies(registry).items():
+        listed = _select_options(tree)
+        assert listed, f"{name} lists nothing — nothing was judged"
+        assert target not in listed, (
+            f"{name} still lists {target} after the control board hid it — "
+            "the listing reads the frontmatter tier, not the override"
+        )
+
+
+def test_the_override_seam_is_what_moved_it(registry, monkeypatch):
+    """Control for the test above: without the override the same page IS
+    listed, so its absence is the override's doing and not the target
+    having been unlistable all along."""
+    listed = _select_options(create_search(registry))
+    target = next(p for p in listed if p not in ("/", "/404"))
+    assert target in listed
+
+
+def test_the_listing_and_the_gate_use_one_resolver():
+    """They disagreed, and the fix was to stop having two. A future edit
+    that reintroduces `page_tiers.local_tier` here would restore the
+    defect silently, because both spellings read plausibly."""
+    import inspect
+
+    from components import navbar
+
+    source = inspect.getsource(navbar.page_tier)
+    assert "access.local_tier" in source, (
+        "navbar.page_tier no longer resolves through lib.access — the "
+        "sidebar and the gate can disagree about a hidden page again"
+    )

@@ -111,14 +111,33 @@ def admin_pages(data) -> list:
 
 
 def page_tier(path: str) -> str:
-    """This page's locally-declared tier, or "public" when tiers are not
-    wired on this fork."""
-    try:
-        from lib import page_tiers
+    """This page's tier — OVERRIDE FIRST, then frontmatter — or "public"
+    when tiers are not wired on this fork.
 
-        return page_tiers.local_tier(path)
+    Note 139's class, measured here 2026-09-11. This read
+    `page_tiers.local_tier`, which is the FRONTMATTER tier and knows nothing
+    about the control board. `lib.access.local_tier` is the override-aware
+    resolver, and the two disagreed: after the board set /backends to
+    hidden, `access.effective_tier` answered "hidden" while this answered
+    "public" — so a page the owner had just hidden stayed in the sidebar and
+    in BOTH search dropdowns, which is the one place a hidden page is most
+    visible. Overrides that arrive from the store did not rebuild what the
+    frontmatter built.
+
+    One resolver, so the listing and the gate cannot disagree again. The
+    fallback stays for a fork with no tiers wired.
+    """
+    try:
+        from lib import access
+
+        return access.local_tier(path)
     except Exception:  # pragma: no cover — tiers optional on a fork
-        return "public"
+        try:
+            from lib import page_tiers
+
+            return page_tiers.local_tier(path)
+        except Exception:
+            return "public"
 
 
 _LOCK_LABELS = {"auth": "Sign in required", "admin": "Admin access required"}
