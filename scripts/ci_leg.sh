@@ -64,6 +64,28 @@ VENV="$WORK/venv"
 
 echo "== CI leg: $BACKEND =="
 
+# ------------------------------------------------------------------- lock --
+# REPO_KEY separates FORKS; it does not separate two runs of the SAME fork,
+# and `rm -rf "$CLONE"` is the operation that eats a concurrent run
+# mid-suite. leaflet's rider, 2026-09-12. Exit 5, because 3 and 4 are taken
+# ("no verification possible" and "masks ineffective") and a reader of the
+# exit code should not have to guess which refusal happened.
+mkdir -p "$WORK"
+LOCK="$WORK/.lock"
+if [ -f "$LOCK" ]; then
+  holder="$(cat "$LOCK" 2>/dev/null || true)"
+  if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+    echo "!! another run (pid $holder) holds $WORK — refusing rather than"
+    echo "   deleting its clone from under it. Wait, or use a different repo"
+    echo "   checkout; two runs of ONE checkout cannot share a work dir."
+    exit 5
+  fi
+  echo "-- clearing a stale lock (pid ${holder:-unknown} is gone) --"
+  rm -f "$LOCK"
+fi
+printf '%s' "$$" > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT INT TERM
+
 # ---------------------------------------------------------- the clean clone --
 # Shallow, from the working tree's HEAD.  An untracked file cannot help this
 # pass — which is how 1.6.44 caught `.claude/session-name` being gitignored
@@ -74,7 +96,16 @@ git -C "$REPO" clone --quiet --depth 1 --no-local "file://$REPO" "$CLONE" 2>/dev
   || { echo "clone FAILED"; exit 1; }
 CLONED_SHA="$(git -C "$CLONE" rev-parse HEAD)"
 
-PY_LOCAL="$(command -v python3.14 || command -v python3.12 || command -v python3)"
+# THE INTERPRETER IS CHOSEN BY WHETHER ITS VENV CAN INSTALL, not by
+# preference (leaflet's rider, 2026-09-12). 3.14.4's ensurepip ships pip
+# 26.1, which validates TLS through the macOS truststore and ignores
+# --cert/PIP_CERT, so behind a proxy the sdist's isolated build env cannot
+# reach the index (OSStatus -26276) and the vendored dash-clerk-auth sdist
+# fails to build. Measured by leaflet: python3.14 -> pip 26.1 -> SSL
+# verification error; python3.12 -> pip 24.0 -> installs fine. A box where
+# 3.14's pip works still gets 3.14; a box where it does not gets a REAL
+# VENV on the next candidate rather than the weaker mask path.
+PY_CANDIDATES="python3.14 python3.13 python3.12 python3.11 python3"
 
 # certifi's bundle, for the scrubbed environment below. Empty if certifi is
 # not importable, in which case the variables are simply not set.
@@ -85,6 +116,7 @@ report_env() {   # $1 = the python that will run the suite
   echo "   pwd          $(pwd)"
   echo "   cloned sha   $CLONED_SHA"
   echo "   interpreter  $1 ($("$1" -V 2>&1))"
+  echo "   pip          $("$1" -m pip --version 2>&1 | cut -d" " -f1-2)"
   echo "   pytest       $("$1" -m pytest --version 2>&1 | /usr/bin/head -1)"
 }
 
@@ -100,9 +132,10 @@ report_collected() {  # $1 = python, $2... = env assignments
 }
 
 # --------------------------------------------------------------- venv path --
-build_venv() {
+build_venv() {   # $1 = the interpreter to build with
+  local interp="$1"
   rm -rf "$VENV"
-  "$PY_LOCAL" -m venv "$VENV" || return 1
+  "$interp" -m venv "$VENV" || return 1
   local pip="$VENV/bin/pip"
   # ci.yml's install block, in its order.  Run from the CLONE so the vendored
   # sdist's relative path resolves against the tree under test.
@@ -138,7 +171,21 @@ run_leg() {   # $1 = python, $2... = extra env assignments
   [ "$suite" -eq 0 ] && [ "$battery" -eq 0 ]
 }
 
-if [ "$FORCE_MASKS" -eq 0 ] && build_venv 2>"$WORK.err"; then
+CHOSEN_PY=""
+if [ "$FORCE_MASKS" -eq 0 ]; then
+  for cand in $PY_CANDIDATES; do
+    cand_path="$(command -v "$cand" 2>/dev/null || true)"
+    [ -n "$cand_path" ] || continue
+    if build_venv "$cand_path" 2>>"$WORK.err"; then
+      CHOSEN_PY="$cand_path"
+      echo "-- venv built with $cand ($("$cand_path" -V 2>&1)) --"
+      break
+    fi
+    echo "-- $cand: its venv could not install the leg — trying the next --"
+  done
+fi
+
+if [ -n "$CHOSEN_PY" ]; then
   echo "-- dependency set (ABSENCES are the evidence) --"
   for pkg in fastapi starlette quart pillow flake8 dash dash-improve-my-llms; do
     line="$("$VENV/bin/pip" list 2>/dev/null | grep -iE "^$pkg " || true)"

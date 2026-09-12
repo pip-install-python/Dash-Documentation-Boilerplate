@@ -147,3 +147,85 @@ def test_the_repo_key_separates_the_three_collision_shapes():
         f"{template} == {twin} — two checkouts sharing a basename collide, "
         "which is the case basename-alone got wrong"
     )
+
+
+def test_the_interpreter_is_chosen_by_whether_its_venv_can_install():
+    """leaflet's rider, 2026-09-12. Preference is the wrong selector.
+
+    3.14.4's ensurepip ships pip 26.1, which validates TLS through the
+    macOS truststore and ignores --cert/PIP_CERT, so behind a proxy the
+    vendored sdist's isolated build env cannot reach the index and the
+    venv build fails — dropping the whole leg to the weaker mask path on
+    every seat here. Measured on this box: python3.14 -> "its venv could
+    not install the leg"; python3.12 -> venv built, pip 24.0, 781
+    collected, 773 passed.
+    """
+    source = (REPO_ROOT / "scripts" / "ci_leg.sh").read_text()
+    assert "PY_CANDIDATES=" in source, (
+        "the script still picks ONE interpreter by preference — on a "
+        "3.14-default box behind a proxy that is the mask path every time"
+    )
+    assert "build_venv \"$cand_path\"" in source, (
+        "the candidate loop does not test each interpreter by BUILDING "
+        "its venv, which is the only thing that distinguishes them"
+    )
+    # the loop must try more than one, and 3.14 must still be first so a
+    # box where its pip works is not downgraded
+    candidates = [line for line in source.splitlines()
+                  if line.startswith("PY_CANDIDATES=")][0]
+    assert candidates.index("3.14") < candidates.index("3.12"), candidates
+    assert "python3.12" in candidates and "python3.11" in candidates
+
+
+def test_the_environment_block_prints_the_pip_version():
+    """Which pip installed the leg is the difference between a real venv and
+    a fallback, so the report says it rather than leaving it inferable."""
+    source = (REPO_ROOT / "scripts" / "ci_leg.sh").read_text()
+    assert '-m pip --version' in source
+    assert 'echo "   pip ' in source
+
+
+def test_a_concurrent_run_is_locked_out_rather_than_having_its_clone_deleted():
+    """leaflet's second rider. REPO_KEY separates FORKS, not two runs of the
+    same fork, and `rm -rf "$CLONE"` is what eats a concurrent run
+    mid-suite.
+
+    Verified live: a lock holding a LIVE pid refuses with exit 5; a lock
+    holding a dead pid is cleared and the run proceeds (exit 0); the lock
+    is released on exit.
+    """
+    source = (REPO_ROOT / "scripts" / "ci_leg.sh").read_text()
+    assert 'LOCK="$WORK/.lock"' in source
+    assert "exit 5" in source, (
+        "the refusal shares an exit code with another failure — 3 is 'no "
+        "verification possible' and 4 is 'masks ineffective', so a reader "
+        "cannot tell which refusal happened"
+    )
+    assert 'kill -0 "$holder"' in source, (
+        "the lock does not check whether the holder is alive, so one "
+        "crashed run wedges the work dir forever"
+    )
+    assert "trap 'rm -f \"$LOCK\"' EXIT" in source, "the lock is never released"
+    # The lock must be taken BEFORE the destructive clone step — compared
+    # on CODE LINES, not on `source.index`. The first version of this
+    # assertion used the raw string offsets and failed on a correct script,
+    # because the lock's own COMMENT quotes `rm -rf "$CLONE"` while
+    # explaining what it protects: the first textual match was the prose,
+    # forty lines above the statement. Third instance of that trap in this
+    # release, and the second inside a test written to pin a fix.
+
+    def line_of(needle: str) -> int:
+        for number, line in enumerate(source.splitlines(), 1):
+            if line.lstrip().startswith("#"):
+                continue
+            if needle in line:
+                return number
+        raise AssertionError(f"{needle!r} appears only in comments")
+
+    lock_at = line_of('LOCK="$WORK/.lock"')
+    clone_at = line_of('rm -rf "$CLONE"')
+    assert lock_at < clone_at, (
+        f"the lock is taken at line {lock_at}, after the clone is deleted "
+        f"at line {clone_at} — the race it exists to prevent has already "
+        "happened by then"
+    )

@@ -23,11 +23,20 @@ Every acceptance prints the RESOLVED dimll version beside its result
 `.venv/lib/python3.11/site-packages/dash_improve_my_llms/__init__.py`,
 path printed rather than inferred from `requirements.txt`; Dash 4.4.1.
 
-Three-leg counts from `scripts/ci_leg.sh` at **4be3ab0** — a clean clone
-per leg with that leg's own dependency set, **never** one interpreter with
-everything installed. 778 collected on each; the instrument is named
-because the numbers differ from a local run, and the difference is the
-point:
+Three-leg counts from `scripts/ci_leg.sh` — a clean clone per leg with
+that leg's own dependency set, **never** one interpreter with everything
+installed.
+
+**NAME THE PATH, NOT JUST THE SCRIPT.** `ci_leg.sh` has two: a fresh VENV
+(which proves this leg's ABSENCES *and* its VERSIONS) and a fallback to
+resolved MASKS (which proves the absences only, and runs the clone's code
+against this machine's site-packages). The script prints that difference
+and says "Say so wherever you quote the counts" — and for most of this
+release I did not: every earlier table here was the MASK path, quoted as
+though it were the venv one. Corrected, with the instrument's own words.
+
+The numbers below are the VENV path, python3.12 / pip 24.0, three fresh
+venvs, 781 collected on each:
 
 | leg | suite | battery | absent on this leg |
 |---|---|---|---|
