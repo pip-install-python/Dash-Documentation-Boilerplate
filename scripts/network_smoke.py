@@ -143,6 +143,15 @@ class SmokeFailure(Exception):
     pass
 
 
+class SmokeWarn(Exception):
+    """A row that reached a verdict but found something it will not fail on.
+
+    `WARN` was a verdict constant with no way to raise one, so the only
+    choices inside a row were pass, fail and skip — and an
+    environment-dependent difference had to be squeezed into one of them.
+    """
+
+
 class SmokeSkip(Exception):
     """A check that cannot apply here — recorded as `skip`, never as `pass`.
 
@@ -219,6 +228,8 @@ def check(name: str, fn) -> None:
     try:
         fn()
         record(name, PASS)
+    except SmokeWarn as exc:
+        record(name, WARN, str(exc))
     except SmokeSkip as exc:
         record(name, SKIP, str(exc))
     except SmokeFailure as exc:
@@ -235,6 +246,19 @@ def expect(cond: bool, msg: str) -> None:
 def skip(msg: str) -> None:
     """This check does not apply to this host. Never a pass."""
     raise SmokeSkip(msg)
+
+
+def warn(msg: str) -> None:
+    """Reached a verdict; found a difference this row will not fail on."""
+    raise SmokeWarn(msg)
+
+
+# Keys whose PRESENCE depends on the environment rather than on the code:
+# `build` is set from RENDER_GIT_COMMIT, so the live template carries it and
+# any in-process run does not. Comparing a fork's in-process key set against
+# the template's LIVE one must not fail on that difference (1.6.46 item from
+# muischeduler) — it is warned instead.
+_ENV_DEPENDENT_KEYS = {"build"}
 
 
 # ------------------------------------------------------------- the battery --
@@ -958,24 +982,59 @@ def satellite_checks(base: str) -> None:
                      "has no reference at all here")
             backend = json.loads(text).get("backend") or "flask"
             produced = set(health_payload(backend).keys())
+            # BOTH DIRECTIONS. This computed `produced - mine` only, because
+            # I wrote it for 1.6.44's key-DROP defect — so it was blind BY
+            # CONSTRUCTION to the mirror image, a key the wire ADDS that the
+            # builder never produced. muischeduler found the mirror: an
+            # `Optional[...] = None` field is served as null while the
+            # builder OMITS the key, so the ASGI lane carried `build: null`
+            # and the others carried nothing. Same process, same env on both
+            # sides here, so a difference either way is a real model defect
+            # and nothing is excluded.
             dropped = sorted(produced - mine)
+            added = sorted(mine - produced)
             expect(not dropped,
                    f"the app's health_payload() produces {sorted(produced)} "
                    f"but the wire serves {sorted(mine)} — {dropped} is "
                    "dropped between the code and the response, which is the "
                    "ASGI response-model class this row exists for")
+            expect(not added,
+                   f"the wire serves {added} that health_payload() never "
+                   f"produced (code {sorted(produced)} vs wire "
+                   f"{sorted(mine)}) — an Optional field served as null "
+                   "where the builder OMITTED the key, so this lane and the "
+                   "others disagree about the key set")
             return
 
-        ref_status, _, ref_text = fetch(TEMPLATE_BASE_URL + "/healthz", ua=UA)
-        expect(ref_status == 200,
-               f"the template's /healthz answered {ref_status} — no "
-               f"reference set, so this host's {len(mine)} keys are unjudged")
-        theirs = set(json.loads(ref_text).keys())
-        expect(theirs, "the template served a /healthz object with no keys")
-        missing = sorted(theirs - mine)
+        # AN UNREADABLE REFERENCE IS A SKIP, NEVER A FAILURE. In process the
+        # suite fixture stubs off-host URLs, so this fetch does not reach the
+        # template at all — that must read as "not fetched", not as a
+        # JSONDecodeError on a stub body (muischeduler).
+        try:
+            ref_status, _, ref_text = fetch(TEMPLATE_BASE_URL + "/healthz",
+                                            ua=UA)
+            theirs = set(json.loads(ref_text).keys())
+        except Exception as exc:
+            skip(f"the template's /healthz could not be READ from here "
+                 f"({type(exc).__name__}) — this host's {len(mine)} keys "
+                 "are UNJUDGED, which is not the same as correct")
+        if ref_status != 200 or not theirs:
+            skip(f"the template's /healthz answered {ref_status} with "
+                 f"{len(theirs)} keys — no reference set, so this host's "
+                 f"{len(mine)} keys are UNJUDGED")
+        # Environment-dependent keys are WARNED, never failed: the live
+        # template carries `build` (Render sets the commit) and any
+        # in-process run does not, so a fork would fail on the difference
+        # between two correct hosts.
+        missing = sorted(theirs - mine - _ENV_DEPENDENT_KEYS)
+        env_only = sorted((theirs - mine) & _ENV_DEPENDENT_KEYS)
         expect(not missing,
                f"this host is missing {missing} that the template serves "
                f"(template {len(theirs)} keys, here {len(mine)})")
+        if env_only:
+            warn(f"the template serves {env_only} and this host does not, "
+                 "but those keys depend on the ENVIRONMENT rather than the "
+                 "code (RENDER_GIT_COMMIT) — not judged either way")
 
     def crawler_404():
         """An unregistered path is a 404 to a crawler, a shell to a browser.

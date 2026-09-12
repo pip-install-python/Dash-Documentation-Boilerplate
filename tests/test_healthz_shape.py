@@ -534,3 +534,26 @@ def test_healthz_still_reports_the_same_counts(tmp_path, monkeypatch):
 
     ledger = health_payload("flask")["ledger"]
     assert (ledger["visits"], ledger["reads"]) == (7, 3)
+
+
+def test_the_asgi_lane_does_not_add_a_null_key_the_builder_omitted():
+    """Note 189's mirror image, measured on this tree 2026-09-12.
+
+    `health_payload` OMITS `build` when RENDER_GIT_COMMIT is unset, but an
+    `Optional[str] = None` field is SERVED AS null — so the FastAPI lane
+    carried nine keys with `build: null` while flask and quart carried
+    eight. The lanes disagreed about the KEY SET whenever the env var was
+    absent: invisible in production (Render sets the commit) and invisible
+    to every test that reads values rather than keys.
+    """
+    pytest.importorskip("fastapi")
+    import inspect
+
+    from lib import asgi_routes
+
+    source = inspect.getsource(asgi_routes)
+    assert "response_model_exclude_none=True" in source, (
+        "the health route no longer excludes None — an Optional field the "
+        "builder withheld is served as null, and this lane's key set drifts "
+        "from the other two"
+    )

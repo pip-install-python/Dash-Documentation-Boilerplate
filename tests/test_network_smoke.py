@@ -889,3 +889,62 @@ def test_no_row_expresses_cannot_run_here_as_a_bare_return(battery):
         "verdict — that is counted as a PASS. Raise the skip instead: "
         "`skip(...)` names what was not covered, a return names nothing."
     )
+
+
+# --- the key-set comparison runs BOTH ways (muischeduler, 2026-09-12) --
+
+
+def test_a_key_the_wire_ADDS_is_caught(battery, wired, monkeypatch):
+    """The mirror of 1.6.44's drop, and the reason this test exists: the row
+    computed `produced - mine` only, because it was written for the DROP.
+    It was blind BY CONSTRUCTION to a key the wire adds."""
+    import json as _json
+
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz") and status == 200:
+            body = _json.loads(text)
+            body["surprise"] = None
+            return status, headers, _json.dumps(body)
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.FAIL, (verdict, detail)
+    assert "surprise" in detail and "never produced" in detail, detail
+
+
+def test_a_key_the_wire_DROPS_is_still_caught(battery, wired, monkeypatch):
+    """Negative control on the other direction — the original defect must
+    not stop being caught by the widening."""
+    import json as _json
+
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz") and status == 200:
+            body = _json.loads(text)
+            body.pop("llms_version", None)
+            return status, headers, _json.dumps(body)
+        return status, headers, text
+
+    results = _rewrite_full(wired, monkeypatch, transform)
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.FAIL and "llms_version" in detail, detail
+
+
+def test_an_environment_dependent_key_is_warned_not_failed(battery):
+    """A fork's in-process run has no RENDER_GIT_COMMIT while the live
+    template does, so failing on `build` would fail a correct host against
+    another correct host."""
+    assert "build" in battery._ENV_DEPENDENT_KEYS
+
+
+def test_the_battery_can_raise_a_warning_at_all(battery):
+    """`WARN` was a verdict constant with no way to raise one, so an
+    environment-dependent difference had to be squeezed into pass, fail or
+    skip."""
+    assert hasattr(battery, "warn") and hasattr(battery, "SmokeWarn")
+    monkey = []
+    try:
+        battery.warn("a difference not worth failing on")
+    except battery.SmokeWarn as exc:
+        monkey.append(str(exc))
+    assert monkey == ["a difference not worth failing on"]

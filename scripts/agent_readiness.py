@@ -29,7 +29,31 @@ import sys
 import urllib.error
 import urllib.request
 
-DEFAULT_URL = "https://boilerplate.2plot.dev"
+
+def _default_url() -> str:
+    """This host's OWN base URL, derived — never the template's literal.
+
+    The template shipped `https://boilerplate.2plot.dev` as the default, so
+    a fork copying this script and running it with no `--url` SCANNED THE
+    TEMPLATE and would have filed the template's answer as its own
+    (muischeduler, note 189). The number is dated and attributed to a
+    build, which makes a wrong host worse than no answer.
+
+    Derived from `lib.constants.BASE_URL`, which every fork edits as part
+    of taking on its own identity. Where the constant cannot be imported —
+    the script run outside a checkout — there is no default at all and
+    `--url` is required, because refusing is the only honest answer to
+    "which host am I?".
+    """
+    try:
+        from lib.constants import BASE_URL
+
+        return BASE_URL.rstrip("/")
+    except Exception:
+        return ""
+
+
+DEFAULT_URL = _default_url()
 API = "https://isitagentready.com/api/scan"
 # OPTIONAL. The drop says the scan needs "the owner's token as an env var";
 # measured 2026-09-08, the scan endpoint answers anonymously and the token is
@@ -166,10 +190,20 @@ def meets_floor(summary: dict) -> bool:
 
 def main(argv: list) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--url", default=DEFAULT_URL)
+    parser.add_argument("--url", default=DEFAULT_URL,
+                        help="the host to scan (default: this checkout's "
+                             "own lib.constants.BASE_URL; required when "
+                             "that cannot be imported)")
     parser.add_argument("--json", action="store_true",
                         help="print the raw summary as JSON")
     args = parser.parse_args(argv[1:])
+
+    if not args.url:
+        print("CANNOT RUN: no host. This checkout's lib.constants.BASE_URL "
+              "could not be imported, so there is no default — pass --url. "
+              "A scan is dated and attributed to a build, so scanning the "
+              "wrong host is worse than scanning none.", file=sys.stderr)
+        return 2
 
     token = os.environ.get(TOKEN_ENV, "").strip()
 

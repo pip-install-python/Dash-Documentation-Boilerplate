@@ -142,7 +142,21 @@ def build_api_router(app, backend_info) -> APIRouter:
 def build_health_router() -> APIRouter:
     router = APIRouter(tags=["health"])
 
-    @router.get("/healthz", response_model=HealthResponse, summary="Liveness probe")
+    # response_model_exclude_none: THE MIRROR IMAGE of the drop this model
+    # was declared to prevent (muischeduler, note 189; measured on this tree
+    # 2026-09-12). `health_payload` OMITS a key it has no value for —
+    # `build` when RENDER_GIT_COMMIT is unset — but an `Optional[...] = None`
+    # field is SERVED AS null, so the flask lane omitted the key and this
+    # lane added it: nine keys here, eight there, the lanes disagreeing about
+    # the KEY SET whenever the env var is absent. Invisible in production
+    # (Render sets the commit) and invisible to any test reading VALUES.
+    #
+    # Safe here because `health_payload` never intentionally returns null —
+    # measured: zero None values anywhere in the payload, nested included.
+    # It omits instead. So "null" always means "the builder withheld this",
+    # and dropping those fields makes the wire match the builder exactly.
+    @router.get("/healthz", response_model=HealthResponse,
+                response_model_exclude_none=True, summary="Liveness probe")
     def healthz(request: Request) -> HealthResponse:
         # One payload builder for all three backends — see HealthResponse.
         # Built per request: `geo` reports live state, and this route is
