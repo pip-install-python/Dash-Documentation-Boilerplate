@@ -980,30 +980,63 @@ def satellite_checks(base: str) -> None:
                      "importable beside this script — the self-comparison "
                      "against the template would be a tautology, so the row "
                      "has no reference at all here")
-            backend = json.loads(text).get("backend") or "flask"
+            served = json.loads(text)
+            backend = served.get("backend") or "flask"
             produced = set(health_payload(backend).keys())
-            # BOTH DIRECTIONS. This computed `produced - mine` only, because
-            # I wrote it for 1.6.44's key-DROP defect — so it was blind BY
-            # CONSTRUCTION to the mirror image, a key the wire ADDS that the
-            # builder never produced. muischeduler found the mirror: an
-            # `Optional[...] = None` field is served as null while the
-            # builder OMITS the key, so the ASGI lane carried `build: null`
-            # and the others carried nothing. Same process, same env on both
-            # sides here, so a difference either way is a real model defect
-            # and nothing is excluded.
-            dropped = sorted(produced - mine)
-            added = sorted(mine - produced)
+
+            # BOTH DIRECTIONS — and the environment excluded from both.
+            #
+            # This computed `produced - mine` only, because I wrote it for
+            # 1.6.44's key-DROP defect, so it was blind BY CONSTRUCTION to
+            # the mirror: a key the wire ADDS that the builder never made.
+            # Widening it broke CD, and the reason was a wrong sentence in
+            # this very comment — it said "same process, same env on both
+            # sides". THAT IS FALSE HERE. `mine` is read off the WIRE and
+            # `produced` is computed IN THIS PROCESS, so in CD's verify job
+            # the wire is production (RENDER_GIT_COMMIT set, `build` a real
+            # sha) and the reference is a runner with no such variable. The
+            # row red on an environment difference between two correct
+            # hosts — muischeduler's item-9 correction, which the hotfix
+            # applied to the fork branch and not to this one.
+            #
+            # THE VALUE IS WHAT NAMES THE MECHANISM. An extra key whose
+            # value is null IS the response-model defect: the model served
+            # null where the builder omitted the field. An extra key with a
+            # REAL VALUE is something this process cannot produce, which is
+            # an environment difference and not a defect at all.
+            dropped = sorted(produced - mine - _ENV_DEPENDENT_KEYS)
+            extra = mine - produced
+            null_extra = sorted(k for k in extra if served.get(k) is None)
+            env_extra = sorted(k for k in extra
+                               if served.get(k) is not None
+                               and k in _ENV_DEPENDENT_KEYS)
+            valued_extra = sorted(k for k in extra
+                                  if served.get(k) is not None
+                                  and k not in _ENV_DEPENDENT_KEYS)
+
             expect(not dropped,
                    f"the app's health_payload() produces {sorted(produced)} "
                    f"but the wire serves {sorted(mine)} — {dropped} is "
                    "dropped between the code and the response, which is the "
                    "ASGI response-model class this row exists for")
-            expect(not added,
-                   f"the wire serves {added} that health_payload() never "
-                   f"produced (code {sorted(produced)} vs wire "
-                   f"{sorted(mine)}) — an Optional field served as null "
-                   "where the builder OMITTED the key, so this lane and the "
-                   "others disagree about the key set")
+            expect(not null_extra,
+                   f"the wire serves {null_extra} as NULL where "
+                   "health_payload() omitted the key entirely — an Optional "
+                   "field rendered as null, so this lane and the others "
+                   f"disagree about the key set (code {sorted(produced)} vs "
+                   f"wire {sorted(mine)})")
+            expect(not valued_extra,
+                   f"the wire serves {valued_extra} with a real value that "
+                   f"health_payload() never produced (code {sorted(produced)}"
+                   f" vs wire {sorted(mine)}) — not a null-rendering, so "
+                   "either the route adds a key outside the builder or this "
+                   "key belongs in the environment-dependent set")
+            if env_extra:
+                warn(f"the wire serves {env_extra} with a real value and "
+                     "this process cannot produce it — those keys depend on "
+                     "the ENVIRONMENT (RENDER_GIT_COMMIT), not the code, so "
+                     "the key sets are not compared on them. Everything "
+                     "else matched.")
             return
 
         # AN UNREADABLE REFERENCE IS A SKIP, NEVER A FAILURE. In process the

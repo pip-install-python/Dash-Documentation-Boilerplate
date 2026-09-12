@@ -910,7 +910,10 @@ def test_a_key_the_wire_ADDS_is_caught(battery, wired, monkeypatch):
     results = _rewrite_full(wired, monkeypatch, transform)
     _n, verdict, detail = _row(results, "healthz_keys_vs_template")
     assert verdict == battery.FAIL, (verdict, detail)
-    assert "surprise" in detail and "never produced" in detail, detail
+    # The message now names the MECHANISM from the value: a null extra is
+    # the model rendering a field the builder omitted. This assertion read
+    # "never produced" until the CD failure forced that distinction.
+    assert "surprise" in detail and "NULL" in detail, detail
 
 
 def test_a_key_the_wire_DROPS_is_still_caught(battery, wired, monkeypatch):
@@ -948,3 +951,74 @@ def test_the_battery_can_raise_a_warning_at_all(battery):
     except battery.SmokeWarn as exc:
         monkey.append(str(exc))
     assert monkey == ["a difference not worth failing on"]
+
+
+# -- env-dependent keys warn on the SELF path too (CD failure, 2026-09-12) --
+
+
+def _healthz_with(wired, monkeypatch, mutate):
+    """Run the battery with /healthz's body mutated by `mutate(dict)`."""
+    import json as _json
+
+    def transform(url, ua, status, headers, text):
+        if url.endswith("/healthz") and status == 200:
+            body = _json.loads(text)
+            mutate(body)
+            return status, headers, _json.dumps(body)
+        return status, headers, text
+
+    return _rewrite_full(wired, monkeypatch, transform)
+
+
+def test_an_env_dependent_key_on_the_wire_WARNS_it_does_not_fail(
+        battery, wired, monkeypatch):
+    """THE CD FAILURE THIS TEST EXISTS FOR.
+
+    Widening the row to both directions broke `verify the live site` on run
+    34712078888. The reference is computed IN THIS PROCESS while `mine` is
+    read off THE WIRE — so in verify the wire is production, with
+    RENDER_GIT_COMMIT set and `build` a real sha, and the reference is a
+    runner with no such variable. The row red on an environment difference
+    between two correct hosts.
+
+    A real value the process cannot produce is an environment difference.
+    """
+    results = _healthz_with(
+        wired, monkeypatch,
+        lambda body: body.update({"build": "a" * 40}))
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.WARN, (verdict, detail)
+    assert "build" in detail and "ENVIRONMENT" in detail, detail
+
+
+def test_a_NULL_extra_key_still_FAILS(battery, wired, monkeypatch):
+    """The mutation the other way, and the defect the widening was for: the
+    VALUE is what names the mechanism. Null means the model rendered a field
+    the builder omitted."""
+    results = _healthz_with(
+        wired, monkeypatch,
+        lambda body: body.update({"build": None}))
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.FAIL, (verdict, detail)
+    assert "NULL" in detail, detail
+
+
+def test_an_unknown_key_with_a_real_value_fails_rather_than_warning(
+        battery, wired, monkeypatch):
+    """Only the NAMED set is environmental. An unexpected key with a value
+    is still a difference worth failing, or the exclusion becomes a hole."""
+    results = _healthz_with(
+        wired, monkeypatch,
+        lambda body: body.update({"surprise": "value"}))
+    _n, verdict, detail = _row(results, "healthz_keys_vs_template")
+    assert verdict == battery.FAIL and "surprise" in detail, detail
+
+
+def test_a_required_row_that_WARNS_still_satisfies_require(battery,
+                                                           monkeypatch):
+    """`--require` means "must not SKIP". A warn has reached a verdict and
+    made its comparison, so it must not turn the verify job red — which is
+    the whole point of the warn channel."""
+    results = [("ai_bot_posture", battery.WARN, "an environment difference"),
+               ("healthz_ok", battery.PASS, "")]
+    assert _main_with(battery, monkeypatch, results, "ai_bot_posture") == 0
