@@ -546,12 +546,17 @@ def test_the_asgi_lane_does_not_add_a_null_key_the_builder_omitted():
     absent: invisible in production (Render sets the commit) and invisible
     to every test that reads values rather than keys.
     """
-    pytest.importorskip("fastapi")
-    import inspect
+    # READ THE FILE, do not import the module. `from lib import asgi_routes`
+    # pulls in fastapi, so the first version of this test carried an
+    # `importorskip("fastapi")` — which made a SOURCE pin skip on the flask
+    # and quart legs, where the source is identical and perfectly readable.
+    # That extra skip is what showed up as a ninth on those legs and briefly
+    # looked like a 3.14 dependency difference. A source assertion should
+    # not depend on the lane.
+    import pathlib
 
-    from lib import asgi_routes
-
-    source = inspect.getsource(asgi_routes)
+    source = (pathlib.Path(__file__).resolve().parent.parent
+              / "lib" / "asgi_routes.py").read_text()
     assert "response_model_exclude_none=True" in source, (
         "the health route no longer excludes None — an Optional field the "
         "builder withheld is served as null, and this lane's key set drifts "
