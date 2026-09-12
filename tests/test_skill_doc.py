@@ -364,3 +364,61 @@ def test_the_check_can_see_a_claimed_route(app_module):
     claimed, seen = _well_known_routes(package_app)
     assert claimed == set(), claimed
     assert seen == {wellknown.API_CATALOG_PATH}, seen
+
+
+# ---- the quickstart section (pannellum + muicharts, 2026-09-12) --
+
+
+def test_the_generated_skill_carries_a_NON_EMPTY_quickstart():
+    """An absent section returned "" and `if quickstart:` skipped the block,
+    so a host with a differently-spelled heading shipped a SKILL.md with no
+    quickstart AND NO ERROR. That is the whole defect: not a crash, a
+    silently thinner document.
+    """
+    from lib.skill_doc import _quickstart, build_skill_md
+
+    quickstart = _quickstart()
+    assert quickstart.strip(), (
+        "the home page yields no how-do-I-use-this section — an agent asking "
+        "this host for its skill would be told what it is and never how to "
+        "use it"
+    )
+    assert len(quickstart) > 100, f"only {len(quickstart)} chars"
+    document = build_skill_md()
+    assert "## Quick Start" in document, document[:400]
+
+
+def test_every_spelling_that_answers_how_do_i_use_this_is_accepted():
+    """The fleet writes it three ways: `## Quick Start` here, `## Quickstart`
+    on pannellum, and `## Installation` + `## Quick Start` on muicharts —
+    where quoting only the latter produced a skill that showed the code and
+    never how to obtain the package."""
+    from lib.skill_doc import _QUICKSTART_HEADINGS
+
+    for spelling in ("quick start", "quickstart", "installation"):
+        assert spelling in _QUICKSTART_HEADINGS, spelling
+
+
+def test_a_split_installation_and_quickstart_are_BOTH_taken(monkeypatch,
+                                                            tmp_path):
+    """muicharts's shape. Both sections, in the page's own order, because
+    installation before usage is the order a reader needs."""
+    import lib.skill_doc as mod
+
+    home = tmp_path / "pages"
+    home.mkdir()
+    (home / "home.md").write_text(
+        "# Title\n\n"
+        "## Installation\n\npip install the-thing\n\n"
+        "## Quick Start\n\nimport the_thing\n\n"
+        "## Something Else\n\nnot this\n"
+    )
+    monkeypatch.setattr(mod, "_REPO_ROOT", tmp_path)
+    out = mod._quickstart()
+    assert "pip install the-thing" in out, out
+    assert "import the_thing" in out, out
+    assert "not this" not in out, out
+    assert out.index("pip install") < out.index("import the_thing"), (
+        "usage came before installation — a reader is told to use a package "
+        "they have not been told how to get"
+    )

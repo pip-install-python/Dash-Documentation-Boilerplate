@@ -497,12 +497,33 @@ def test_an_absent_skills_list_is_caught(battery, wired, monkeypatch):
     assert verdict == battery.FAIL and "not a list" in detail
 
 
+def _derived_page(wired) -> str:
+    """The page the rows will probe, derived the way they derive it.
+
+    These mutation tests used to key on the literal `/backends`. Once the
+    rows stopped hardcoding it (pannellum's rider) the transforms stopped
+    intercepting anything and the tests passed a mutation that never
+    happened — a literal in a test guarding against literals.
+    """
+    import re
+    import urllib.parse
+
+    status, _, xml = wired.fetch(BASE + "/sitemap.xml", ua=wired.UA)
+    assert status == 200, f"/sitemap.xml {status} — cannot derive a page"
+    for loc in re.findall(r"<loc>\s*([^<]+?)\s*</loc>", xml):
+        path = urllib.parse.urlsplit(loc).path.rstrip("/")
+        if path and not path.startswith("/admin") and path != "/404":
+            return path
+    raise AssertionError("no public page in the sitemap")
+
+
 def test_a_negotiated_page_that_is_a_different_page_is_caught(battery, wired,
                                                               monkeypatch):
     """The invariant is identity of the PAGE — the drop's byte-equality does
     not hold on dimll 2.10.0 (measured: a 7,481-char common suffix and a
     differing navigation line)."""
-    results = _rewrite(wired, monkeypatch, "/backends/llms.txt",
+    page = _derived_page(wired)
+    results = _rewrite(wired, monkeypatch, f"{page}/llms.txt",
                        lambda s, t: (s, "# Some Other Page\n\nbody\n"))
     _n, verdict, detail = _row(results, "page_markdown_negotiation")
     assert verdict == battery.FAIL and "different page" in detail
@@ -655,8 +676,10 @@ def test_a_404_to_the_BROWSER_is_caught_too(battery, wired, monkeypatch):
 def test_a_guard_that_eats_registered_pages_is_caught(battery, wired,
                                                       monkeypatch):
     """A 404-everything guard passes any row that only checks the 404."""
+    page = _derived_page(wired)
+
     def transform(url, ua, status, headers, text):
-        if url.endswith("/backends"):
+        if url.endswith(page):
             return 404, headers, "not found"
         return status, headers, text
 

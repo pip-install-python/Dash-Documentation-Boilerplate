@@ -85,22 +85,40 @@ def skill_description() -> str:
     return text
 
 
+# The headings that answer "how do I use this", not one literal spelling.
+# Measured across the fleet 2026-09-12 (pannellum, muicharts): the template
+# writes `## Quick Start`, pannellum `## Quickstart`, and muicharts SPLITS
+# `## Installation` from `## Quick Start` — so a generator matching one
+# literal produced a skill that showed the code and never how to obtain the
+# package. Every matching section is taken, in the order the page writes
+# them, because installation before usage is the order a reader needs.
+_QUICKSTART_HEADINGS = (
+    "installation", "install", "quick start", "quickstart",
+    "getting started", "usage",
+)
+
+
 def _quickstart() -> str:
-    """The `## Quick Start` section of the home page, verbatim.
+    """The home page's how-do-I-use-this sections, verbatim and in order.
 
     From the corpus, not a copy: home.md is what a human reader is shown, so
     an agent and a reader get the same instructions or the generator is
-    pointless. Absent section -> empty string, and the body still carries the
-    pointers, because a skill with no quickstart is thinner but not wrong.
+    pointless.
     """
     home = _REPO_ROOT / "pages" / "home.md"
     try:
         text = home.read_text()
     except OSError:
         return ""
-    match = re.search(r"^## Quick Start\s*$(.*?)(?=^## |\Z)", text,
-                      re.M | re.S)
-    return match.group(1).strip() if match else ""
+    taken = []
+    for match in re.finditer(r"^##\s+(.+?)\s*$(.*?)(?=^## |\Z)", text,
+                             re.M | re.S):
+        heading = match.group(1).strip().lower()
+        if heading in _QUICKSTART_HEADINGS:
+            body = match.group(2).strip()
+            if body:
+                taken.append(f"### {match.group(1).strip()}\n\n{body}")
+    return "\n\n".join(taken)
 
 
 def build_skill_md() -> str:

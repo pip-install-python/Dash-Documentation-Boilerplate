@@ -76,18 +76,58 @@ notes: HISTORY, corrected — 1.6.44 shipped an exact `==2.9.4` on the
 class: cargo (generator) + contract (the name rule)
 files: `lib/skill_doc.py`, `run.py`
 detect: `/.well-known/agent-skills/index.json` lists ≥ 1 skill.
-acceptance: `sha256` of the FETCHED SKILL.md equals the index digest.
+acceptance: the index entry's **`digest`** field equals
+  `"sha256:" + sha256(fetched bytes).hexdigest()` — the field is `digest`
+  and it CARRIES THE `sha256:` PREFIX, not a bare hex digest (pannellum,
+  2026-09-12: read as this line previously said, a correct host prints
+  MATCH: False).
 notes: frontmatter `name` is the host's package's PyPI name; a host with
   no package (this one) serves one skill for the network's use.
 
-### 3. Eight battery rows for the well-known surfaces
+  **THE QUICKSTART IS A SET OF HEADINGS, NOT ONE LITERAL** (pannellum,
+  muicharts). The fleet writes it three ways: `## Quick Start` here,
+  `## Quickstart` on pannellum, `## Installation` + `## Quick Start` on
+  muicharts — and matching one literal produced a skill that showed the
+  code and never how to obtain the package. The generator accepts every
+  heading that answers "how do I use this" and takes them ALL, in the
+  page's own order, because installation before usage is the order a
+  reader needs.
+  detect: the extractor matches a single heading string.
+  acceptance: a test asserts the extracted section is NON-EMPTY — an
+  absent section returned "" and the `if quickstart:` guard skipped the
+  block, so the host shipped a SKILL.md with no quickstart AND NO ERROR.
+
+### 3. SEVEN battery rows for the well-known surfaces
 class: cargo + contract
 files: `scripts/network_smoke.py`, `tests/test_network_smoke.py`
 detect: `grep -c 'wellknown_unknown_404' scripts/network_smoke.py` = 0, or
   any of the eight row names absent from the registration list.
 acceptance: green on the template; each row mutation-checked once, and
   each names what it did NOT cover when it skips.
-notes: **A defect was RECORDED, not worked around.** `/healthz`,
+notes: **SEVEN, not eight** (pannellum, 2026-09-12). This block said
+  eight; seven are attributable to item 3 and the eighth,
+  `openapi_document_renders`, belongs to note 143 and is specified in its
+  own block below. A fork counting rows against this text came up one
+  short and had nowhere to look.
+
+  **AND THE ROWS MUST NOT HARDCODE A PAGE.** `/backends` — the TEMPLATE's
+  page — was written into FIVE places across `page_llms_nav`,
+  `agents_and_browsers_get_different_types`,
+  `page_markdown_negotiation`, `edge_honours_vary` and `crawler_404`, so a
+  fork copying them verbatim fails with "/backends (markdown) 404" and the
+  row reads as a broken feature rather than a borrowed path. All five now
+  call `require_probe_page()`, which derives a public page from THE HOST'S
+  OWN /sitemap.xml and SKIPS when none can be derived.
+  Derived from the sitemap rather than `dash.page_registry` (which the
+  rider proposed) for two reasons: it works against a REMOTE host with no
+  checkout beside the script, which is the seat this battery is most often
+  run from; and the registry would describe the TREE rather than the host
+  being probed. A hidden page is not in a sitemap, so "public" comes free.
+  detect: `grep -n '"/backends"' scripts/network_smoke.py` outside
+  comments returns any line.
+  acceptance: the rows pass on a host with no page named `/backends`.
+
+  **A defect was RECORDED, not worked around.** `/healthz`,
   `/api/backend` and `/api/pages` emit the same `operationId` for GET and
   HEAD — 16 operations, 13 distinct — so the OpenAPI document is invalid
   fleet-wide. The cause is structural (dimll adds HEAD; FastAPI generates
@@ -109,8 +149,14 @@ class: contract
 files: `lib/skill_doc.py`, tests
 detect: a licence name written as a literal anywhere it is served,
   rather than read from `LICENSE`.
+detect: any served licence name compared with a SUBSTRING (`"MIT" in
+  TERMS_DOC`) rather than against `licence_name()`.
 acceptance: the licence name checked through the MACHINE lane, not just
-  the repo file.
+  the repo file, and compared for EQUALITY.
+notes: pannellum served "the MIT licence" while its LICENSE says "MIT
+  License" — two spellings, the machine lane wrong — and `"MIT" in
+  TERMS_DOC` passed throughout. A substring check cannot see a wrong
+  spelling of the right licence, which is the only failure this item has.
 
 ### 5. The well-known namespace as a recorded convention
 class: kit

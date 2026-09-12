@@ -355,8 +355,9 @@ def satellite_checks(base: str) -> None:
         expect(HUB_URL in text, f"the directory does not name {HUB_URL}")
 
     def page_llms_nav():
-        status, _, text = get("/backends/llms.txt")
-        expect(status == 200, f"/backends/llms.txt {status}")
+        page = require_probe_page()
+        status, _, text = get(f"{page}/llms.txt")
+        expect(status == 200, f"{page}/llms.txt {status}")
         expect("/llms.txt" in text, "llms_nav header missing — page doc is a dead end")
 
     def hidden_pages_404():
@@ -415,14 +416,15 @@ def satellite_checks(base: str) -> None:
 
     def agents_and_browsers_get_different_types():
         # One URL, two audiences, and a `Vary` that stops a CDN mixing them.
-        status, md_headers, md = get("/backends/llms.txt")
-        expect(status == 200, f"/backends/llms.txt {status}")
+        page = require_probe_page()
+        status, md_headers, md = get(f"{page}/llms.txt")
+        expect(status == 200, f"{page}/llms.txt {status}")
         expect(md_headers.get("content-type", "").startswith("text/markdown"),
                f"agents got {md_headers.get('content-type')!r}")
         expect("<!DOCTYPE html>" not in md, "viewer chrome reached an agent")
 
         _status, html_headers, html = get(
-            "/backends/llms.txt",
+            f"{page}/llms.txt",
             headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
         expect("text/html" in html_headers.get("content-type", ""),
                f"browsers got {html_headers.get('content-type')!r}")
@@ -593,6 +595,47 @@ def satellite_checks(base: str) -> None:
     # Every one NAMES WHAT IT DID NOT COVER when it skips, because a skip
     # that says nothing is indistinguishable from a pass that means nothing.
 
+    _probe_page_cache = {}
+
+    def probe_page():
+        """A PUBLIC page path on THE HOST UNDER TEST, derived not hardcoded.
+
+        `/backends` was written into five places across two rows. It is the
+        TEMPLATE's page: a fork that copies those rows verbatim fails with
+        "/backends (markdown) 404" and the row reads as a broken feature
+        rather than a borrowed path (pannellum, 2026-09-12).
+
+        Derived from the host's OWN /sitemap.xml rather than from
+        `dash.page_registry`, which is what the rider proposed: the sitemap
+        works against a REMOTE host with no checkout beside the script,
+        which is the seat this battery is most often run from, and it lists
+        public pages by construction — a hidden page is not in it. The
+        registry would need the app importable, and would describe THIS
+        tree rather than the host being probed.
+
+        Skips the row when no usable page can be derived, rather than
+        falling back to a literal.
+        """
+        if "path" in _probe_page_cache:
+            return _probe_page_cache["path"]
+        status, _, xml = get("/sitemap.xml")
+        candidates = []
+        if status == 200:
+            for loc in re.findall(r"<loc>\s*([^<]+?)\s*</loc>", xml):
+                path = urllib.parse.urlsplit(loc).path.rstrip("/")
+                if path and not path.startswith("/admin") and path != "/404":
+                    candidates.append(path)
+        _probe_page_cache["path"] = candidates[0] if candidates else None
+        return _probe_page_cache["path"]
+
+    def require_probe_page():
+        path = probe_page()
+        if not path:
+            skip("no public page could be derived from /sitemap.xml on this "
+                 "host, so there is no page to negotiate against — the "
+                 "representation checks were NOT made here")
+        return path
+
     def wellknown_unknown_404():
         """Tier 0: an unknown /.well-known/* path is a 404 JSON body, never
         the app shell.
@@ -738,9 +781,10 @@ def satellite_checks(base: str) -> None:
         Not a second URL: same path, negotiated, with `Vary` naming Accept so
         a shared cache cannot serve one to a client that asked for the other.
         """
+        page = require_probe_page()
         status, headers, markdown = get(
-            "/backends", headers={"Accept": "text/markdown"})
-        expect(status == 200, f"/backends (markdown) {status}")
+            page, headers={"Accept": "text/markdown"})
+        expect(status == 200, f"{page} (markdown) {status}")
         ctype = headers.get("content-type", "")
         expect(ctype.startswith("text/markdown"),
                f"Accept: text/markdown got {ctype!r}")
@@ -749,7 +793,7 @@ def satellite_checks(base: str) -> None:
                "this markdown to a browser")
 
         _s, html_headers, _html = get(
-            "/backends", headers={"Accept": "text/html,*/*;q=0.8"})
+            page, headers={"Accept": "text/html,*/*;q=0.8"})
         expect("text/html" in html_headers.get("content-type", ""),
                "the same URL did not give HTML to an HTML request")
 
@@ -769,7 +813,7 @@ def satellite_checks(base: str) -> None:
         # H1, both markdown. That catches the negotiation serving a different
         # page — which is the failure worth catching — and does not pretend
         # to a byte equality the package does not offer.
-        _s, _h, standalone = get("/backends/llms.txt")
+        _s, _h, standalone = get(f"{page}/llms.txt")
         heading = markdown.strip().splitlines()[0] if markdown.strip() else ""
         twin_heading = (standalone.strip().splitlines()[0]
                         if standalone.strip() else "")
@@ -778,7 +822,7 @@ def satellite_checks(base: str) -> None:
                f"{heading[:60]!r}")
         expect(heading == twin_heading,
                f"the negotiated representation is a different page: "
-               f"{heading!r} vs {twin_heading!r} at /backends/llms.txt")
+               f"{heading!r} vs {twin_heading!r} at {page}/llms.txt")
 
     def edge_honours_vary():
         """A REAL cache in front of this host serves two representations of
@@ -787,10 +831,11 @@ def satellite_checks(base: str) -> None:
             skip("not fetched through an edge (no https) — Vary is asserted "
                  "on the app's own headers by page_markdown_negotiation, and "
                  "the CACHE's behaviour is not covered here")
+        page = require_probe_page()
         _s, md_headers, markdown = get(
-            "/backends", headers={"Accept": "text/markdown"})
+            page, headers={"Accept": "text/markdown"})
         _s2, html_headers, html = get(
-            "/backends", headers={"Accept": "text/html,*/*;q=0.8"})
+            page, headers={"Accept": "text/html,*/*;q=0.8"})
         expect(markdown != html,
                "the edge served ONE representation to both Accept headers — "
                "a cache that ignores Vary")
@@ -956,10 +1001,11 @@ def satellite_checks(base: str) -> None:
 
         # And a real page must still be 200 on both, or this row would pass
         # on a host that 404s everything.
+        real = require_probe_page()
         for label, ua in (("crawler", CRAWLER_UA), ("browser", BROWSER_UA)):
-            status, _, _ = get("/backends", ua=ua)
+            status, _, _ = get(real, ua=ua)
             expect(status == 200,
-                   f"/backends answered {status} to a {label} — the guard is "
+                   f"{real} answered {status} to a {label} — the guard is "
                    "eating registered pages")
 
     def content_signal_matches_config():
