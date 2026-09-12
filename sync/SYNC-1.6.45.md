@@ -156,6 +156,23 @@ notes: the instrument for everything else. Do not upgrade pip inside a
   A fork with a SHORT checkout path will pass either way. That is the
   trap, not a reason to skip the fix.
 
+  **AND A SECOND HOTFIX, 2c650f9 — A PER-UID TEMP DIR IS SHARED STATE**
+  (pannellum, 2026-09-12). `WORK="${TMPDIR:-/tmp}/ci_leg_$BACKEND"` put
+  two repos' clones in ONE directory, because $TMPDIR is
+  /tmp/claude-<uid>, shared by every seat running as that user.
+  Pannellum's flask clone sat at ANOTHER fork's commit while its other
+  two legs were its own — and the contaminated run reported EXACTLY its
+  clean numbers. A wrong green that announces nothing; it surfaced only
+  because the battery then tripped on a file that WAS in its tree.
+  Fix, adopted as given:
+  `REPO_KEY="$(basename "$REPO")-$(printf '%s' "$REPO" | cksum | cut -d' ' -f1)"`
+  and `WORK="${TMPDIR:-/tmp}/ci_leg_${REPO_KEY}_$BACKEND"`. basename
+  ALONE IS NOT ENOUGH — a fork and its template, or two checkouts of one
+  fork, still collide — and the test proves it on all three shapes.
+  detect: `grep '^WORK=' scripts/ci_leg.sh` without `$REPO_KEY`.
+  acceptance: the three keys differ for template / fork / same-basename
+  second checkout; three legs green from the fixed script.
+
 ### 7. `/healthz` counts the ledger without parsing it
 class: contract
 files: `lib/health.py`
@@ -374,6 +391,50 @@ notes: one unreadable `/healthz` mid-swap is a container restarting —
   not tuned to make our numbers pass: the bracket-position inference
   still holds, with ~17 s of margin, and that is all it holds by.
 
+### note 128 / the shim-retirement gate — MISSED FROM THIS SPEC, PLACED
+class: contract (fork-facing) + a 1.6.46 item for the template
+detect: see each half below.
+acceptance: see each half below.
+notes: **These two were MISSED, not filtered.** Ops asked whether the kit
+  test had rejected them as unspecifiable; it had not — that test only
+  rejects a block lacking class/detect/acceptance, and neither item was
+  ever written into this file in any form, so there was nothing to
+  reject. My omission, and the seat's kickoff told pannellum they were
+  here. Placement below is stated with its reason rather than split
+  evenly.
+
+  **(a) HeadAsGetMiddleware retirement — FORK-FACING, and it belongs in
+  THIS spec.** The template has already done it: retired at 1.6.44 item
+  2, and `lib/asgi_middleware.py` carries the tombstone naming the
+  version. So it is not a template item at all — but wave 1 is reading
+  THIS document this hour, and a fork still carrying the shim needs the
+  gate now, not in 1.6.46.
+  detect: `grep -rn HeadAsGet lib/` returns a live class (not a comment).
+  acceptance: read `llms_version` off YOUR production and confirm
+  `>= 2.9.4` FIRST — the retirement is gated on the pin, not on the date;
+  re-measure the HEAD/GET pairs with the shim disabled (5 paths x 3 UAs);
+  prove the disable NON-VACUOUS by asserting the middleware stack
+  contains the class in one run and not the other; then delete. If you
+  keep it, `DIVERGENCES.md` says what it still covers.
+
+  **(b) note 128's IncompleteRead backoff — FILED AS 1.6.46 ITEM 1, and
+  the reason is that it is a CODE FIX I have not written.** The battery's
+  `fetch` retries the whole REQUEST three times; it has no read-in-a-loop
+  backoff, and whole-request retries do not save a truncated chunked
+  read. Evidence from this release, first-hand: the production battery
+  run during 1.6.45 failed `agents_and_browsers_get_different_types`
+  with `IncompleteRead(6406 bytes read, 1602 more expected)` AFTER its
+  three retries. So the defect is real and measured here.
+  It is not in 1.6.45 because writing the spec line without the fix is
+  exactly the record-is-not-the-delivery error (note 135), and a retry
+  loop shipped unverified into a just-shipped release is worse than one
+  filed properly: reproducing a partial chunked read deterministically
+  needs a fixture, and that is its own commit.
+  detect: `fetch` retries the request but never accumulates partial
+  reads; `grep -c IncompleteRead scripts/network_smoke.py` = 0.
+  acceptance: a fixture that truncates a chunked body mid-read is
+  recovered, with a control proving the fixture actually truncates.
+
 ### Admin gates (rider + two addenda)
 class: cargo (the tests) + contract (the conftest snapshot)
 files: `tests/test_admin_gates.py`, `tests/conftest.py`
@@ -436,3 +497,36 @@ notes: regression tests — the kit already had both behaviours. **BOTH
   `…80fib/health.py`; git exits 128, but through a pipe the pipeline
   reports exit **0** with `pipestatus=(128 0)`. Always `"${sha}:path"`,
   and read `pipestatus` when a parser sits downstream.
+
+---
+
+## Filed for 1.6.46, not done here and not claimed
+
+Named so none of it rides on anybody's memory, and so a fork does not
+port a fix that does not exist yet:
+
+1. **note 128's IncompleteRead backoff** — see the rider above. Measured
+   biting on this host's own production battery run.
+2. **`/healthz` exposes an absolute filesystem path** in `ledger.path`
+   (production shows /var/data/visitor_analytics.json). A small
+   disclosure and a host-varying shape — it is also what made the probe
+   cap defect above depend on checkout depth. Report the ledger's
+   persistence and counts WITHOUT the path, once the key contract can
+   absorb it.
+3. **The 3.14 / pip-26.1 truststore mechanism in `ci_leg.sh`**
+   (muicharts). 3.14.4's ensurepip ships pip 26.1, which validates TLS
+   through the macOS truststore and ignores `--cert`/`PIP_CERT`
+   (`OSStatus -26276` behind a proxy) — so a 3.14 leg gets the broken
+   resolver BY DEFAULT, and "do not upgrade pip, the stock pip works" is
+   no longer sufficient advice. The script should build the 3.14 venv
+   `--without-pip` and install with an older pip via
+   `pip --python <venv>/bin/python install …`. Also: certifi is the wrong
+   bundle for pip (the proxy's CA is in the system bundle; certifi
+   carries Mozilla's roots) and the right one for the app's runtime
+   fetches — the script resolves each for its own job. python3.14 IS
+   available on this seat, so this is verifiable and simply not yet done.
+4. **`promote_sampler.py`'s docstring overclaims.** It says it samples
+   "the wire and the CD run state on ONE timeline"; it reads only the
+   wire. The 1.6.45 promote needed a second watcher for `release`, which
+   is the two-reconstructions shape that trap warns against. Either make
+   it read both, or correct the docstring — and the trap line with it.
