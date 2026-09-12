@@ -46,7 +46,19 @@ FORCE_MASKS=0
 [ "${2:-}" = "--masks" ] && FORCE_MASKS=1
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-WORK="${TMPDIR:-/tmp}/ci_leg_$BACKEND"
+# A PER-UID TEMP DIR IS SHARED STATE. $TMPDIR here is /tmp/claude-<uid>,
+# shared by every seat running as this user, so `ci_leg_$BACKEND` put two
+# repos' clones in ONE directory: pannellum measured its own flask clone
+# sitting at another fork's commit while its other two legs were its own,
+# and the contaminated run reported EXACTLY its clean numbers — a wrong
+# green that announces nothing. Every work path under a shared temp dir
+# carries the repo's identity.
+#
+# basename alone is not enough: a fork and the template it came from, or
+# two checkouts of one fork, still collide. The cksum of the full path
+# separates them; the basename stays so the directory is still readable.
+REPO_KEY="$(basename "$REPO")-$(printf '%s' "$REPO" | cksum | cut -d' ' -f1)"
+WORK="${TMPDIR:-/tmp}/ci_leg_${REPO_KEY}_$BACKEND"
 CLONE="$WORK/clone"
 VENV="$WORK/venv"
 

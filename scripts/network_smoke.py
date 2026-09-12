@@ -311,9 +311,26 @@ def satellite_checks(base: str) -> None:
         served = json.loads(text).get("python") or ""
         expect(bool(served), "/healthz carries no `python` field — the "
                "serving interpreter is invisible (pre-1.6.27 build?)")
+        # BOTH NO-COMPARISON PATHS ARE SKIPS, NEVER PASSES (1.6.45 item 11,
+        # applied to the row that predates it — muicharts, 2026-09-12).
+        # This was a bare `return`, which records a PASS: a seat that had
+        # declared ITSELF off-contract counted an unmade comparison as
+        # evidence. `scripts/ci_leg.sh` sets SMOKE_PYTHON_DECLARED=ignore on
+        # every leg, so the kit's own instrument carried the false pass on
+        # every run. Measured: with the variable set the row read `[pass]`;
+        # armed on the same tree it reads FAIL (3.11.8 served vs 3.14
+        # declared).
+        if os.environ.get("SMOKE_PYTHON_DECLARED") == "ignore":
+            skip("this seat declared itself off-contract with "
+                 "SMOKE_PYTHON_DECLARED=ignore — its interpreter is not a "
+                 "deploy artifact, so the served-versus-declared comparison "
+                 "was NOT made here (it stays armed in the docker job and in "
+                 "CD's verify, which are the seats where it means something)")
         declared = declared_python_minor()
         if declared is None:
-            return
+            skip("no Dockerfile beside this script, so this checkout "
+                 "declares no fleet Python — the served interpreter was NOT "
+                 "held against anything")
         served_minor = ".".join(served.split(".")[:2])
         expect(served_minor == declared,
                f"host serves Python {served}, repo declares {declared} — "

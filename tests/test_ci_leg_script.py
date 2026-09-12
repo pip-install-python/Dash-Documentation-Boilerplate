@@ -92,3 +92,58 @@ def test_the_fallback_proves_the_masks_bite_before_reporting_green():
 def test_it_names_the_absences_it_is_testing_for():
     for pkg in ("fastapi", "starlette", "quart", "pillow", "flake8"):
         assert pkg in SOURCE.lower(), f"{pkg} is not among the tracked absences"
+
+
+def test_the_work_dir_carries_the_repo_identity():
+    """A per-UID temp dir is SHARED STATE (pannellum, 2026-09-12).
+
+    `$TMPDIR` is /tmp/claude-<uid> — shared by every seat running as this
+    user — so `ci_leg_$BACKEND` put two repos' clones in ONE directory.
+    Pannellum measured its own flask clone sitting at ANOTHER fork's commit
+    while its other two legs were its own, and the contaminated run
+    reported EXACTLY its clean numbers: a wrong green that announces
+    nothing. It surfaced only because the battery then tripped on a file
+    that WAS in its tree.
+
+    basename alone is not enough — a fork and its template, or two
+    checkouts of one fork, still collide — so the key carries a cksum of
+    the full path.
+    """
+    source = (REPO_ROOT / "scripts" / "ci_leg.sh").read_text()
+    work = [line for line in source.splitlines()
+            if line.startswith("WORK=")]
+    assert len(work) == 1, work
+    assert "$REPO_KEY" in work[0] or "${REPO_KEY}" in work[0], (
+        f"{work[0]} does not carry the repo identity — two seats on one UID "
+        "will clone into the same directory and the counts will be somebody "
+        "else's"
+    )
+    assert "REPO_KEY=" in source
+    assert "cksum" in source, (
+        "the key has no path hash — basename alone collides for a fork and "
+        "its template, and for two checkouts of one repo"
+    )
+
+
+def test_the_repo_key_separates_the_three_collision_shapes():
+    """The control: the key must differ for a fork vs the template, and for
+    two checkouts sharing a basename. A key that were constant would satisfy
+    the source pin above and fix nothing."""
+    import subprocess
+
+    def key(path: str) -> str:
+        out = subprocess.run(
+            ["bash", "-c",
+             'printf "%s" "$(basename "$1")-$(printf %s "$1" | cksum '
+             '| cut -d" " -f1)"', "_", path],
+            capture_output=True, text=True, check=True)
+        return out.stdout.strip()
+
+    template = key("/repos/dash-documentation-boilerplate")
+    fork = key("/repos/dash-pannellum-docs")
+    twin = key("/elsewhere/dash-documentation-boilerplate")
+    assert template != fork, (template, fork)
+    assert template != twin, (
+        f"{template} == {twin} — two checkouts sharing a basename collide, "
+        "which is the case basename-alone got wrong"
+    )

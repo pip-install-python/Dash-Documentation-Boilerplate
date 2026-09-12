@@ -255,12 +255,19 @@ jobs:
       #                           against 127.0.0.1 and cannot have one
       #   healthz_keys_vs_template  skips when lib/ is not importable beside
       #                           the script, which is only true outside here
+      #   python_matches_declared  the served interpreter IS a deploy
+      #                           artifact here; this row skips wherever a
+      #                           seat sets SMOKE_PYTHON_DECLARED=ignore,
+      #                           and until 1.6.45 that skip was a silent
+      #                           PASS. Requiring it means nobody can turn
+      #                           the comparison off in the one seat that
+      #                           can make it.
       # A name here that is not a real row is itself an error — the script
       # refuses rather than requiring nothing.
       - name: Network smoke battery
         run: |
           python scripts/network_smoke.py --base-url "$SITE_URL" \
-            --require ai_bot_posture,edge_honours_vary,healthz_keys_vs_template
+            --require ai_bot_posture,edge_honours_vary,healthz_keys_vs_template,python_matches_declared
 
       # Then the satellite-specific checks the battery does not make: every
       # canonical, every crawler body, and every peer llms.txt in the

@@ -801,3 +801,68 @@ def test_a_non_fastapi_host_skips_and_names_what_is_uncovered(battery, wired,
     _n, verdict, detail = _row(results, "openapi_document_renders")
     assert verdict == battery.SKIP, (verdict, detail)
     assert "NOT covered" in detail, detail
+
+
+# ---- "cannot run here" must RAISE, never return (muicharts, 2026-09-12) --
+
+
+def test_no_row_expresses_cannot_run_here_as_a_bare_return(battery):
+    """The generalised form of the `python_matches_declared` false pass.
+
+    The bug was not the env knob. It was that "this row cannot run here" was
+    expressed as a RETURN, and a bare return is indistinguishable from a
+    pass at EVERY layer above it — the counts, the summary line, the exit
+    code, the annotation. A row whose precondition is absent must RAISE the
+    skip.
+
+    So this sweeps every row, not just the one that was found. The predicate
+    is not a name whitelist: a bare return is allowed only where the same
+    block has already called `expect`, i.e. the row reached a verdict and is
+    returning early rather than bailing out silently.
+    """
+    import ast
+    import inspect
+    import textwrap
+
+    source = textwrap.dedent(inspect.getsource(battery.satellite_checks))
+    outer = next(n for n in ast.walk(ast.parse(source))
+                 if isinstance(n, ast.FunctionDef)
+                 and n.name == "satellite_checks")
+    rows = [n for n in outer.body if isinstance(n, ast.FunctionDef)]
+    assert len(rows) >= 20, (
+        f"only {len(rows)} rows found — the walk is not reaching them and a "
+        "clean sweep of almost nothing is not a result"
+    )
+
+    def blocks(node):
+        for field in ("body", "orelse", "finalbody"):
+            value = getattr(node, field, None)
+            if isinstance(value, list):
+                yield value
+            if isinstance(value, list):
+                for child in value:
+                    yield from blocks(child)
+
+    offenders = []
+    for row in rows:
+        for block in blocks(row):
+            for index, statement in enumerate(block):
+                if not (isinstance(statement, ast.Return)
+                        and statement.value is None):
+                    continue
+                before = block[:index]
+                reached_a_verdict = any(
+                    isinstance(call.func, ast.Name)
+                    and call.func.id in ("expect", "skip")
+                    for earlier in before
+                    for call in ast.walk(earlier)
+                    if isinstance(call, ast.Call)
+                )
+                if not reached_a_verdict:
+                    offenders.append(f"{row.name}:{statement.lineno}")
+
+    assert offenders == [], (
+        f"{offenders} bail out with a bare return before reaching any "
+        "verdict — that is counted as a PASS. Raise the skip instead: "
+        "`skip(...)` names what was not covered, a return names nothing."
+    )
