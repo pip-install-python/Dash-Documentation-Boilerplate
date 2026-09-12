@@ -430,6 +430,23 @@ they win.
   `completed_at`; it deliberately does not read the job's, because the
   only thing that number can produce is a wrong answer that looks like
   data.
+  TWO CONSECUTIVE BAD READS BEFORE ANY VERDICT (1.6.45, note 149a):
+  mid-swap `/healthz` returns an empty or unparseable body for ONE tick
+  with `release` already moved — a container restarting, not an outage.
+  A watcher that calls that wrong cries wolf; one that reads it as "the
+  run vanished" repeats the rate-limit mistake in a new costume. One
+  unreadable sample is an ordinary member of the bracket (this host put
+  exactly one inside it on BOTH measured pairs); two in a row is a
+  condition in its own right.
+  AND THE SAMPLER PRINTS THE PUSH → PROMOTE GAP, because the inference is
+  that a push-watching Render would have swapped EARLIER than observed,
+  and that separates the two hypotheses ONLY when the gap exceeds the
+  build+swap time. Under ~180 s it reports "no verdict possible". Applying
+  that floor to THIS host's own pairs puts BOTH under it — 112 s and
+  135 s against a measured build+swap of 99–113 s. The floor was not
+  tuned to make our numbers pass: our pairs are strong evidence from the
+  BRACKET'S POSITION and no evidence from the gap, and they hold by about
+  17 seconds. Do not cite them as gap evidence.
 - Verify the artifact the claim is about, and say which one you
   measured. Three hosts got this wrong in one round while holding the
   rule: a skip link checked in the received HTML lives in the RENDERED
@@ -461,7 +478,13 @@ they win.
   it; `py_compile` sees it at once. Same family, same day: a naive
   substring count read fenced documentation as defects (this seat), a
   file-scoped grep matched prose ABOUT the defect it was hunting
-  (muicharts, clerkhook), a `git show … && diff` printed "(empty = same)"
+  (muicharts, clerkhook; and 1.6.45, INSIDE THE TEST WRITTEN TO GUARD
+  THIS FAMILY — a PEP 563 source pin asserting `"from __future__ import
+  annotations" not in source` went RED on a correct file, because that
+  module's DOCSTRING carries the sentence "No ``from __future__ import
+  annotations`` here, deliberately". Parse the construct — assert on real
+  `ast.ImportFrom` nodes — because the words and the code are the same
+  bytes to a grep), a `git show … && diff` printed "(empty = same)"
   on a comparison that never ran (llms), and `pytest … | tail -2 && git
   commit` committed over a red suite because a pipeline's exit status is
   the LAST command's (this seat, one hour after writing the note above).
@@ -606,3 +629,41 @@ they win.
   with one side is not a comparison. Companion rule for every host:
   after any proxy flip, run the crawler probe (training AND
   user-directed agents) and a robots.txt diff, in the same hour.
+- A RELEASE REPORTS COUNTS PER LEG, AND NAMES THE INSTRUMENT THAT
+  PRODUCED THEM (1.6.45 item 6). Running `DASH_BACKEND=<b> pytest` on a
+  machine that has all three backends installed proves the CODE PATH and
+  says nothing about that leg's DEPENDENCY SET — CI installs each leg's
+  own extra only, so fastapi/starlette are absent on flask and quart
+  legs, quart absent elsewhere, Pillow and flake8 absent on every test
+  leg. 1.6.44 went red three times in a row on exactly that gap, each
+  time green locally. Run `scripts/ci_leg.sh <backend>` per leg and quote
+  what it printed, AFTER the commit (it clones, so it reports committed
+  code). The failure mode is not forgetting to run it: at 1.6.45 the
+  local numbers were written into the release note under a heading that
+  said "clean clones", which is the same claim with none of the evidence.
+  A count without its instrument is a number, not a measurement.
+- A GREEN FROM A FILE RUN ALONE IS NOT A GREEN FROM THE SUITE, and the
+  mechanism to know by name: `Dash()` CLEARS
+  `dash._callback.GLOBAL_CALLBACK_MAP`. Any test that builds its own app
+  empties the REAL app's callbacks, and because the page modules stay in
+  `sys.modules` they are never re-registered — measured 1.6.45: after
+  `tests/test_access.py` the map held 0 entries, down from 35, and
+  `test_access` sorts BEFORE `test_admin_gates`, so the admin-gate tests
+  read a wiped registry in every full-suite run while passing alone.
+  They shipped that way. The general rule is the load-bearing half: any
+  process-global another test can mutate makes "the file passes" and
+  "the suite passes" different claims, and only the second one is the
+  one CI makes. BOTH HALVES OF THE FIX MATTER — snapshot the artifact
+  where it is built (conftest, at import) AND run the file inside the
+  full suite per leg; a fork that takes the snapshot and keeps running
+  the file alone still cannot see the failure.
+- IN ZSH, `"$sha:path"` APPLIES THE `:l` MODIFIER and swallows the
+  path's first letter (1.6.45, note 147). Measured here:
+  `"$sha:lib/health.py"` expands to `…80fib/health.py` — the `l` of
+  `lib` is gone. Git fails loudly, exit 128 with a fatal on stderr, so
+  it looks harmless; it looks like SUCCESS only through a pipe into a
+  parser, where the pipeline's status is the LAST command's and
+  `pipestatus[1]` still holds 128. Always `"${sha}:path"`, and read
+  `pipestatus` when a parser sits downstream. Beside the existing "never
+  round-trip JSON through zsh `echo`" — same shell, same class: the
+  quoting looks right and the shell is doing something else.
