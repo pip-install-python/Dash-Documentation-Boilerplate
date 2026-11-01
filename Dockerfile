@@ -6,7 +6,7 @@
 # fleet Python, and tests/test_python_version.py pins that this tag, the CI
 # matrix main and render.yaml's PYTHON_VERSION all agree — while /healthz
 # reports the serving interpreter so the wire can contradict a stale image.
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 # Unbuffered stdout, or none of the app's print() diagnostics ever reach the
 # platform logs: Python block-buffers stdout when it is not a tty, so the
